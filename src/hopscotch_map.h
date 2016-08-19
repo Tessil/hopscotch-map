@@ -90,14 +90,16 @@ private:
         hopscotch_bucket & operator=(const hopscotch_bucket & bucket) noexcept(std::is_nothrow_copy_constructible<value_type>::value && 
                                                                                std::is_nothrow_destructible<value_type>::value) 
         {
-            if(!is_empty()) {
-                get_key_value().~value_type();
-            }
-            
-            m_hop_infos = bucket.m_hop_infos;
-            
-            if(!bucket.is_empty()) {
-                ::new (static_cast<void *>(std::addressof(m_key_value))) value_type(bucket.get_key_value());
+            if(this != &bucket) {
+                if(!is_empty()) {
+                    get_key_value().~value_type();
+                }
+                
+                m_hop_infos = bucket.m_hop_infos;
+                
+                if(!bucket.is_empty()) {
+                    ::new (static_cast<void *>(std::addressof(m_key_value))) value_type(bucket.get_key_value());
+                }
             }
             
             return *this;
