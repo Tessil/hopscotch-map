@@ -71,23 +71,25 @@ private:
     class hopscotch_bucket {
         using storage = typename std::aligned_storage<sizeof(value_type), alignof(value_type)>::type;
     public:
-        hopscotch_bucket() : m_hop_infos(0) {
+        hopscotch_bucket() noexcept : m_hop_infos(0) {
             assert(is_empty());
         }
         
-        hopscotch_bucket(const hopscotch_bucket & bucket) : m_hop_infos(bucket.m_hop_infos) {
+        hopscotch_bucket(const hopscotch_bucket & bucket) noexcept(std::is_nothrow_copy_constructible<value_type>::value) : m_hop_infos(bucket.m_hop_infos) {
             if(!bucket.is_empty()) {
                 ::new (static_cast<void *>(std::addressof(m_key_value))) value_type(bucket.get_key_value());
             }
         }
         
-        hopscotch_bucket(hopscotch_bucket && bucket) : m_hop_infos(bucket.m_hop_infos) {
+        hopscotch_bucket(hopscotch_bucket && bucket) noexcept(std::is_nothrow_move_constructible<value_type>::value) : m_hop_infos(bucket.m_hop_infos) {
             if(!bucket.is_empty()) {
                 ::new (static_cast<void *>(std::addressof(m_key_value))) value_type(std::move(bucket.get_key_value()));
             }
         }
         
-        hopscotch_bucket & operator=(const hopscotch_bucket & bucket) {
+        hopscotch_bucket & operator=(const hopscotch_bucket & bucket) noexcept(std::is_nothrow_copy_constructible<value_type>::value && 
+                                                                               std::is_nothrow_destructible<value_type>::value) 
+        {
             if(!is_empty()) {
                 get_key_value().~value_type();
             }
@@ -101,7 +103,8 @@ private:
             return *this;
         }
         
-        hopscotch_bucket & operator=(hopscotch_bucket && bucket) {
+        hopscotch_bucket & operator=(hopscotch_bucket && bucket) noexcept(std::is_nothrow_move_constructible<value_type>::value && 
+                                                                          std::is_nothrow_destructible<value_type>::value) {
             if(!is_empty()) {
                 get_key_value().~value_type();
             }
@@ -115,7 +118,7 @@ private:
             return *this;
         }
         
-        ~hopscotch_bucket() {
+        ~hopscotch_bucket() noexcept(std::is_nothrow_destructible<value_type>::value) {
             if(!is_empty()) {
                 get_key_value().~value_type();
             }
