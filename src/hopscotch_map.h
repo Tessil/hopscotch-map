@@ -315,8 +315,8 @@ public:
                                                                     m_hash(hash), m_key_equal(equal) 
     {
         // TODO round to nearsest power of 2, bucket_count is the minimal number
-        if(bucket_count == 0 || (bucket_count & 1) != 0) {
-            throw std::runtime_error("bucket_count must be a positive multiple of 2.");
+        if(bucket_count == 0 || (bucket_count & (bucket_count - 1)) != 0) {
+            throw std::runtime_error("bucket_count must be a positive number and a power of 2.");
         }
     }
     
