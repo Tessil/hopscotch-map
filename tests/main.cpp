@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_loop, HMap, test_types) {
     
     auto it = map.begin();
     while(it != map.end()) {
-        auto & key = it->first;
+        auto key = it->first;
         
         it = map.erase(it);
         --nb_values;
