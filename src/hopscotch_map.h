@@ -320,7 +320,7 @@ public:
                                                                     m_hash(hash), m_key_equal(equal) 
     {
         // TODO round to nearsest power of 2, bucket_count is the minimal number
-        if(bucket_count == 0 || (bucket_count & (bucket_count - 1)) != 0) {
+        if(!is_power_of_two(bucket_count)) {
             throw std::runtime_error("bucket_count must be a positive number and a power of 2.");
         }
     }
@@ -768,6 +768,11 @@ private:
         
         return m_buckets.end();
     }
+    
+    static constexpr bool is_power_of_two(size_t value) {
+        return value != 0 && (value & (value - 1)) == 0;
+    }
+    
 private:    
     static const std::size_t NB_BITS_HOP_INFOS = CHAR_BIT * sizeof(HopInfosType);
     
@@ -780,10 +785,10 @@ private:
 
     
     /*
-     * m_buckets.size() should be a multiple of 2 greater than 0. We can then use "hash & (m_buckets.size - 1)" 
+     * m_buckets.size() should be a power of 2. We can then use "hash & (m_buckets.size - 1)" 
      * to get the bucket for a hash
      */
-    static_assert(DEFAULT_INIT_BUCKETS_SIZE > 0 && (DEFAULT_INIT_BUCKETS_SIZE & 1) == 0);
+    static_assert(is_power_of_two(DEFAULT_INIT_BUCKETS_SIZE));
     std::vector<hopscotch_bucket> m_buckets;
     std::list<value_type> m_overflow_elements;
     
