@@ -319,7 +319,7 @@ public:
                         /*const Allocator& alloc = Allocator()*/) : m_buckets(bucket_count), m_nb_elements(0), 
                                                                     m_hash(hash), m_key_equal(equal) 
     {
-        // TODO round to nearsest power of 2, bucket_count is the minimal number
+        // TODO round to nearsest power of 2, bucket_count is the minimal size in standard 
         if(!is_power_of_two(bucket_count)) {
             throw std::runtime_error("bucket_count must be a positive number and a power of 2.");
         }
@@ -332,9 +332,7 @@ public:
                 const KeyEqual& equal = KeyEqual()
                 /*const Allocator& alloc = Allocator()*/) : hopscotch_map(bucket_count, hash, equal)
     {
-        for(; first != last; ++first) {
-            insert(*first);
-        }
+        insert(first, last);
     }
 
     hopscotch_map(std::initializer_list<value_type> init,
@@ -436,6 +434,7 @@ public:
     iterator erase(const_iterator first, const_iterator last) {
         if(first == last) {
             if(first.m_buckets_iterator != first.m_buckets_end_iterator) {
+                // Get a non-const iterator
                 auto it = m_buckets.begin() + std::distance(m_buckets.cbegin(), first.m_buckets_iterator);
                 return iterator(it, m_buckets.end(), m_overflow_elements.begin());
             }
@@ -477,7 +476,7 @@ public:
     const T& at(const Key& key) const {
         auto it_find = find(key);
         if(it_find == cend()) {
-            throw std::out_of_range("couldn't find key.");
+            throw std::out_of_range("Couldn't find key.");
         }
         else {
             return it_find->second;
@@ -526,12 +525,38 @@ public:
     }
     
 private:
+    /*
+     * Find in m_overflow_elements an element for which te bucket it initially belong to equals original_bucket_for_hash.
+     * Return m_overflow_elements.end() if none.
+     */
+    typename std::list<value_type>::iterator find_in_overflow_from_bucket(typename std::list<value_type>::iterator search_start, 
+                                                                               std::size_t original_bucket_for_hash) 
+    {
+        for(auto it = search_start; it != m_overflow_elements.end(); ++it) {
+            const std::size_t bucket_for_overflow_hash = m_hash(it->first) % (m_buckets.size() - 1);
+            if(bucket_for_overflow_hash == original_bucket_for_hash) {
+                return it;
+            }
+        }
+        
+        return m_overflow_elements.end();
+    }
+    
     // iterator is in overflow list
     iterator erase_from_overflow(const_iterator pos) {
         assert(pos.m_overflow_iterator != m_overflow_elements.cend());
         
+        const key_type& key = pos->first;
+        const std::size_t ibucket_for_hash = m_hash(key) & (m_buckets.size() - 1);
+        
         auto it = m_overflow_elements.erase(pos.m_overflow_iterator);
         m_nb_elements--;
+        
+        // Check if we can remove the overflow flag
+        assert(m_buckets[ibucket_for_hash].has_overflow());
+        if(find_in_overflow_from_bucket(m_overflow_elements.begin(), ibucket_for_hash) == m_overflow_elements.end()) {
+            m_buckets[ibucket_for_hash].set_overflow(false);
+        }
         
         return iterator(m_buckets.end(), m_buckets.end(), it);
     }
@@ -548,18 +573,41 @@ private:
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_for_key - ibucket_for_hash);
         m_nb_elements--;
     
-        
-        auto it_next = m_buckets.begin() + ibucket_for_key + 1;
-        while(it_next != m_buckets.end() && it_next->is_empty()) {
-            ++it_next;
+        if(m_buckets[ibucket_for_hash].has_overflow()) {
+            replace_empty_bucket_with_overflow_element(ibucket_for_hash, ibucket_for_key);
+            
+            return iterator(m_buckets.begin() + ibucket_for_key, m_buckets.end(), m_overflow_elements.begin());
         }
+        else {
+            // Get next non-empty bucket iterator
+            auto it_next = m_buckets.begin() + ibucket_for_key + 1;
+            while(it_next != m_buckets.end() && it_next->is_empty()) {
+                ++it_next;
+            }
+            
+            return iterator(it_next, m_buckets.end(), m_overflow_elements.begin());        
+        }
+    }
+    
+    void replace_empty_bucket_with_overflow_element(std::size_t ibucket_for_hash, std::size_t empty_bucket) {
+        assert(m_buckets[ibucket_for_hash].has_overflow());
+        assert(m_buckets[empty_bucket].is_empty());
+        assert(empty_bucket >= ibucket_for_hash);
         
-        return iterator(it_next, m_buckets.end(), m_overflow_elements.begin());        
+        auto it_overflow = find_in_overflow_from_bucket(m_overflow_elements.begin(), ibucket_for_hash);
+        assert(it_overflow != m_overflow_elements.end());
+        
+        m_buckets[empty_bucket].set_key_value(std::move(*it_overflow));
+        m_buckets[ibucket_for_hash].toggle_neighbor_presence(empty_bucket - ibucket_for_hash);
+        
+        
+        auto it_next_overflow = m_overflow_elements.erase(it_overflow);
+        if(find_in_overflow_from_bucket(it_next_overflow, ibucket_for_hash) == m_overflow_elements.end()) {
+            m_buckets[ibucket_for_hash].set_overflow(false);
+        }
     }
     
     void rehash(size_type bucket_count) {
-        assert(bucket_count > 0 || (bucket_count & 1) == 0);
-        
         hopscotch_map tmp_map(bucket_count);
         
         for(auto && key_value : *this) {
@@ -574,8 +622,7 @@ private:
     std::pair<iterator, bool> insert_internal(P&& key_value) {
         assert(!m_buckets.empty());
         
-        const size_t hash = m_hash(key_value.first);
-        const std::size_t ibucket_for_hash = hash & (m_buckets.size()-1);
+        const std::size_t ibucket_for_hash = m_hash(key_value.first) & (m_buckets.size()-1);
         
         // Check if already presents
         auto it_find = find_internal(key_value.first, m_buckets.begin() + ibucket_for_hash);
@@ -637,7 +684,7 @@ private:
     
     /*
      * Return the index of an empty bucket in m_buckets.
-     * If none, the returned index == m_buckets.size()
+     * If none, the returned index equals m_buckets.size()
      */
     std::size_t find_empty_bucket(std::size_t ibucket_start) const {
         for(; ibucket_start < m_buckets.size(); ibucket_start++) {
@@ -726,6 +773,10 @@ private:
             return iterator(it, m_buckets.end(), m_overflow_elements.begin());
         }
         
+        if(!it_bucket->has_overflow()) {
+            return end();
+        }
+        
         return iterator(m_buckets.end(), m_buckets.end(), std::find_if(m_overflow_elements.begin(), m_overflow_elements.end(), 
                                                                         [&](const value_type & value) { 
                                                                             return m_key_equal(key, value.first); 
@@ -736,6 +787,10 @@ private:
         auto it = find_in_buckets(key, it_bucket);
         if(it != m_buckets.cend()) {
             return const_iterator(it, m_buckets.cend(), m_overflow_elements.cbegin());
+        }
+        
+        if(!it_bucket->has_overflow()) {
+            return cend();
         }
 
         
