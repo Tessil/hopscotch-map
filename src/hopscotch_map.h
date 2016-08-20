@@ -132,12 +132,12 @@ private:
             return (HopInfosType) (m_hop_infos >> HOP_INFOS_RESERVED_BITS);
         }
         
-        void set_overflow(bool overflow) noexcept {
-            if(overflow) {
-                m_hop_infos = (HopInfosType) (m_hop_infos & ~2);
+        void set_overflow(bool has_overflow) noexcept {
+            if(has_overflow) {
+                m_hop_infos = (HopInfosType) (m_hop_infos | 2);
             }
             else {
-                m_hop_infos = (HopInfosType) (m_hop_infos | 2);
+                m_hop_infos = (HopInfosType) (m_hop_infos & ~2);
             }
         }
         
