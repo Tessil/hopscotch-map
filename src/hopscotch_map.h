@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <climits>
 
-/*
+/**
  * Implementation of a hash map using the hopscotch hashing algorithm.
  * 
  * The size of the neighborhood (H or MAX_HOPS) is defined by the template parameter HopInfosType. 
@@ -524,6 +524,12 @@ public:
         return (1.0f*m_nb_elements)/m_buckets.size();
     }
     
+    /*
+     * Other
+     */
+    std::size_t get_max_hops() const {
+        return MAX_HOPS;
+    }
 private:
     /*
      * Find in m_overflow_elements an element for which te bucket it initially belong to equals original_bucket_for_hash.
@@ -830,11 +836,8 @@ private:
     
 private:    
     static const std::size_t NB_BITS_HOP_INFOS = CHAR_BIT * sizeof(HopInfosType);
-    
-public:
     static const std::size_t MAX_HOPS = NB_BITS_HOP_INFOS - hopscotch_bucket::HOP_INFOS_RESERVED_BITS;
     
-private:
     static const std::size_t DEFAULT_INIT_BUCKETS_SIZE = 16;
     static constexpr std::size_t REHASH_SIZE_MULTIPLICATION_FACTOR = 2;
 
