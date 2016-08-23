@@ -527,7 +527,7 @@ public:
     /*
      * Other
      */
-    std::size_t get_max_hops() const {
+    std::size_t neighoborhood_size() const {
         return MAX_HOPS;
     }
 private:
