@@ -524,6 +524,18 @@ public:
         return (1.0f*m_nb_elements)/m_buckets.size();
     }
     
+    
+    /*
+     * Observers
+     */
+    hasher hash_function() const {
+        return m_hash;
+    }
+    
+    key_equal key_eq() const {
+        return m_key_equal;
+    }
+    
     /*
      * Other
      */
@@ -852,8 +864,8 @@ private:
     
     std::size_t m_nb_elements;
     
-    Hash m_hash;
-    KeyEqual m_key_equal;
+    hasher m_hash;
+    key_equal m_key_equal;
 };
 
     
