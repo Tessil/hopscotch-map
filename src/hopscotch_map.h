@@ -539,7 +539,7 @@ public:
     /*
      * Other
      */
-    std::size_t neighoborhood_size() const {
+    std::size_t neighborhood_size() const {
         return MAX_HOPS;
     }
 private:
