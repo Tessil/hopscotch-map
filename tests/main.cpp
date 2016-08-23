@@ -115,3 +115,38 @@ BOOST_AUTO_TEST_CASE(test_clear) {
     BOOST_CHECK_EQUAL(std::distance(map.begin(), map.end()), 0);
 }
 
+                                      
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_compare, HMap, test_types) {
+    using key_t = typename HMap::key_type; using value_t = typename HMap:: mapped_type;
+    
+    const size_t nb_values = 1000;
+    HMap map_1_1;
+    HMap map_1_2;
+    HMap map_2_1;
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        map_1_1.insert({utils::get_key<key_t>(i), utils::get_value<value_t>(i)});
+        if(i != 0) {
+            map_2_1.insert({utils::get_key<key_t>(i), utils::get_value<value_t>(i)});
+        }
+    }
+    
+    // Same as map_1_1 but insertion order inverted
+    for(size_t i = nb_values; i != 0; i--) {
+        map_1_2.insert({utils::get_key<key_t>(i-1), utils::get_value<value_t>(i-1)});
+    }
+    
+    BOOST_CHECK_EQUAL(map_1_1.size(), nb_values);
+    BOOST_CHECK_EQUAL(map_1_2.size(), nb_values);
+    BOOST_CHECK_EQUAL(map_2_1.size(), nb_values-1);
+    
+    BOOST_CHECK(map_1_1 == map_1_2);
+    BOOST_CHECK(map_1_2 == map_1_1);
+    
+    BOOST_CHECK(map_1_1 != map_2_1);
+    BOOST_CHECK(map_2_1 != map_1_1);
+    
+    BOOST_CHECK(map_1_2 != map_2_1);
+    BOOST_CHECK(map_2_1 != map_1_2);
+}
+

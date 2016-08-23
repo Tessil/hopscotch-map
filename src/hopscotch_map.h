@@ -868,7 +868,30 @@ private:
     key_equal m_key_equal;
 };
 
+template<class Key, class T, class Hash, class KeyEqual, class HopInfosType>
+inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, HopInfosType>& lhs, 
+                       const hopscotch_map<Key, T, Hash, KeyEqual, HopInfosType>& rhs)
+{
+    if(lhs.size() != rhs.size()) {
+        return false;
+    }
     
+    for(const auto & element_lhs : lhs) {
+        const auto it_element_rhs = rhs.find(element_lhs.first);
+        if(it_element_rhs == rhs.cend() || element_lhs.second != it_element_rhs->second) {
+            return false;
+        }
+    }
+    
+    return true;
+}
 
+
+template<class Key, class T, class Hash, class KeyEqual, class HopInfosType>
+inline bool operator!=(const hopscotch_map<Key, T, Hash, KeyEqual, HopInfosType>& lhs, 
+                       const hopscotch_map<Key, T, Hash, KeyEqual, HopInfosType>& rhs)
+{
+    return !operator==(lhs, rhs);
+}
 
 #endif
