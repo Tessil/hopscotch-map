@@ -591,38 +591,13 @@ private:
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_for_key - ibucket_for_hash);
         m_nb_elements--;
     
-        if(m_buckets[ibucket_for_hash].has_overflow()) {
-            replace_empty_bucket_with_overflow_element(ibucket_for_hash, ibucket_for_key);
-            
-            return iterator(m_buckets.begin() + ibucket_for_key, m_buckets.end(), m_overflow_elements.begin());
+        // Get next non-empty bucket iterator
+        auto it_next = m_buckets.begin() + ibucket_for_key + 1;
+        while(it_next != m_buckets.end() && it_next->is_empty()) {
+            ++it_next;
         }
-        else {
-            // Get next non-empty bucket iterator
-            auto it_next = m_buckets.begin() + ibucket_for_key + 1;
-            while(it_next != m_buckets.end() && it_next->is_empty()) {
-                ++it_next;
-            }
-            
-            return iterator(it_next, m_buckets.end(), m_overflow_elements.begin());        
-        }
-    }
-    
-    void replace_empty_bucket_with_overflow_element(std::size_t ibucket_for_hash, std::size_t empty_bucket) {
-        assert(m_buckets[ibucket_for_hash].has_overflow());
-        assert(m_buckets[empty_bucket].is_empty());
-        assert(empty_bucket >= ibucket_for_hash);
         
-        auto it_overflow = find_in_overflow_from_bucket(m_overflow_elements.begin(), ibucket_for_hash);
-        assert(it_overflow != m_overflow_elements.end());
-        
-        m_buckets[empty_bucket].set_key_value(std::move(*it_overflow));
-        m_buckets[ibucket_for_hash].toggle_neighbor_presence(empty_bucket - ibucket_for_hash);
-        
-        
-        auto it_next_overflow = m_overflow_elements.erase(it_overflow);
-        if(find_in_overflow_from_bucket(it_next_overflow, ibucket_for_hash) == m_overflow_elements.end()) {
-            m_buckets[ibucket_for_hash].set_overflow(false);
-        }
+        return iterator(it_next, m_buckets.end(), m_overflow_elements.begin()); 
     }
     
     void rehash(size_type bucket_count) {
