@@ -23,6 +23,11 @@
  * 
  * The size of the neighborhood (H or MAX_HOPS) is defined by the template parameter HopInfosType. 
  * H equals to the number of bits in HopInfosType - 2 reserved bits (ex. for HopInfosType = uint64, H will be 62 (64-2)).
+ * 
+ * Iterators invalidation:
+ *  - clear, operator=: always invalidate the iterators.
+ *  - insert, operator[]: invalidate the iterators if there is a rehash, or if a displacement is needed to resolve a collision (which mean that most of the time, insert will invalidate the iterators).
+ *  - erase: iterator on the erased element is the only one which become invalid.
  */
 template<class Key, 
          class T, 
