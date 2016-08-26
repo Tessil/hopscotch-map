@@ -831,7 +831,7 @@ private:
     static const std::size_t MAX_HOPS = NB_BITS_HOP_INFOS - hopscotch_bucket::HOP_INFOS_RESERVED_BITS;
     
     static const std::size_t DEFAULT_INIT_BUCKETS_SIZE = 16;
-    static constexpr std::size_t REHASH_SIZE_MULTIPLICATION_FACTOR = 2;
+    static const std::size_t REHASH_SIZE_MULTIPLICATION_FACTOR = 2;
 
     
     /*
