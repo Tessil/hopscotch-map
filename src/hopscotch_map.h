@@ -233,8 +233,8 @@ public:
                                                             typename std::vector<hopscotch_bucket>::const_iterator, 
                                                             typename std::vector<hopscotch_bucket>::iterator>::type;
         using iterator_overflow = typename std::conditional<is_const, 
-                                                            typename std::list<hopscotch_map::value_type>::const_iterator, 
-                                                            typename std::list<hopscotch_map::value_type>::iterator>::type;
+                                                            typename std::list<typename hopscotch_map::value_type>::const_iterator, 
+                                                            typename std::list<typename hopscotch_map::value_type>::iterator>::type;
     
         
         hopscotch_iterator(iterator_bucket buckets_iterator, iterator_bucket buckets_end_iterator, 
@@ -245,7 +245,7 @@ public:
         }
     public:
         using iterator_category = std::forward_iterator_tag;
-        using value_type = hopscotch_map::value_type;
+        using value_type = typename hopscotch_map::value_type;
         using difference_type = std::ptrdiff_t;
         using reference = typename std::conditional<is_const, const value_type&, value_type&>::type;
         using pointer = typename std::conditional<is_const, const value_type*, value_type*>::type;
@@ -838,7 +838,7 @@ private:
      * m_buckets.size() should be a power of 2. We can then use "hash & (m_buckets.size - 1)" 
      * to get the bucket for a hash
      */
-    static_assert(is_power_of_two(DEFAULT_INIT_BUCKETS_SIZE));
+    static_assert(is_power_of_two(DEFAULT_INIT_BUCKETS_SIZE), "DEFAULT_INIT_BUCKETS_SIZE should be a power of 2.");
     std::vector<hopscotch_bucket> m_buckets;
     std::list<value_type> m_overflow_elements;
     
