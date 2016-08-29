@@ -11,14 +11,13 @@
 
 
 using test_types = boost::mpl::list<hopscotch_map<int64_t, int64_t>, 
-                                    hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, uint8_t>, 
+                                    hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 6>, 
                                     // Test with hash having lot of collision
                                     hopscotch_map<int64_t, int64_t, mod_hash<9>>,
-                                    hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, uint8_t>, 
+                                    hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 6>, 
                                     hopscotch_map<std::string, std::string>,
-                                    hopscotch_map<std::string, std::string, std::hash<std::string>, std::equal_to<std::string>, uint64_t>,
                                     hopscotch_map<std::string, std::string, mod_hash<9>>,
-                                    hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, uint64_t>,
+                                    hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 6>,
                                     hopscotch_map<int64_t, std::string>>;
                               
                                     

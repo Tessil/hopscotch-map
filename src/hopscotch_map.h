@@ -18,11 +18,42 @@
 #include <cstdint>
 #include <climits>
 
+namespace {
+    /*
+     * smallest_type_for_min_bits::type returns the smallest type that can fit MIN_BITS.
+     */
+    static const size_t SMALLEST_TYPE_MAX_BITS_SUPPORTED = 64;
+    template<unsigned int MIN_BITS, typename Enable = void>
+    class smallest_type_for_min_bits {
+    };
+
+    template<unsigned int MIN_BITS>
+    class smallest_type_for_min_bits<MIN_BITS, typename std::enable_if<(MIN_BITS > 0) && (MIN_BITS <= 8)>::type> {
+    public:
+        using type = uint8_t;
+    };
+
+    template<unsigned int MIN_BITS>
+    class smallest_type_for_min_bits<MIN_BITS, typename std::enable_if<(MIN_BITS > 8) && (MIN_BITS <= 16)>::type> {
+    public:
+        using type = uint16_t;
+    };
+
+    template<unsigned int MIN_BITS>
+    class smallest_type_for_min_bits<MIN_BITS, typename std::enable_if<(MIN_BITS > 16) && (MIN_BITS <= 32)>::type> {
+    public:
+        using type = uint32_t;
+    };
+
+    template<unsigned int MIN_BITS>
+    class smallest_type_for_min_bits<MIN_BITS, typename std::enable_if<(MIN_BITS > 32) && (MIN_BITS <= 64)>::type> {
+    public:
+        using type = uint64_t;
+    };
+}
+
 /**
  * Implementation of a hash map using the hopscotch hashing algorithm.
- * 
- * The size of the neighborhood (H or MAX_HOPS) is defined by the template parameter HopInfosType. 
- * H equals to the number of bits in HopInfosType - 2 reserved bits (ex. for HopInfosType = uint64, H will be 62 (64-2)).
  * 
  * Iterators invalidation:
  *  - clear, operator=: always invalidate the iterators.
@@ -34,8 +65,22 @@ template<class Key,
          class Hash = std::hash<Key>,
          class KeyEqual = std::equal_to<Key>,
          //class Allocator = std::allocator<std::pair<const Key, T>>,
-         class HopInfosType = std::uint64_t>
-class hopscotch_map {  
+         unsigned int NeighborhoodSize = 62>
+class hopscotch_map {
+private:
+    static const size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
+    static const size_t MAX_NEIGHBORHOOD_SIZE = SMALLEST_TYPE_MAX_BITS_SUPPORTED - NB_RESERVED_BITS_IN_NEIGHBORHOOD; 
+    
+    /*
+     * NeighborhoodSize need to be between 0 and MAX_NEIGHBORHOOD_SIZE.
+     * Static assert need a string litteral, we can't put the 62 in a variable. 
+     * TODO way to avoid this?
+     */
+    static_assert(NeighborhoodSize > 0, "NeighborhoodSize should be > 0.");
+    static_assert(NeighborhoodSize <= MAX_NEIGHBORHOOD_SIZE, "NeighborhoodSize should be <= 62.");
+    
+    
+    using HopInfosType = typename smallest_type_for_min_bits<NeighborhoodSize + NB_RESERVED_BITS_IN_NEIGHBORHOOD>::type;
 public:
     template<bool is_const = false>
     class hopscotch_iterator;
@@ -55,7 +100,7 @@ public:
     using iterator = hopscotch_iterator<false>;
     using const_iterator = hopscotch_iterator<true>;
     
-private:    
+private:
     /*
      * Each bucket store two elements:
      * - An aligned storage to store a value_type object with placement-new
@@ -67,14 +112,12 @@ private:
      *   The bits used for that, start from the third least significant bit.
      * 
      *   The least significant bit is set to 1 if there is a value in the bucket storage.
-     *   The second least significant bit is set to 1 if there is an overflow. More than MAX_HOPS values give the same hash,
+     *   The second least significant bit is set to 1 if there is an overflow. More than NeighborhoodSize values give the same hash,
      *   all overflow values are stored in the m_overflow_elements list of the map.
      */
-    static_assert(std::is_unsigned<HopInfosType>::value, "HopInfosType should be an unsigned integer.");
-    static_assert(std::is_integral<HopInfosType>::value, "HopInfosType should be an unsigned integer.");
-    
     class hopscotch_bucket {
         using storage = typename std::aligned_storage<sizeof(value_type), alignof(value_type)>::type;
+        
     public:
         hopscotch_bucket() noexcept : m_hop_infos(0) {
             assert(is_empty());
@@ -134,7 +177,7 @@ private:
         }
         
         HopInfosType get_hop_infos() const noexcept {
-            return (HopInfosType) (m_hop_infos >> HOP_INFOS_RESERVED_BITS);
+            return (HopInfosType) (m_hop_infos >> NB_RESERVED_BITS_IN_NEIGHBORHOOD);
         }
         
         void set_overflow(bool has_overflow) noexcept {
@@ -174,13 +217,13 @@ private:
         }
         
         void toggle_neighbor_presence(std::size_t ineighbor) noexcept {
-            assert(ineighbor <= MAX_HOPS);
-            m_hop_infos = (HopInfosType) (m_hop_infos ^ (1ull << (ineighbor + HOP_INFOS_RESERVED_BITS)));
+            assert(ineighbor <= NeighborhoodSize);
+            m_hop_infos = (HopInfosType) (m_hop_infos ^ (1ull << (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)));
         }
         
         bool check_neighbor_presence(std::size_t ineighbor) const noexcept {
-            assert(ineighbor <= MAX_HOPS);
-            if(((m_hop_infos >> (ineighbor + HOP_INFOS_RESERVED_BITS)) & 1) == 1) {
+            assert(ineighbor <= NeighborhoodSize);
+            if(((m_hop_infos >> (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)) & 1) == 1) {
                 return true;
             }
             
@@ -208,7 +251,6 @@ private:
         }
         
         
-        static const std::size_t HOP_INFOS_RESERVED_BITS = 2;
     private:
         void set_is_empty(bool is_empty) {
             if(is_empty) {
@@ -223,6 +265,7 @@ private:
         storage m_key_value;
         HopInfosType m_hop_infos;
     };
+    
     
 public:    
     template<bool is_const>
@@ -540,13 +583,6 @@ public:
     key_equal key_eq() const {
         return m_key_equal;
     }
-    
-    /*
-     * Other
-     */
-    std::size_t neighborhood_size() const {
-        return MAX_HOPS;
-    }
 private:
     /*
      * Find in m_overflow_elements an element for which te bucket it initially belong to equals original_bucket_for_hash.
@@ -632,8 +668,8 @@ private:
         std::size_t ibucket_empty = find_empty_bucket(ibucket_for_hash);
         if(ibucket_empty < m_buckets.size()) {
             do {
-                // Empty bucket is in range of MAX_HOPS, use it
-                if(ibucket_empty - ibucket_for_hash < MAX_HOPS) {
+                // Empty bucket is in range of NeighborhoodSize, use it
+                if(ibucket_empty - ibucket_for_hash < NeighborhoodSize) {
                     auto it = insert_in_bucket(std::forward<P>(key_value), ibucket_empty, ibucket_for_hash);
                     return std::make_pair(iterator(it, m_buckets.end(), m_overflow_elements.begin()), true);
                 }
@@ -664,7 +700,7 @@ private:
      */
     bool will_neighborhood_change_on_rehash(size_t ibucket_neighborhood_check) {
         for(size_t ibucket = ibucket_neighborhood_check; 
-            ibucket < m_buckets.size() && (ibucket - ibucket_neighborhood_check) < MAX_HOPS; 
+            ibucket < m_buckets.size() && (ibucket - ibucket_neighborhood_check) < NeighborhoodSize; 
             ++ibucket)
         {
             assert(!m_buckets[ibucket].is_empty());
@@ -718,8 +754,8 @@ private:
      * If a swap was possible, the position of ibucket_empty_in_out will be closer to 0 and true will re returned.
      */
     bool find_swap(std::size_t & ibucket_empty_in_out) {
-        assert(ibucket_empty_in_out >= MAX_HOPS);
-        const std::size_t neighborhood_start = ibucket_empty_in_out - MAX_HOPS + 1;
+        assert(ibucket_empty_in_out >= NeighborhoodSize);
+        const std::size_t neighborhood_start = ibucket_empty_in_out - NeighborhoodSize + 1;
         
         for(std::size_t to_check = neighborhood_start; to_check < ibucket_empty_in_out; to_check++) {
             HopInfosType hop_infos = m_buckets[to_check].get_hop_infos();
@@ -827,9 +863,6 @@ private:
     }
     
 private:    
-    static const std::size_t NB_BITS_HOP_INFOS = CHAR_BIT * sizeof(HopInfosType);
-    static const std::size_t MAX_HOPS = NB_BITS_HOP_INFOS - hopscotch_bucket::HOP_INFOS_RESERVED_BITS;
-    
     static const std::size_t DEFAULT_INIT_BUCKETS_SIZE = 16;
     static const std::size_t REHASH_SIZE_MULTIPLICATION_FACTOR = 2;
 
@@ -848,9 +881,9 @@ private:
     key_equal m_key_equal;
 };
 
-template<class Key, class T, class Hash, class KeyEqual, class HopInfosType>
-inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, HopInfosType>& lhs, 
-                       const hopscotch_map<Key, T, Hash, KeyEqual, HopInfosType>& rhs)
+template<class Key, class T, class Hash, class KeyEqual, unsigned int NeighborhoodSize>
+inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, NeighborhoodSize>& lhs, 
+                       const hopscotch_map<Key, T, Hash, KeyEqual, NeighborhoodSize>& rhs)
 {
     if(lhs.size() != rhs.size()) {
         return false;
@@ -867,9 +900,9 @@ inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, HopInfosType>
 }
 
 
-template<class Key, class T, class Hash, class KeyEqual, class HopInfosType>
-inline bool operator!=(const hopscotch_map<Key, T, Hash, KeyEqual, HopInfosType>& lhs, 
-                       const hopscotch_map<Key, T, Hash, KeyEqual, HopInfosType>& rhs)
+template<class Key, class T, class Hash, class KeyEqual, unsigned int NeighborhoodSize>
+inline bool operator!=(const hopscotch_map<Key, T, Hash, KeyEqual, NeighborhoodSize>& lhs, 
+                       const hopscotch_map<Key, T, Hash, KeyEqual, NeighborhoodSize>& rhs)
 {
     return !operator==(lhs, rhs);
 }

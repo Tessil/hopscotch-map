@@ -4,8 +4,8 @@ enable_testing()
 
 find_package(Boost 1.55.0 REQUIRED COMPONENTS unit_test_framework) 
 
-# set(CMAKE_CXX_FLAGS  "-std=c++11 -Werror -Wall -Wextra -Wconversion -g --coverage")
-set(CMAKE_CXX_FLAGS  "-std=c++11 -Werror -Wall -Wextra -Wconversion -O3")
+# set(CMAKE_CXX_FLAGS  "-std=c++11 -Werror -Wall -Wextra -g --coverage")
+set(CMAKE_CXX_FLAGS  "-std=c++11 -Werror -Wall -Wextra -O3")
 
 
 add_executable("test_hopscotch_map" "tests/main.cpp")
