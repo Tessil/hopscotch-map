@@ -160,6 +160,7 @@ Public Member Functions</h2></td></tr>
 class hopscotch_map&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;</h3>
 
 <p>Implementation of a hash map using the hopscotch hashing algorithm.</p>
+<p>The size of the neighborhood (NeighborhoodSize) must be &gt; 0 and &lt;= 62.</p>
 <p>Iterators invalidation:</p><ul>
 <li>clear, operator=: always invalidate the iterators.</li>
 <li>insert, operator[]: invalidate the iterators if there is a rehash, or if a displacement is needed to resolve a collision (which mean that most of the time, insert will invalidate the iterators).</li>
