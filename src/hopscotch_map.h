@@ -577,8 +577,8 @@ public:
         return (1.0f*m_nb_elements)/m_buckets.size();
     }
     
-    void rehash(size_type bucket_count) {
-        hopscotch_map tmp_map(bucket_count);
+    void rehash(size_type count) {
+        hopscotch_map tmp_map(count);
         
         for(auto && key_value : *this) {
             tmp_map.insert(std::move(key_value));
