@@ -55,6 +55,8 @@ namespace {
 /**
  * Implementation of a hash map using the hopscotch hashing algorithm.
  * 
+ * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62.
+ * 
  * Iterators invalidation:
  *  - clear, operator=: always invalidate the iterators.
  *  - insert, operator[]: invalidate the iterators if there is a rehash, or if a displacement is needed to resolve a collision (which mean that most of the time, insert will invalidate the iterators).
