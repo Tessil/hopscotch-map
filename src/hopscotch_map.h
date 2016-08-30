@@ -253,15 +253,16 @@ private:
             assert(empty_bucket.is_empty());
             if(!is_empty()) {
                 ::new (static_cast<void *>(std::addressof(empty_bucket.m_key_value))) value_type(std::move(get_key_value()));
+                empty_bucket.set_is_empty(false);
+                
                 get_key_value().~value_type();
                 set_is_empty(true);
-                empty_bucket.set_is_empty(false);
             }
         }
         
         
     private:
-        void set_is_empty(bool is_empty) {
+        void set_is_empty(bool is_empty) noexcept {
             if(is_empty) {
                 m_neighborhood_infos = (neighborhood_bitmap) (m_neighborhood_infos & ~1);
             }
@@ -289,8 +290,15 @@ public:
                                                             typename std::list<typename hopscotch_map::value_type>::iterator>::type;
     
         
+        // Ensure copy constructors of the iterators are noexcept
+        static_assert(noexcept(iterator_bucket(std::declval<iterator_bucket>())), "");
+        static_assert(noexcept(iterator_overflow(std::declval<iterator_overflow>())), "");
+        // Ensure default constructors of the iterators are noexcept
+        static_assert(noexcept(iterator_bucket()), "");
+        static_assert(noexcept(iterator_overflow()), "");
+        
         hopscotch_iterator(iterator_bucket buckets_iterator, iterator_bucket buckets_end_iterator, 
-                           iterator_overflow overflow_iterator) : 
+                           iterator_overflow overflow_iterator) noexcept : 
             m_buckets_iterator(buckets_iterator), m_buckets_end_iterator(buckets_end_iterator),
             m_overflow_iterator(overflow_iterator)
         {
@@ -302,10 +310,10 @@ public:
         using reference = typename std::conditional<is_const, const value_type&, value_type&>::type;
         using pointer = typename std::conditional<is_const, const value_type*, value_type*>::type;
         
-        hopscotch_iterator() {
+        hopscotch_iterator() noexcept {
         }
         
-        hopscotch_iterator(const hopscotch_iterator<false> & other) :
+        hopscotch_iterator(const hopscotch_iterator<false> & other) noexcept :
             m_buckets_iterator(other.m_buckets_iterator), m_buckets_end_iterator(other.m_buckets_end_iterator),
             m_overflow_iterator(other.m_overflow_iterator)
         {
