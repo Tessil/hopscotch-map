@@ -12,6 +12,43 @@ public:
     }
 };
 
+class move_only_test {
+public:
+    move_only_test(int64_t value) : m_value(new int64_t(value)) {
+    }
+    
+    move_only_test(const move_only_test&) = delete;
+    move_only_test(move_only_test&&) = default;
+    move_only_test& operator=(const move_only_test&) = delete;
+    move_only_test& operator=(move_only_test&&) = delete;
+    
+    friend std::ostream& operator<<(std::ostream& stream, const move_only_test& value) {
+        if(value.m_value == nullptr) {
+            stream << "null";
+        }
+        else {
+            stream << *value.m_value;
+        }
+        
+        return stream;
+    }
+    
+    friend bool operator==(const move_only_test& lhs, const move_only_test& rhs) { 
+        if(lhs.m_value == nullptr || rhs.m_value == nullptr) {
+            return lhs.m_value == nullptr && lhs.m_value == nullptr;
+        }
+        else {
+            return *lhs.m_value == *rhs.m_value; 
+        }
+    }
+    
+    friend bool operator!=(const move_only_test& lhs, const move_only_test& rhs) { 
+        return !(lhs == rhs); 
+    }
+private:    
+    std::unique_ptr<int64_t> m_value;
+};
+
 
 class utils {
 public:
@@ -45,6 +82,11 @@ int64_t utils::get_value<int64_t>(size_t counter) {
 template<>
 std::string utils::get_value<std::string>(size_t counter) {
     return "Value " + std::to_string(counter);
+}
+
+template<>
+move_only_test utils::get_value<move_only_test>(size_t counter) {
+    return move_only_test(boost::numeric_cast<int64_t>(counter*2));
 }
 
 

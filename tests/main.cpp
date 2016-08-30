@@ -8,17 +8,18 @@
 #include "hopscotch_map.h"
 
 
-
-
 using test_types = boost::mpl::list<hopscotch_map<int64_t, int64_t>, 
                                     hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 6>, 
-                                    // Test with hash having lot of collision
+                                    // Test with hash having a lot of collisions
                                     hopscotch_map<int64_t, int64_t, mod_hash<9>>,
                                     hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 6>, 
                                     hopscotch_map<std::string, std::string>,
                                     hopscotch_map<std::string, std::string, mod_hash<9>>,
                                     hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 6>,
-                                    hopscotch_map<int64_t, std::string>>;
+                                    hopscotch_map<int64_t, std::string>,
+                                    hopscotch_map<int64_t, move_only_test>,
+                                    hopscotch_map<int64_t, move_only_test, mod_hash<9>, std::equal_to<int64_t>, 6>>;
+                                    
                               
                                     
                                     
@@ -91,8 +92,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_iterator, HMap, test_types) {
     BOOST_CHECK_EQUAL(std::distance(map.begin(), map.end()), nb_values);
     BOOST_CHECK_EQUAL(std::distance(map.cbegin(), map.cend()), nb_values);
     
-    const std::map<key_t, value_t> sorted(map.cbegin(), map.cend());
-    const std::map<key_t, value_t> sorted2(map.begin(), map.end());
+    
+    HMap map_tmp1 = utils::get_filled_hash_map<HMap>(nb_values);
+    const std::map<key_t, value_t> sorted(std::make_move_iterator(map_tmp1.begin()), std::make_move_iterator(map_tmp1.end()));
+    
+    HMap map_tmp2 = utils::get_filled_hash_map<HMap>(nb_values);
+    const std::map<key_t, value_t> sorted2(std::make_move_iterator(map_tmp2.begin()), std::make_move_iterator(map_tmp2.end()));
+    
     
     BOOST_CHECK(sorted == sorted2);
     BOOST_CHECK_EQUAL(sorted.size(), map.size());
@@ -134,6 +140,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_compare, HMap, test_types) {
     for(size_t i = nb_values; i != 0; i--) {
         map_1_2.insert({utils::get_key<key_t>(i-1), utils::get_value<value_t>(i-1)});
     }
+    
     
     BOOST_CHECK_EQUAL(map_1_1.size(), nb_values);
     BOOST_CHECK_EQUAL(map_1_2.size(), nb_values);
