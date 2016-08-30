@@ -590,13 +590,7 @@ public:
     }
     
     void rehash(size_type count) {
-        hopscotch_map tmp_map(count);
-        
-        for(auto && key_value : *this) {
-            tmp_map.insert(std::move(key_value));
-        }
-        
-        std::swap(*this, tmp_map);
+        rehash_internal(count);
     }
     
     
@@ -611,6 +605,28 @@ public:
         return m_key_equal;
     }
 private:
+    template<typename U = value_type, typename std::enable_if<std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
+    void rehash_internal(size_type count) {
+        hopscotch_map tmp_map(count);
+        
+        for(auto && key_value : *this) {
+            tmp_map.insert(std::move(key_value));
+        }
+        
+        std::swap(*this, tmp_map);
+    }
+    
+    template<typename U = value_type, typename std::enable_if<!std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
+    void rehash_internal(size_type count) {
+        hopscotch_map tmp_map(count);
+        
+        for(const auto & key_value : *this) {
+            tmp_map.insert(key_value);
+        }
+        
+        std::swap(*this, tmp_map);
+    }    
+    
     /*
      * Find in m_overflow_elements an element for which te bucket it initially belong to equals original_bucket_for_hash.
      * Return m_overflow_elements.end() if none.
