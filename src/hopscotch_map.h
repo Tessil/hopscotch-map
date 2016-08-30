@@ -57,6 +57,8 @@ namespace {
  * 
  * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62.
  * 
+ * The Key must be copy-constructible. The value T must be either move-constructible, copy-constuctible or both.
+ * 
  * Iterators invalidation:
  *  - clear, operator=: always invalidate the iterators.
  *  - insert, operator[]: invalidate the iterators if there is a rehash, or if a displacement is needed to resolve a collision (which mean that most of the time, insert will invalidate the iterators).
