@@ -723,7 +723,7 @@ private:
                 }
             }
             // else, try to swap values to get a closer empty bucket
-            while(find_swap(ibucket_empty));
+            while(swap_empty_bucket_closer(ibucket_empty));
             
             
             // A rehash will not change the neighborhood, put the value in overflow list
@@ -803,7 +803,7 @@ private:
      * 
      * If a swap was possible, the position of ibucket_empty_in_out will be closer to 0 and true will re returned.
      */
-    bool find_swap(std::size_t & ibucket_empty_in_out) {
+    bool swap_empty_bucket_closer(std::size_t & ibucket_empty_in_out) {
         assert(ibucket_empty_in_out >= NeighborhoodSize);
         const std::size_t neighborhood_start = ibucket_empty_in_out - NeighborhoodSize + 1;
         
