@@ -156,3 +156,44 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_compare, HMap, test_types) {
     BOOST_CHECK(map_2_1 != map_1_2);
 }
 
+/*
+ * Get nothrow_move_construbtible elements into the overflow list before rehash.
+ */
+BOOST_AUTO_TEST_CASE(test_insert_overflow_rehash_nothrow_move_construbtible) {
+    static const size_t mod = 100;
+    using HMap = hopscotch_map<int64_t, move_only_test, mod_hash<mod>, std::equal_to<int64_t>, 6>;
+    static_assert(std::is_nothrow_move_constructible<HMap::value_type>::value, "");
+    
+    HMap map;
+    HMap::iterator it;
+    bool inserted;
+    
+    
+    const size_t nb_values = 5000;
+    for(size_t i = 1; i < nb_values; i+= mod) {
+        std::tie(it, inserted) = map.insert({i, i+1});
+        
+        BOOST_CHECK_EQUAL(it->first, i);
+        BOOST_CHECK_EQUAL(it->second, i+1);
+        BOOST_CHECK(inserted);
+        
+    }
+    BOOST_CHECK_EQUAL(map.size(), nb_values/mod);
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        std::tie(it, inserted) = map.insert({i, i+1});
+        
+        BOOST_CHECK_EQUAL(it->first, i);
+        BOOST_CHECK_EQUAL(it->second, i+1);
+        BOOST_CHECK((i%mod==1)?!inserted:inserted);
+    }
+    BOOST_CHECK_EQUAL(map.size(), nb_values);
+    
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        it = map.find(i);
+        
+        BOOST_CHECK_EQUAL(it->first, i);
+        BOOST_CHECK_EQUAL(it->second, i+1);
+    }
+}
