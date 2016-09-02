@@ -467,11 +467,29 @@ public:
     }
     
     std::pair<iterator, bool> insert(const value_type& value) {
-        return insert_internal(value);
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(value.first));
+        
+        // Check if already presents
+        auto it_find = find_internal(value.first, m_buckets.begin() + ibucket_for_hash);
+        if(it_find != end()) {
+            return std::make_pair(it_find, false);
+        }
+        
+        
+        return insert_internal(value, ibucket_for_hash);
     }
     
     std::pair<iterator, bool> insert(value_type&& value) {
-        return insert_internal(std::move(value));
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(value.first));
+        
+        // Check if already presents
+        auto it_find = find_internal(value.first, m_buckets.begin() + ibucket_for_hash);
+        if(it_find != end()) {
+            return std::make_pair(it_find, false);
+        }
+        
+        
+        return insert_internal(std::move(value), ibucket_for_hash);
     }
     
     template<class InputIt>
@@ -569,14 +587,14 @@ public:
     
     iterator find(const Key& key) {
         assert(!m_buckets.empty());
-        const std::size_t ibucket_for_hash =  m_hash(key) & (m_buckets.size() - 1);
+        const std::size_t ibucket_for_hash =  bucket_for_hash(m_hash(key));
         
         return find_internal(key, m_buckets.begin() + ibucket_for_hash);
     }
     
     const_iterator find(const Key& key) const {
         assert(!m_buckets.empty());
-        const std::size_t ibucket_for_hash =  m_hash(key) & (m_buckets.size() - 1);
+        const std::size_t ibucket_for_hash =  bucket_for_hash(m_hash(key));
         
         return find_internal(key, m_buckets.begin() + ibucket_for_hash);
     }
@@ -605,12 +623,17 @@ public:
         return m_key_equal;
     }
 private:
+    std::size_t bucket_for_hash(std::size_t hash) const {
+        return hash & (m_buckets.size() - 1);
+    }
+    
     template<typename U = value_type, typename std::enable_if<std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
     void rehash_internal(size_type count) {
         hopscotch_map tmp_map(count);
         
         for(auto && key_value : *this) {
-            tmp_map.insert(std::move(key_value));
+            const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(key_value.first));
+            tmp_map.insert_internal(std::move(key_value), ibucket_for_hash);
         }
         
         std::swap(*this, tmp_map);
@@ -621,7 +644,8 @@ private:
         hopscotch_map tmp_map(count);
         
         for(const auto & key_value : *this) {
-            tmp_map.insert(key_value);
+            const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(key_value.first));
+            tmp_map.insert_internal(key_value, ibucket_for_hash);
         }
         
         std::swap(*this, tmp_map);
@@ -635,7 +659,7 @@ private:
                                                                           std::size_t original_bucket_for_hash) 
     {
         for(auto it = search_start; it != m_overflow_elements.end(); ++it) {
-            const std::size_t bucket_for_overflow_hash = m_hash(it->first) % (m_buckets.size() - 1);
+            const std::size_t bucket_for_overflow_hash = bucket_for_hash(m_hash(it->first));
             if(bucket_for_overflow_hash == original_bucket_for_hash) {
                 return it;
             }
@@ -649,7 +673,7 @@ private:
         assert(pos.m_overflow_iterator != m_overflow_elements.cend());
         
         const key_type& key = pos->first;
-        const std::size_t ibucket_for_hash = m_hash(key) & (m_buckets.size() - 1);
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         
         auto it = m_overflow_elements.erase(pos.m_overflow_iterator);
         m_nb_elements--;
@@ -668,7 +692,7 @@ private:
         assert(pos.m_buckets_iterator != pos.m_buckets_end_iterator);
         
         const key_type& key = pos->first;
-        const std::size_t ibucket_for_hash = m_hash(key) & (m_buckets.size() - 1);
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         const std::size_t ibucket_for_key = std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
         
         m_buckets[ibucket_for_key].remove_key_value();
@@ -686,17 +710,8 @@ private:
     
     
     template<typename P>
-    std::pair<iterator, bool> insert_internal(P&& key_value) {
+    std::pair<iterator, bool> insert_internal(P&& key_value, std::size_t ibucket_for_hash) {
         assert(!m_buckets.empty());
-        
-        const std::size_t ibucket_for_hash = m_hash(key_value.first) & (m_buckets.size()-1);
-        
-        // Check if already presents
-        auto it_find = find_internal(key_value.first, m_buckets.begin() + ibucket_for_hash);
-        if(it_find != end()) {
-            return std::make_pair(it_find, false);
-        }
-        
         
         std::size_t ibucket_empty = find_empty_bucket(ibucket_for_hash);
         if(ibucket_empty < m_buckets.size()) {
@@ -724,7 +739,9 @@ private:
         }
     
         rehash(m_buckets.size() * REHASH_SIZE_MULTIPLICATION_FACTOR);
-        return insert_internal(std::forward<P>(key_value));
+        
+        ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
+        return insert_internal(std::forward<P>(key_value), ibucket_for_hash);
     }    
     
     /*
