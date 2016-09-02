@@ -627,18 +627,6 @@ private:
         return hash & (m_buckets.size() - 1);
     }
     
-    template<typename U = value_type, typename std::enable_if<std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
-    void rehash_internal(size_type count) {
-        hopscotch_map tmp_map(count);
-        
-        for(auto && key_value : *this) {
-            const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(key_value.first));
-            tmp_map.insert_internal(std::move(key_value), ibucket_for_hash);
-        }
-        
-        std::swap(*this, tmp_map);
-    }
-    
     template<typename U = value_type, typename std::enable_if<!std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
     void rehash_internal(size_type count) {
         hopscotch_map tmp_map(count);
@@ -649,7 +637,45 @@ private:
         }
         
         std::swap(*this, tmp_map);
-    }    
+    }   
+    
+    template<typename U = value_type, typename std::enable_if<std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
+    void rehash_internal(size_type count) {
+        /*
+         * Little more complicate here. We want to avoid any exception so we can't just insert elements
+         * in the map trough insert_internal. The method may throw even if value_type is nothrow_move_constructible
+         * due to the m_overflow_elements.push_back in the method.
+         * 
+         * So we first move safely all the elements from m_buckets in the new map (we know they will not go into overflow). 
+         * We then swap m_overflow_elements into the new map and we update all necessary overflow flags.
+         * 
+         * This way we don't do any memory allocation (outside the construction of m_buckets) and we avoid
+         * any exception which may hinder the strong exception-safe guarantee.
+         */
+        hopscotch_map tmp_map(count);
+        
+        for(hopscotch_bucket & bucket : m_buckets) {
+            if(bucket.is_empty()) {
+                continue;
+            }
+            
+            const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(bucket.get_key_value().first));
+            tmp_map.insert_internal(std::move(bucket.get_key_value()), ibucket_for_hash);
+        }
+        
+        assert(tmp_map.m_overflow_elements.empty());
+        if(!m_overflow_elements.empty()) {
+            tmp_map.m_overflow_elements.swap(m_overflow_elements);
+            tmp_map.m_nb_elements += tmp_map.m_overflow_elements.size();
+            
+            for(const value_type & key_value : tmp_map.m_overflow_elements) {
+                const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(key_value.first));
+                tmp_map.m_buckets[ibucket_for_hash].set_overflow(true);
+            }
+        }
+        
+        std::swap(*this, tmp_map);
+    } 
     
     /*
      * Find in m_overflow_elements an element for which te bucket it initially belong to equals original_bucket_for_hash.
@@ -748,7 +774,7 @@ private:
      * Return true if a rehash will change the position of a key-value in the neighborhood of ibucket_neighborhood_check.
      * In this case a rehash is needed instead of puting the value in overflow list.
      */
-    bool will_neighborhood_change_on_rehash(size_t ibucket_neighborhood_check) {
+    bool will_neighborhood_change_on_rehash(size_t ibucket_neighborhood_check) const {
         for(size_t ibucket = ibucket_neighborhood_check; 
             ibucket < m_buckets.size() && (ibucket - ibucket_neighborhood_check) < NeighborhoodSize; 
             ++ibucket)
