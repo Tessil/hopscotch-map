@@ -30,25 +30,25 @@ namespace {
     template<unsigned int MIN_BITS>
     class smallest_type_for_min_bits<MIN_BITS, typename std::enable_if<(MIN_BITS > 0) && (MIN_BITS <= 8)>::type> {
     public:
-        using type = uint8_t;
+        using type = std::uint8_t;
     };
 
     template<unsigned int MIN_BITS>
     class smallest_type_for_min_bits<MIN_BITS, typename std::enable_if<(MIN_BITS > 8) && (MIN_BITS <= 16)>::type> {
     public:
-        using type = uint16_t;
+        using type = std::uint16_t;
     };
 
     template<unsigned int MIN_BITS>
     class smallest_type_for_min_bits<MIN_BITS, typename std::enable_if<(MIN_BITS > 16) && (MIN_BITS <= 32)>::type> {
     public:
-        using type = uint32_t;
+        using type = std::uint32_t;
     };
 
     template<unsigned int MIN_BITS>
     class smallest_type_for_min_bits<MIN_BITS, typename std::enable_if<(MIN_BITS > 32) && (MIN_BITS <= 64)>::type> {
     public:
-        using type = uint64_t;
+        using type = std::uint64_t;
     };
 }
 
@@ -106,18 +106,18 @@ public:
     
 private:
     /*
-     * Each bucket store two elements:
+     * Each bucket stores two elements:
      * - An aligned storage to store a value_type object with placement-new
      * - An unsigned integer of type neighborhood_bitmap used to tell us which buckets in the neighborhood of the current bucket
      *   contain a value with a hash belonging to the current bucket. 
      * 
-     *   For a bucket 'b' a bit 'i' (counting from 0 and from the least significant bit to the most significant) 
-     *   set to 1 means that the bucket 'b+i' contains a value with a hash belonging to bucket 'b'.
-     *   The bits used for that, start from the third least significant bit.
+     * For a bucket 'b' a bit 'i' (counting from 0 and from the least significant bit to the most significant) 
+     * set to 1 means that the bucket 'b+i' contains a value with a hash belonging to bucket 'b'.
+     * The bits used for that, start from the third least significant bit.
      * 
-     *   The least significant bit is set to 1 if there is a value in the bucket storage.
-     *   The second least significant bit is set to 1 if there is an overflow. More than NeighborhoodSize values give the same hash,
-     *   all overflow values are stored in the m_overflow_elements list of the map.
+     * The least significant bit is set to 1 if there is a value in the bucket storage.
+     * The second least significant bit is set to 1 if there is an overflow. More than NeighborhoodSize values give the same hash,
+     * all overflow values are stored in the m_overflow_elements list of the map.
      */
     class hopscotch_bucket {
         using storage = typename std::aligned_storage<sizeof(value_type), alignof(value_type)>::type;
