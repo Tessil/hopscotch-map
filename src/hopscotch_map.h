@@ -467,29 +467,11 @@ public:
     }
     
     std::pair<iterator, bool> insert(const value_type& value) {
-        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(value.first));
-        
-        // Check if already presents
-        auto it_find = find_internal(value.first, m_buckets.begin() + ibucket_for_hash);
-        if(it_find != end()) {
-            return std::make_pair(it_find, false);
-        }
-        
-        
-        return insert_internal(value, ibucket_for_hash);
+        return insert_internal(value);
     }
     
     std::pair<iterator, bool> insert(value_type&& value) {
-        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(value.first));
-        
-        // Check if already presents
-        auto it_find = find_internal(value.first, m_buckets.begin() + ibucket_for_hash);
-        if(it_find != end()) {
-            return std::make_pair(it_find, false);
-        }
-        
-        
-        return insert_internal(std::move(value), ibucket_for_hash);
+        return insert_internal(std::move(value));
     }
     
     template<class InputIt>
@@ -501,6 +483,16 @@ public:
     
     void insert(std::initializer_list<value_type> ilist) {
         insert(ilist.begin(), ilist.end());
+    }
+    
+    template <class... Args>
+    std::pair<iterator, bool> try_emplace(const key_type& k, Args&&... args) {
+        return try_emplace_internal(k, std::forward<Args>(args)...);
+    }
+    
+    template <class... Args>
+    std::pair<iterator, bool> try_emplace(key_type&& k, Args&&... args) {
+        return try_emplace_internal(std::move(k), std::forward<Args>(args)...);
     }
     
     iterator erase(const_iterator pos) {
@@ -734,6 +726,37 @@ private:
         return iterator(it_next, m_buckets.end(), m_overflow_elements.begin()); 
     }
     
+        
+    template <typename P, class... Args>
+    std::pair<iterator, bool> try_emplace_internal(P&& key, Args&&... args_value) {
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
+        
+        // Check if already presents
+        auto it_find = find_internal(key, m_buckets.begin() + ibucket_for_hash);
+        if(it_find != end()) {
+            return std::make_pair(it_find, false);
+        }
+        
+        // TODO We copy the key two times, once here and then later to copy it in bucket. Optimize.
+        return insert_internal(value_type(std::piecewise_construct, 
+                                          std::forward_as_tuple(std::forward<P>(key)), 
+                                          std::forward_as_tuple(std::forward<Args>(args_value)...)), 
+                               ibucket_for_hash);
+    }
+    
+    template<typename P>
+    std::pair<iterator, bool> insert_internal(P&& key_value) {
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
+        
+        // Check if already presents
+        auto it_find = find_internal(key_value.first, m_buckets.begin() + ibucket_for_hash);
+        if(it_find != end()) {
+            return std::make_pair(it_find, false);
+        }
+        
+        
+        return insert_internal(std::forward<P>(key_value), ibucket_for_hash);
+    }
     
     template<typename P>
     std::pair<iterator, bool> insert_internal(P&& key_value, std::size_t ibucket_for_hash) {
