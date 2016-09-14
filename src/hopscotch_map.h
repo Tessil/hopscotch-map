@@ -381,13 +381,8 @@ public:
     explicit hopscotch_map(size_type bucket_count, 
                         const Hash& hash = Hash(),
                         const KeyEqual& equal = KeyEqual()
-                        /*const Allocator& alloc = Allocator()*/) : m_buckets(bucket_count), m_nb_elements(0), 
-                                                                    m_hash(hash), m_key_equal(equal) 
+                        /*const Allocator& alloc = Allocator()*/) : hopscotch_map(bucket_count, hash, equal, DEFAULT_MAX_LOAD_FACTOR)
     {
-        // TODO round to nearsest power of 2, bucket_count is the minimal size in standard 
-        if(!is_power_of_two(bucket_count)) {
-            throw std::runtime_error("bucket_count must be a positive number and a power of 2.");
-        }
     }
     
     template<class InputIt>
@@ -606,6 +601,15 @@ public:
         return (1.0f*m_nb_elements)/m_buckets.size();
     }
     
+    float max_load_factor() const {
+        return m_max_load_factor;
+    }
+    
+    void max_load_factor(float ml) {
+        m_max_load_factor = ml;
+        m_load_threshold = m_buckets.size() * ml;
+    }
+    
     void rehash(size_type count) {
         rehash_internal(count);
     }
@@ -622,13 +626,29 @@ public:
         return m_key_equal;
     }
 private:
+    hopscotch_map(size_type bucket_count, 
+                  const Hash& hash,
+                  const KeyEqual& equal,
+                  /*const Allocator& alloc*/
+                  float max_load_factor) :  m_buckets(bucket_count), m_nb_elements(0), 
+                                            m_max_load_factor(max_load_factor), 
+                                            m_load_threshold(m_buckets.size() * m_max_load_factor),
+                                            m_hash(hash), m_key_equal(equal)
+    {
+        // TODO round to nearsest power of 2, bucket_count is the minimal size in standard 
+        if(!is_power_of_two(bucket_count)) {
+            throw std::runtime_error("bucket_count must be a positive number and a power of 2.");
+        }
+    }
+    
+    
     std::size_t bucket_for_hash(std::size_t hash) const {
         return hash & (m_buckets.size() - 1);
     }
     
     template<typename U = value_type, typename std::enable_if<!std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
     void rehash_internal(size_type count) {
-        hopscotch_map tmp_map(count);
+        hopscotch_map tmp_map(count, m_hash, m_key_equal, m_max_load_factor);
         
         for(const auto & key_value : *this) {
             const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(key_value.first));
@@ -651,7 +671,7 @@ private:
          * This way we don't do any memory allocation (outside the construction of m_buckets) and we avoid
          * any exception which may hinder the strong exception-safe guarantee.
          */
-        hopscotch_map tmp_map(count);
+        hopscotch_map tmp_map(count, m_hash, m_key_equal, m_max_load_factor);
         
         for(hopscotch_bucket & bucket : m_buckets) {
             if(bucket.is_empty()) {
@@ -768,6 +788,11 @@ private:
     template<typename P>
     std::pair<iterator, bool> insert_internal(P&& key_value, std::size_t ibucket_for_hash) {
         assert(!m_buckets.empty());
+        
+        if((m_nb_elements + 1) > m_load_threshold) {
+            rehash(m_buckets.size() * REHASH_SIZE_MULTIPLICATION_FACTOR);
+            ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
+        }
         
         std::size_t ibucket_empty = find_empty_bucket(ibucket_for_hash);
         if(ibucket_empty < m_buckets.size()) {
@@ -971,6 +996,7 @@ private:
 private:    
     static const std::size_t DEFAULT_INIT_BUCKETS_SIZE = 16;
     static const std::size_t REHASH_SIZE_MULTIPLICATION_FACTOR = 2;
+    static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.9;
 
     
     /*
@@ -982,6 +1008,10 @@ private:
     std::list<value_type> m_overflow_elements;
     
     std::size_t m_nb_elements;
+    
+    
+    float m_max_load_factor;
+    std::size_t m_load_threshold;
     
     hasher m_hash;
     key_equal m_key_equal;
