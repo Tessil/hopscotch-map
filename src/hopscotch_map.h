@@ -591,6 +591,13 @@ public:
         return find_internal(key, m_buckets.begin() + ibucket_for_hash);
     }
     
+    /*
+     * Bucket interface 
+     */
+    size_type bucket_count() const {
+        return m_buckets.size(); 
+    }
+    
     
     /*
      *  Hash policy 
