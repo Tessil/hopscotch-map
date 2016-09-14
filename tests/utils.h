@@ -12,6 +12,62 @@ public:
     }
 };
 
+class self_reference_member_test {
+public:
+    self_reference_member_test() : m_value(-1), m_value_ptr(&m_value) {
+    }
+    
+    self_reference_member_test(int64_t value) : m_value(value), m_value_ptr(&m_value) {
+    }
+    
+    self_reference_member_test(const self_reference_member_test& other) : m_value(*other.m_value_ptr), m_value_ptr(&m_value) {
+    }
+    
+    self_reference_member_test(self_reference_member_test&& other) : m_value(*other.m_value_ptr), m_value_ptr(&m_value) {
+    }
+    
+    self_reference_member_test& operator=(const self_reference_member_test& other) {
+        m_value = *other.m_value_ptr;
+        m_value_ptr = &m_value;
+        
+        return *this;
+    }
+    
+    self_reference_member_test& operator=(self_reference_member_test&& other) {
+        m_value = *other.m_value_ptr;
+        m_value_ptr = &m_value;
+        
+        return *this;
+    }
+    
+    int64_t value() const {
+        return *m_value_ptr;
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const self_reference_member_test& value) {
+        stream << *value.m_value_ptr;
+        
+        return stream;
+    }
+    
+    friend bool operator==(const self_reference_member_test& lhs, const self_reference_member_test& rhs) { 
+        return *lhs.m_value_ptr == *rhs.m_value_ptr;
+    }
+    
+    friend bool operator!=(const self_reference_member_test& lhs, const self_reference_member_test& rhs) { 
+        return !(lhs == rhs); 
+    }
+    
+    friend bool operator<(const self_reference_member_test& lhs, const self_reference_member_test& rhs) {
+        return *lhs.m_value_ptr < *rhs.m_value_ptr;
+    }
+private:    
+    int64_t  m_value;
+    int64_t* m_value_ptr;
+};
+
+
+
 class move_only_test {
 public:
     move_only_test(int64_t value) : m_value(new int64_t(value)) {
@@ -49,6 +105,15 @@ private:
     std::unique_ptr<int64_t> m_value;
 };
 
+namespace std {
+    template<>
+    struct hash<self_reference_member_test> {
+        size_t operator()(const self_reference_member_test& val) const {
+            return std::hash<int64_t>()(val.value());
+        }
+    };
+};
+
 
 class utils {
 public:
@@ -70,13 +135,25 @@ int64_t utils::get_key<int64_t>(size_t counter) {
 }
 
 template<>
+self_reference_member_test utils::get_key<self_reference_member_test>(size_t counter) {
+    return self_reference_member_test(boost::numeric_cast<int64_t>(counter));
+}
+
+template<>
 std::string utils::get_key<std::string>(size_t counter) {
     return "Key " + std::to_string(counter);
 }
 
+
+
 template<>
 int64_t utils::get_value<int64_t>(size_t counter) {
     return boost::numeric_cast<int64_t>(counter*2);
+}
+
+template<>
+self_reference_member_test utils::get_value<self_reference_member_test>(size_t counter) {
+    return self_reference_member_test(boost::numeric_cast<int64_t>(counter*2));
 }
 
 template<>
@@ -88,6 +165,7 @@ template<>
 move_only_test utils::get_value<move_only_test>(size_t counter) {
     return move_only_test(boost::numeric_cast<int64_t>(counter*2));
 }
+
 
 
 template<typename HMap>

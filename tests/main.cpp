@@ -18,7 +18,10 @@ using test_types = boost::mpl::list<hopscotch_map<int64_t, int64_t>,
                                     hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 6>,
                                     hopscotch_map<int64_t, std::string>,
                                     hopscotch_map<int64_t, move_only_test>,
-                                    hopscotch_map<int64_t, move_only_test, mod_hash<9>, std::equal_to<int64_t>, 6>>;
+                                    hopscotch_map<int64_t, move_only_test, mod_hash<9>, std::equal_to<int64_t>, 6>,
+                                    hopscotch_map<self_reference_member_test, self_reference_member_test>,
+                                    hopscotch_map<self_reference_member_test, self_reference_member_test, 
+                                                  mod_hash<9>, std::equal_to<self_reference_member_test>, 6>>;
                                     
                               
                                     
