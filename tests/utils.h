@@ -105,11 +105,55 @@ private:
     std::unique_ptr<int64_t> m_value;
 };
 
+class virtual_table_test_base_class {
+public:     
+    virtual_table_test_base_class(int value) : m_value(value) {
+    }
+    
+    virtual ~virtual_table_test_base_class() {
+    }
+    
+    virtual int value() const {
+        return m_value;
+    }
+    
+protected:    
+    int m_value;
+};
+
+class virtual_table_test_class_1 : public virtual_table_test_base_class {
+public:    
+    virtual_table_test_class_1(int value) : virtual_table_test_base_class(value) {
+    }
+    
+    int value() const override {
+        return m_value + 1;
+    }
+};
+
+class virtual_table_test_class_2 : public virtual_table_test_base_class {
+public:    
+    virtual_table_test_class_2(int value) : virtual_table_test_base_class(value) {
+    }
+    
+    int value() const override {
+        return m_value + 2;
+    }
+};
+
+
 namespace std {
     template<>
     struct hash<self_reference_member_test> {
         size_t operator()(const self_reference_member_test& val) const {
             return std::hash<int64_t>()(val.value());
+        }
+    };
+    
+    template<>
+    struct hash<virtual_table_test_base_class*> {
+        size_t operator()(virtual_table_test_base_class* const & val) const {
+            return std::hash<int64_t>()(val->value());
         }
     };
 };

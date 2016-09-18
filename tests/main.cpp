@@ -200,3 +200,56 @@ BOOST_AUTO_TEST_CASE(test_insert_overflow_rehash_nothrow_move_construbtible) {
         BOOST_CHECK_EQUAL(it->second, i+1);
     }
 }
+
+
+/*
+ * Check that the virtual table stays intact. 
+ */
+BOOST_AUTO_TEST_CASE(test_virtual_table) {
+    const size_t nb_values = 5000;
+    
+    std::vector<std::unique_ptr<virtual_table_test_base_class>> class_1_elements;
+    std::vector<std::unique_ptr<virtual_table_test_base_class>> class_2_elements;
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        class_1_elements.emplace_back(new virtual_table_test_class_1(i));
+        class_2_elements.emplace_back(new virtual_table_test_class_2(i));
+    }
+    
+    
+    using HMap = hopscotch_map<virtual_table_test_base_class*, int64_t, mod_hash<9>>;
+    HMap::iterator it;
+    bool inserted;
+    
+    
+    HMap map;
+    for(size_t i = 0; i < nb_values; i++) {
+        std::tie(it, inserted) = map.insert({class_1_elements[i].get(), 1});
+        BOOST_CHECK(inserted);
+        BOOST_CHECK_EQUAL(it->first->value(), class_1_elements[i]->value());
+        BOOST_CHECK_NE(it->first->value(), class_2_elements[i]->value());
+        BOOST_CHECK_EQUAL(it->second, 1);
+        
+        std::tie(it, inserted) = map.insert({class_2_elements[i].get(), 2});
+        BOOST_CHECK(inserted);
+        BOOST_CHECK_EQUAL(it->first->value(), class_2_elements[i]->value());
+        BOOST_CHECK_NE(it->first->value(), class_1_elements[i]->value());
+        BOOST_CHECK_EQUAL(it->second, 2);
+    }
+    
+    BOOST_CHECK_EQUAL(map.size(), nb_values*2);
+    
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        it = map.find(class_1_elements[i].get());
+        BOOST_CHECK_EQUAL(it->first->value(), class_1_elements[i]->value());
+        BOOST_CHECK_NE(it->first->value(), class_2_elements[i]->value());
+        BOOST_CHECK_EQUAL(it->second, 1);
+        
+        it = map.find(class_2_elements[i].get());
+        BOOST_CHECK_EQUAL(it->first->value(), class_2_elements[i]->value());
+        BOOST_CHECK_NE(it->first->value(), class_1_elements[i]->value());
+        BOOST_CHECK_EQUAL(it->second, 2);
+    }
+    
+}
