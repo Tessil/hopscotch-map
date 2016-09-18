@@ -186,15 +186,15 @@ private:
         }
         
         neighborhood_bitmap get_neighborhood_infos() const noexcept {
-            return (neighborhood_bitmap) (m_neighborhood_infos >> NB_RESERVED_BITS_IN_NEIGHBORHOOD);
+            return static_cast<neighborhood_bitmap>(m_neighborhood_infos >> NB_RESERVED_BITS_IN_NEIGHBORHOOD);
         }
         
         void set_overflow(bool has_overflow) noexcept {
             if(has_overflow) {
-                m_neighborhood_infos = (neighborhood_bitmap) (m_neighborhood_infos | 2);
+                m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos | 2);
             }
             else {
-                m_neighborhood_infos = (neighborhood_bitmap) (m_neighborhood_infos & ~2);
+                m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos & ~2);
             }
         }
         
@@ -227,7 +227,7 @@ private:
         
         void toggle_neighbor_presence(std::size_t ineighbor) noexcept {
             assert(ineighbor <= NeighborhoodSize);
-            m_neighborhood_infos = (neighborhood_bitmap) (m_neighborhood_infos ^ (1ull << (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)));
+            m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos ^ (1ull << (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)));
         }
         
         bool check_neighbor_presence(std::size_t ineighbor) const noexcept {
@@ -264,10 +264,10 @@ private:
     private:
         void set_is_empty(bool is_empty) noexcept {
             if(is_empty) {
-                m_neighborhood_infos = (neighborhood_bitmap) (m_neighborhood_infos & ~1);
+                m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos & ~1);
             }
             else {
-                m_neighborhood_infos = (neighborhood_bitmap) (m_neighborhood_infos | 1);
+                m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos | 1);
             }
         }
         
@@ -912,7 +912,7 @@ private:
                 }
                 
                 to_swap++;
-                neighborhood_infos = (neighborhood_bitmap) (neighborhood_infos >> 1);
+                neighborhood_infos = static_cast<neighborhood_bitmap>(neighborhood_infos >> 1);
             }
         }
         
@@ -983,7 +983,7 @@ private:
             }
             
             ++it_bucket;
-            neighborhood_infos = (neighborhood_bitmap) (neighborhood_infos >> 1);
+            neighborhood_infos = static_cast<neighborhood_bitmap>(neighborhood_infos >> 1);
         }
         
         return m_buckets.end();
