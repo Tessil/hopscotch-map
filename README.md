@@ -23,7 +23,7 @@ hopscotch_map has comparable performances to google::dense_hash_map (see [benchm
 ## Installation
 To use hopscotch_map, just include the header src/hopscotch_map.h to your project. It's a header-only library.
 
-The code should work with any C++11 standard compliant compiler and has been tested with gcc 6.1, clang 3.6 and visual studio 2015.
+The code should work with any C++11 standard compliant compiler and has been tested with GCC 6.1, Clang 3.6 and Visual Studio 2015.
 
 To run the tests you will need the Boost library and CMake. 
 
@@ -63,7 +63,8 @@ int main() {
     
     // Use a map with a different neighborhood size
     const size_t neighborhood_size = 30;
-    hopscotch_map<std::string, int64_t, std::hash<std::string>, std::equal_to<std::string>, neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
+    hopscotch_map<std::string, int64_t, std::hash<std::string>, 
+                  std::equal_to<std::string>, neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
     
     for(const auto & key_value : map2) {
         std::cout << "map2: " << key_value.first << " " << key_value.second << std::endl;
