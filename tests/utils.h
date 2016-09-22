@@ -107,36 +107,36 @@ private:
 
 class virtual_table_test_base_class {
 public:     
-    virtual_table_test_base_class(int value) : m_value(value) {
+    virtual_table_test_base_class(int64_t value) : m_value(value) {
     }
     
     virtual ~virtual_table_test_base_class() {
     }
     
-    virtual int value() const {
+    virtual int64_t value() const {
         return m_value;
     }
     
 protected:    
-    int m_value;
+	int64_t m_value;
 };
 
 class virtual_table_test_class_1 : public virtual_table_test_base_class {
 public:    
-    virtual_table_test_class_1(int value) : virtual_table_test_base_class(value) {
+    virtual_table_test_class_1(int64_t value) : virtual_table_test_base_class(value) {
     }
     
-    int value() const override {
+	int64_t value() const override {
         return m_value + 1;
     }
 };
 
 class virtual_table_test_class_2 : public virtual_table_test_base_class {
 public:    
-    virtual_table_test_class_2(int value) : virtual_table_test_base_class(value) {
+    virtual_table_test_class_2(int64_t value) : virtual_table_test_base_class(value) {
     }
     
-    int value() const override {
+	int64_t value() const override {
         return m_value + 2;
     }
 };
