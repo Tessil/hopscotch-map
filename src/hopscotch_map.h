@@ -290,13 +290,6 @@ public:
                                                             typename std::list<typename hopscotch_map::value_type>::iterator>::type;
     
         
-        // Ensure copy constructors of the iterators are noexcept
-        static_assert(noexcept(iterator_bucket(std::declval<iterator_bucket>())), "");
-        static_assert(noexcept(iterator_overflow(std::declval<iterator_overflow>())), "");
-        // Ensure default constructors of the iterators are noexcept
-        static_assert(noexcept(iterator_bucket()), "");
-        static_assert(noexcept(iterator_overflow()), "");
-        
         hopscotch_iterator(iterator_bucket buckets_iterator, iterator_bucket buckets_end_iterator, 
                            iterator_overflow overflow_iterator) noexcept : 
             m_buckets_iterator(buckets_iterator), m_buckets_end_iterator(buckets_end_iterator),
