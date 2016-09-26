@@ -625,7 +625,7 @@ private:
                   /*const Allocator& alloc*/
                   float max_load_factor) :  m_buckets(bucket_count), m_nb_elements(0), 
                                             m_max_load_factor(max_load_factor), 
-                                            m_load_threshold((std::size_t) (m_buckets.size() * m_max_load_factor)),
+                                            m_load_threshold(static_cast<std::size_t>(m_buckets.size() * m_max_load_factor)),
                                             m_hash(hash), m_key_equal(equal)
     {
         // TODO round to nearsest power of 2, bucket_count is the minimal size in standard 
