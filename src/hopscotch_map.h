@@ -484,11 +484,12 @@ public:
     }
     
     iterator erase(const_iterator pos) {
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(pos->first));
         if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
-            return erase_from_bucket(pos);
+            return erase_from_bucket(pos, ibucket_for_hash);
         }
         else {
-            return erase_from_overflow(pos);
+            return erase_from_overflow(pos, ibucket_for_hash);
         }
     }
     
@@ -517,9 +518,17 @@ public:
     }
     
     size_type erase(const key_type& key) {
-        auto it = find(key);
-        if(it != end()) {
-            erase(it);
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
+        
+        auto it_find = find_internal(key, ibucket_for_hash);
+        if(it_find != end()) {
+            if(it_find.m_buckets_iterator != it_find.m_buckets_end_iterator) {
+                erase_from_bucket(it_find, ibucket_for_hash);
+            }
+            else {
+                erase_from_overflow(it_find, ibucket_for_hash);
+            }
+            
             return 1;
         }
         else {
@@ -707,11 +716,8 @@ private:
     }
     
     // iterator is in overflow list
-    iterator erase_from_overflow(const_iterator pos) {
+    iterator erase_from_overflow(const_iterator pos, std::size_t ibucket_for_hash) {
         assert(pos.m_overflow_iterator != m_overflow_elements.cend());
-        
-        const key_type& key = pos->first;
-        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         
         auto it = m_overflow_elements.erase(pos.m_overflow_iterator);
         m_nb_elements--;
@@ -726,24 +732,16 @@ private:
     }
     
     // iterator is in bucket
-    iterator erase_from_bucket(const_iterator pos) {
+    iterator erase_from_bucket(const_iterator pos, std::size_t ibucket_for_hash) {
         assert(pos.m_buckets_iterator != pos.m_buckets_end_iterator);
         
-        const key_type& key = pos->first;
-        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         const std::size_t ibucket_for_key = std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
         
         m_buckets[ibucket_for_key].remove_key_value();
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_for_key - ibucket_for_hash);
         m_nb_elements--;
-    
-        // Get next non-empty bucket iterator
-        auto it_next = m_buckets.begin() + ibucket_for_key + 1;
-        while(it_next != m_buckets.end() && it_next->is_empty()) {
-            ++it_next;
-        }
-        
-        return iterator(it_next, m_buckets.end(), m_overflow_elements.begin()); 
+
+        return ++iterator(m_buckets.begin() + ibucket_for_key, m_buckets.end(), m_overflow_elements.begin()); 
     }
     
         
