@@ -68,7 +68,7 @@ template<class Key,
          class T, 
          class Hash = std::hash<Key>,
          class KeyEqual = std::equal_to<Key>,
-         class Allocator = std::allocator<std::pair<Key, T>>,
+         //class Allocator = std::allocator<std::pair<const Key, T>>,
          unsigned int NeighborhoodSize = 62>
 class hopscotch_map {
 private:
@@ -96,7 +96,7 @@ public:
     using difference_type = std::ptrdiff_t;
     using hasher = Hash;
     using key_equal = KeyEqual;
-    using allocator_type = Allocator;
+    //using allocator_type = Allocator;
     using reference = value_type&;
     using const_reference = const value_type&;
     using pointer = value_type*;
@@ -276,8 +276,6 @@ private:
         neighborhood_bitmap m_neighborhood_infos;
     };
     
-    using buckets_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<hopscotch_bucket>;
-    using overflow_elements_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<value_type>;
     
 public:    
     template<bool is_const>
@@ -395,9 +393,8 @@ public:
     
     explicit hopscotch_map(size_type bucket_count, 
                         const Hash& hash = Hash(),
-                        const KeyEqual& equal = KeyEqual(),
-                        const Allocator& alloc = Allocator()) : hopscotch_map(bucket_count, hash, equal, 
-                                                                              alloc, DEFAULT_MAX_LOAD_FACTOR)
+                        const KeyEqual& equal = KeyEqual()
+                        /*const Allocator& alloc = Allocator()*/) : hopscotch_map(bucket_count, hash, equal, DEFAULT_MAX_LOAD_FACTOR)
     {
     }
     
@@ -405,8 +402,8 @@ public:
     hopscotch_map(InputIt first, InputIt last,
                 size_type bucket_count = DEFAULT_INIT_BUCKETS_SIZE,
                 const Hash& hash = Hash(),
-                const KeyEqual& equal = KeyEqual(),
-                const Allocator& alloc = Allocator()) : hopscotch_map(bucket_count, hash, equal, alloc)
+                const KeyEqual& equal = KeyEqual()
+                /*const Allocator& alloc = Allocator()*/) : hopscotch_map(bucket_count, hash, equal)
     {
         insert(first, last);
     }
@@ -414,9 +411,8 @@ public:
     hopscotch_map(std::initializer_list<value_type> init,
                     size_type bucket_count = DEFAULT_INIT_BUCKETS_SIZE,
                     const Hash& hash = Hash(),
-                    const KeyEqual& equal = KeyEqual(),
-                    const Allocator& alloc = Allocator()) : hopscotch_map(init.begin(), init.end(), 
-                                                                          bucket_count, hash, equal, alloc)
+                    const KeyEqual& equal = KeyEqual()
+                    /*const Allocator& alloc = Allocator() */) : hopscotch_map(init.begin(), init.end(), bucket_count, hash, equal)
     {
     }
     
@@ -655,9 +651,8 @@ private:
     hopscotch_map(size_type bucket_count, 
                   const Hash& hash,
                   const KeyEqual& equal,
-                  const Allocator& alloc,
-                  float max_load_factor) :  m_buckets(bucket_count, alloc), m_overflow_elements(alloc),
-                                            m_nb_elements(0), 
+                  /*const Allocator& alloc*/
+                  float max_load_factor) :  m_buckets(bucket_count), m_nb_elements(0), 
                                             m_max_load_factor(max_load_factor), 
                                             m_load_threshold(static_cast<std::size_t>(m_buckets.size() * m_max_load_factor)),
                                             m_hash(hash), m_key_equal(equal)
@@ -675,7 +670,7 @@ private:
     
     template<typename U = value_type, typename std::enable_if<!std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
     void rehash_internal(size_type count) {
-        hopscotch_map tmp_map(count, m_hash, m_key_equal, m_buckets.get_allocator(), m_max_load_factor);
+        hopscotch_map tmp_map(count, m_hash, m_key_equal, m_max_load_factor);
         
         for(const auto & key_value : *this) {
             const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(key_value.first));
@@ -698,7 +693,7 @@ private:
          * This way we don't do any memory allocation (outside the construction of m_buckets) and we avoid
          * any exception which may hinder the strong exception-safe guarantee.
          */
-        hopscotch_map tmp_map(count, m_hash, m_key_equal, m_buckets.get_allocator(), m_max_load_factor);
+        hopscotch_map tmp_map(count, m_hash, m_key_equal, m_max_load_factor);
         
         for(hopscotch_bucket & bucket : m_buckets) {
             if(bucket.is_empty()) {
@@ -780,7 +775,7 @@ private:
             return std::make_pair(it_find, false);
         }
         
-
+        // TODO We copy the key two times, once here and then later to copy it in bucket. Optimize.
         return insert_internal(value_type(std::piecewise_construct, 
                                           std::forward_as_tuple(std::forward<P>(key)), 
                                           std::forward_as_tuple(std::forward<Args>(args_value)...)), 
@@ -1020,8 +1015,8 @@ private:
      * to get the bucket for a hash
      */
     static_assert(is_power_of_two(DEFAULT_INIT_BUCKETS_SIZE), "DEFAULT_INIT_BUCKETS_SIZE should be a power of 2.");
-    std::vector<hopscotch_bucket, buckets_allocator> m_buckets;
-    std::list<value_type, overflow_elements_allocator> m_overflow_elements;
+    std::vector<hopscotch_bucket> m_buckets;
+    std::list<value_type> m_overflow_elements;
     
     std::size_t m_nb_elements;
     
@@ -1033,9 +1028,9 @@ private:
     key_equal m_key_equal;
 };
 
-template<class Key, class T, class Hash, class KeyEqual, class Allocator, unsigned int NeighborhoodSize>
-inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize>& lhs, 
-                       const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize>& rhs)
+template<class Key, class T, class Hash, class KeyEqual, unsigned int NeighborhoodSize>
+inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, NeighborhoodSize>& lhs, 
+                       const hopscotch_map<Key, T, Hash, KeyEqual, NeighborhoodSize>& rhs)
 {
     if(lhs.size() != rhs.size()) {
         return false;
@@ -1052,9 +1047,9 @@ inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, Ne
 }
 
 
-template<class Key, class T, class Hash, class KeyEqual, class Allocator, unsigned int NeighborhoodSize>
-inline bool operator!=(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize>& lhs, 
-                       const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize>& rhs)
+template<class Key, class T, class Hash, class KeyEqual, unsigned int NeighborhoodSize>
+inline bool operator!=(const hopscotch_map<Key, T, Hash, KeyEqual, NeighborhoodSize>& lhs, 
+                       const hopscotch_map<Key, T, Hash, KeyEqual, NeighborhoodSize>& rhs)
 {
     return !operator==(lhs, rhs);
 }
