@@ -582,10 +582,10 @@ public:
     T& operator[](const Key& key) {
         auto it_find = find(key);
         if(it_find == end()) {
-            return insert(std::make_pair(key, T())).first->second;
+            return insert(std::make_pair(key, T())).first.value();
         }
         else {
-            return it_find->second;
+            return it_find.value();
         }
     }
     
