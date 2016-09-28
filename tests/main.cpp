@@ -97,10 +97,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_iterator, HMap, test_types) {
     
     
     HMap map_tmp1 = utils::get_filled_hash_map<HMap>(nb_values);
-    const std::map<key_t, value_t> sorted(std::make_move_iterator(map_tmp1.begin()), std::make_move_iterator(map_tmp1.end()));
+    std::map<key_t, value_t> sorted;
+    for(auto it = map_tmp1.begin(); it != map_tmp1.end(); ++it) {
+        sorted.insert(std::make_pair(it.key(), std::move(it.value())));
+    }
+    
     
     HMap map_tmp2 = utils::get_filled_hash_map<HMap>(nb_values);
-    const std::map<key_t, value_t> sorted2(std::make_move_iterator(map_tmp2.begin()), std::make_move_iterator(map_tmp2.end()));
+    std::map<key_t, value_t> sorted2;
+    for(auto it = map_tmp2.begin(); it != map_tmp2.end(); ++it) {
+        sorted2.insert(std::make_pair(it.key(), std::move(it.value())));
+    }
     
     
     BOOST_CHECK(sorted == sorted2);

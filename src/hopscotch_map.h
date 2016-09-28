@@ -91,7 +91,7 @@ public:
     
     using key_type = Key;
     using mapped_type = T;
-    using value_type = std::pair<const Key, T>;
+    using value_type = std::pair<Key, T>;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
     using hasher = Hash;
@@ -298,10 +298,14 @@ public:
         }
     public:
         using iterator_category = std::forward_iterator_tag;
-        using value_type = typename hopscotch_map::value_type;
+        using value_type = const typename hopscotch_map::value_type;
         using difference_type = std::ptrdiff_t;
-        using reference = typename std::conditional<is_const, const value_type&, value_type&>::type;
-        using pointer = typename std::conditional<is_const, const value_type*, value_type*>::type;
+        using reference = value_type&;
+        using pointer = value_type*;
+        using key_reference = const typename hopscotch_map::key_type&;
+        using mapped_reference = typename std::conditional<is_const, 
+                                            const typename hopscotch_map::mapped_type&,
+                                            typename hopscotch_map::mapped_type&>::type;
         
         hopscotch_iterator() noexcept {
         }
@@ -310,6 +314,22 @@ public:
             m_buckets_iterator(other.m_buckets_iterator), m_buckets_end_iterator(other.m_buckets_end_iterator),
             m_overflow_iterator(other.m_overflow_iterator)
         {
+        }
+        
+        key_reference key() const {
+            if(m_buckets_iterator != m_buckets_end_iterator) {
+                return m_buckets_iterator->get_key_value().first;
+            }
+            
+            return m_overflow_iterator->first;
+        }
+        
+        mapped_reference value() const {
+            if(m_buckets_iterator != m_buckets_end_iterator) {
+                return m_buckets_iterator->get_key_value().second;
+            }
+            
+            return m_overflow_iterator->second;
         }
         
         reference operator*() const { 
