@@ -540,13 +540,13 @@ public:
     size_type erase(const key_type& key) {
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         
-        auto it_find = find_internal(key, ibucket_for_hash);
+        auto it_find = find_internal(key, m_buckets.begin() + ibucket_for_hash);
         if(it_find != end()) {
             if(it_find.m_buckets_iterator != it_find.m_buckets_end_iterator) {
                 erase_from_bucket(it_find, ibucket_for_hash);
             }
             else {
-                erase_from_overflow(it_find, ibucket_for_hash);
+                erase_from_overflow(it_find, m_buckets.begin() + ibucket_for_hash);
             }
             
             return 1;
