@@ -546,7 +546,7 @@ public:
                 erase_from_bucket(it_find, ibucket_for_hash);
             }
             else {
-                erase_from_overflow(it_find, m_buckets.begin() + ibucket_for_hash);
+                erase_from_overflow(it_find, ibucket_for_hash);
             }
             
             return 1;
