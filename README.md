@@ -62,9 +62,10 @@ int main() {
     }
     
     // Use a map with a different neighborhood size
-    const size_t neighborhood_size = 30;
-    hopscotch_map<std::string, int64_t, std::hash<std::string>, 
-                  std::equal_to<std::string>, neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
+    static const size_t neighborhood_size = 30;
+    hopscotch_map<std::string, int64_t, std::hash<std::string>, std::equal_to<std::string>,
+                  std::allocator<std::pair<std::string, int64_t>>, 
+                  neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
     
     for(const auto & key_value : map2) {
         std::cout << "map2: " << key_value.first << " " << key_value.second << std::endl;
