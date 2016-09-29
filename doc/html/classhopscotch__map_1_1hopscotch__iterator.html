@@ -62,14 +62,18 @@
 Public Types</h2></td></tr>
 <tr class="memitem:a4b8b81663657eecb49a94b06e6b7b17d"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a4b8b81663657eecb49a94b06e6b7b17d">iterator_category</a> = std::forward_iterator_tag</td></tr>
 <tr class="separator:a4b8b81663657eecb49a94b06e6b7b17d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af6627871144ceb045cdba9d063dfca6f"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6627871144ceb045cdba9d063dfca6f">value_type</a> = typename <a class="el" href="classhopscotch__map.html#a0ff3cea52216cecd6eab1740f8e108a5">hopscotch_map::value_type</a></td></tr>
-<tr class="separator:af6627871144ceb045cdba9d063dfca6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a878a2d326a61b440e958f4bbcc2df005"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a878a2d326a61b440e958f4bbcc2df005">value_type</a> = const typename <a class="el" href="classhopscotch__map.html#a6b751452c00830d5f0340da580d32ece">hopscotch_map::value_type</a></td></tr>
+<tr class="separator:a878a2d326a61b440e958f4bbcc2df005"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6a5a3939b0a616ca0a6d96fc7a83f524"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a6a5a3939b0a616ca0a6d96fc7a83f524">difference_type</a> = std::ptrdiff_t</td></tr>
 <tr class="separator:a6a5a3939b0a616ca0a6d96fc7a83f524"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa0a9f72ff6b170e17d3764c807caf6c4"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#aa0a9f72ff6b170e17d3764c807caf6c4">reference</a> = typename std::conditional&lt; is_const, const <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6627871144ceb045cdba9d063dfca6f">value_type</a> &amp;, <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6627871144ceb045cdba9d063dfca6f">value_type</a> &amp; &gt;::type</td></tr>
-<tr class="separator:aa0a9f72ff6b170e17d3764c807caf6c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af6ce38b288b07615e3ebd36ba0cabf6e"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6ce38b288b07615e3ebd36ba0cabf6e">pointer</a> = typename std::conditional&lt; is_const, const <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6627871144ceb045cdba9d063dfca6f">value_type</a> *, <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6627871144ceb045cdba9d063dfca6f">value_type</a> * &gt;::type</td></tr>
-<tr class="separator:af6ce38b288b07615e3ebd36ba0cabf6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9aeb0d7ed6e2fc4f6615aa225215a34e"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a9aeb0d7ed6e2fc4f6615aa225215a34e">reference</a> = <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a878a2d326a61b440e958f4bbcc2df005">value_type</a> &amp;</td></tr>
+<tr class="separator:a9aeb0d7ed6e2fc4f6615aa225215a34e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a91f857901c88b56e81d933f3d3524595"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a91f857901c88b56e81d933f3d3524595">pointer</a> = <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a878a2d326a61b440e958f4bbcc2df005">value_type</a> *</td></tr>
+<tr class="separator:a91f857901c88b56e81d933f3d3524595"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4acbc1e793b84b2181d7b21ed1cc0e75"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a4acbc1e793b84b2181d7b21ed1cc0e75">key_reference</a> = const typename <a class="el" href="classhopscotch__map.html#a229bc3b6a2f22677ee630da6414fb1f6">hopscotch_map::key_type</a> &amp;</td></tr>
+<tr class="separator:a4acbc1e793b84b2181d7b21ed1cc0e75"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2b06ed8a13e8e24ab71ff1de5f0cf703"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a2b06ed8a13e8e24ab71ff1de5f0cf703">mapped_reference</a> = typename std::conditional&lt; is_const, const typename <a class="el" href="classhopscotch__map.html#ad0ff867eb111a13c3100362c0e47a6aa">hopscotch_map::mapped_type</a> &amp;, typename <a class="el" href="classhopscotch__map.html#ad0ff867eb111a13c3100362c0e47a6aa">hopscotch_map::mapped_type</a> &amp; &gt;::type</td></tr>
+<tr class="separator:a2b06ed8a13e8e24ab71ff1de5f0cf703"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -77,9 +81,13 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a79f9f48ad689a6826fcd021decb1ba6b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a71d3b277ee6cee30922da35258fccd2b"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a71d3b277ee6cee30922da35258fccd2b">hopscotch_iterator</a> (const <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; false &gt; &amp;other) noexcept</td></tr>
 <tr class="separator:a71d3b277ee6cee30922da35258fccd2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad048878e64afb9c25b8f82a09b100752"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#aa0a9f72ff6b170e17d3764c807caf6c4">reference</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#ad048878e64afb9c25b8f82a09b100752">operator*</a> () const </td></tr>
+<tr class="memitem:ab1d3c9ff9ef456cc3887eef1f7623d31"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a4acbc1e793b84b2181d7b21ed1cc0e75">key_reference</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#ab1d3c9ff9ef456cc3887eef1f7623d31">key</a> () const </td></tr>
+<tr class="separator:ab1d3c9ff9ef456cc3887eef1f7623d31"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a086cba7dc33881d4213ab0a879228824"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a2b06ed8a13e8e24ab71ff1de5f0cf703">mapped_reference</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a086cba7dc33881d4213ab0a879228824">value</a> () const </td></tr>
+<tr class="separator:a086cba7dc33881d4213ab0a879228824"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad048878e64afb9c25b8f82a09b100752"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a9aeb0d7ed6e2fc4f6615aa225215a34e">reference</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#ad048878e64afb9c25b8f82a09b100752">operator*</a> () const </td></tr>
 <tr class="separator:ad048878e64afb9c25b8f82a09b100752"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a38c13b9cb8a0ddc8292443013df29713"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6ce38b288b07615e3ebd36ba0cabf6e">pointer</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a38c13b9cb8a0ddc8292443013df29713">operator-&gt;</a> () const </td></tr>
+<tr class="memitem:a38c13b9cb8a0ddc8292443013df29713"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a91f857901c88b56e81d933f3d3524595">pointer</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a38c13b9cb8a0ddc8292443013df29713">operator-&gt;</a> () const </td></tr>
 <tr class="separator:a38c13b9cb8a0ddc8292443013df29713"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a60ce4d4e67f4e2d2219ef497187a7154"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a60ce4d4e67f4e2d2219ef497187a7154">operator++</a> ()</td></tr>
 <tr class="separator:a60ce4d4e67f4e2d2219ef497187a7154"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -128,7 +136,7 @@ template&lt;bool is_const&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="af6ce38b288b07615e3ebd36ba0cabf6e"></a>
+<a class="anchor" id="a4acbc1e793b84b2181d7b21ed1cc0e75"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
@@ -137,14 +145,14 @@ template&lt;class Key, class T, class Hash = std::hash&lt;Key&gt;, class KeyEqua
 template&lt;bool is_const&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6ce38b288b07615e3ebd36ba0cabf6e">pointer</a> =  typename std::conditional&lt;is_const, const <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6627871144ceb045cdba9d063dfca6f">value_type</a>*, <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6627871144ceb045cdba9d063dfca6f">value_type</a>*&gt;::type</td>
+          <td class="memname">using <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a4acbc1e793b84b2181d7b21ed1cc0e75">key_reference</a> =  const typename <a class="el" href="classhopscotch__map.html#a229bc3b6a2f22677ee630da6414fb1f6">hopscotch_map::key_type</a>&amp;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a class="anchor" id="aa0a9f72ff6b170e17d3764c807caf6c4"></a>
+<a class="anchor" id="a2b06ed8a13e8e24ab71ff1de5f0cf703"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
@@ -153,14 +161,14 @@ template&lt;class Key, class T, class Hash = std::hash&lt;Key&gt;, class KeyEqua
 template&lt;bool is_const&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#aa0a9f72ff6b170e17d3764c807caf6c4">reference</a> =  typename std::conditional&lt;is_const, const <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6627871144ceb045cdba9d063dfca6f">value_type</a>&amp;, <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6627871144ceb045cdba9d063dfca6f">value_type</a>&amp;&gt;::type</td>
+          <td class="memname">using <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a2b06ed8a13e8e24ab71ff1de5f0cf703">mapped_reference</a> =  typename std::conditional&lt;is_const, const typename <a class="el" href="classhopscotch__map.html#ad0ff867eb111a13c3100362c0e47a6aa">hopscotch_map::mapped_type</a>&amp;, typename <a class="el" href="classhopscotch__map.html#ad0ff867eb111a13c3100362c0e47a6aa">hopscotch_map::mapped_type</a>&amp;&gt;::type</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a class="anchor" id="af6627871144ceb045cdba9d063dfca6f"></a>
+<a class="anchor" id="a91f857901c88b56e81d933f3d3524595"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
@@ -169,7 +177,39 @@ template&lt;class Key, class T, class Hash = std::hash&lt;Key&gt;, class KeyEqua
 template&lt;bool is_const&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6627871144ceb045cdba9d063dfca6f">value_type</a> =  typename <a class="el" href="classhopscotch__map.html#a0ff3cea52216cecd6eab1740f8e108a5">hopscotch_map::value_type</a></td>
+          <td class="memname">using <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a91f857901c88b56e81d933f3d3524595">pointer</a> =  <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a878a2d326a61b440e958f4bbcc2df005">value_type</a>*</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a9aeb0d7ed6e2fc4f6615aa225215a34e"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Key, class T, class Hash = std::hash&lt;Key&gt;, class KeyEqual = std::equal_to&lt;Key&gt;, unsigned int NeighborhoodSize = 62&gt; </div>
+<div class="memtemplate">
+template&lt;bool is_const&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a9aeb0d7ed6e2fc4f6615aa225215a34e">reference</a> =  <a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a878a2d326a61b440e958f4bbcc2df005">value_type</a>&amp;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a878a2d326a61b440e958f4bbcc2df005"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Key, class T, class Hash = std::hash&lt;Key&gt;, class KeyEqual = std::equal_to&lt;Key&gt;, unsigned int NeighborhoodSize = 62&gt; </div>
+<div class="memtemplate">
+template&lt;bool is_const&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a878a2d326a61b440e958f4bbcc2df005">value_type</a> =  const typename <a class="el" href="classhopscotch__map.html#a6b751452c00830d5f0340da580d32ece">hopscotch_map::value_type</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -233,6 +273,33 @@ template&lt;bool is_const&gt; </div>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a class="anchor" id="ab1d3c9ff9ef456cc3887eef1f7623d31"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Key, class T, class Hash = std::hash&lt;Key&gt;, class KeyEqual = std::equal_to&lt;Key&gt;, unsigned int NeighborhoodSize = 62&gt; </div>
+<div class="memtemplate">
+template&lt;bool is_const&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a4acbc1e793b84b2181d7b21ed1cc0e75">key_reference</a> <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::key </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="ad048878e64afb9c25b8f82a09b100752"></a>
 <div class="memitem">
 <div class="memproto">
@@ -245,7 +312,7 @@ template&lt;bool is_const&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#aa0a9f72ff6b170e17d3764c807caf6c4">reference</a> <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::operator* </td>
+          <td class="memname"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a9aeb0d7ed6e2fc4f6615aa225215a34e">reference</a> <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::operator* </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -327,7 +394,34 @@ template&lt;bool is_const&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#af6ce38b288b07615e3ebd36ba0cabf6e">pointer</a> <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::operator-&gt; </td>
+          <td class="memname"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a91f857901c88b56e81d933f3d3524595">pointer</a> <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::operator-&gt; </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a086cba7dc33881d4213ab0a879228824"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;class Key, class T, class Hash = std::hash&lt;Key&gt;, class KeyEqual = std::equal_to&lt;Key&gt;, unsigned int NeighborhoodSize = 62&gt; </div>
+<div class="memtemplate">
+template&lt;bool is_const&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html#a2b06ed8a13e8e24ab71ff1de5f0cf703">mapped_reference</a> <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::<a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_iterator</a>&lt; is_const &gt;::value </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
