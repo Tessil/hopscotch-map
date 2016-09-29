@@ -272,8 +272,8 @@ private:
         }
         
     private:
-        storage m_key_value;
         neighborhood_bitmap m_neighborhood_infos;
+        storage m_key_value;
     };
     
     
