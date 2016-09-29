@@ -12,7 +12,7 @@ hopscotch_map tries to have an interface similar to std::unordered_map, but some
 - Iterator invalidation on insert doesn't behave in the same way (see [API](https://tessil.github.io/hopscotch-map/doc/html/classhopscotch__map.html#details) for details).
 - References and pointers to keys or values in the map are invalidated in the same way as iterators to these keys-values.
 - The size of the bucket array in the map grows by a factor of 2, the size will always be a power of 2, which may be a too steep growth rate for some purposes.
-- For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>` making the value not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
+- For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>` making the value `T` not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
 ```c++
 hopscotch_map<int, int> map = {{1, 1}, {2, 1}, {3, 1}};
 for(auto it = map.begin(); it != map.end(); ++it) {
