@@ -612,7 +612,12 @@ public:
      * Bucket interface 
      */
     size_type bucket_count() const {
-        return m_buckets.size(); 
+        /*
+         * So that the last bucket can have NeighborhoodSize neighbors, the size of the bucket array is a little
+         * bigger than the real number of buckets. We could use some of the buckets at the beginning, but
+         * it is easier this way and we avoid weird behaviour with iterators.
+         */
+        return m_buckets.size() - NeighborhoodSize + 1; 
     }
     
     
@@ -620,7 +625,7 @@ public:
      *  Hash policy 
      */
     float load_factor() const {
-        return (1.0f*m_nb_elements)/m_buckets.size();
+        return (1.0f*m_nb_elements)/bucket_count();
     }
     
     float max_load_factor() const {
@@ -629,7 +634,7 @@ public:
     
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
-        m_load_threshold = m_buckets.size() * ml;
+        m_load_threshold = static_cast<std::size_t>(bucket_count() * m_max_load_factor);
     }
     
     void rehash(size_type count) {
@@ -652,9 +657,9 @@ private:
                   const Hash& hash,
                   const KeyEqual& equal,
                   /*const Allocator& alloc*/
-                  float max_load_factor) :  m_buckets(bucket_count), m_nb_elements(0), 
+                  float max_load_factor) :  m_buckets(bucket_count + NeighborhoodSize - 1), m_nb_elements(0), 
                                             m_max_load_factor(max_load_factor), 
-                                            m_load_threshold(static_cast<std::size_t>(m_buckets.size() * m_max_load_factor)),
+                                            m_load_threshold(static_cast<std::size_t>(bucket_count * m_max_load_factor)),
                                             m_hash(hash), m_key_equal(equal)
     {
         // TODO round to nearsest power of 2, bucket_count is the minimal size in standard 
@@ -665,7 +670,11 @@ private:
     
     
     std::size_t bucket_for_hash(std::size_t hash) const {
-        return hash & (m_buckets.size() - 1);
+        return hash & (bucket_count() - 1);
+    }
+    
+    std::size_t bucket_for_hash(std::size_t hash, std::size_t nb_buckets) const {
+        return hash & (nb_buckets - 1);
     }
     
     template<typename U = value_type, typename std::enable_if<!std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
@@ -801,7 +810,7 @@ private:
         assert(!m_buckets.empty());
         
         if((m_nb_elements + 1) > m_load_threshold) {
-            rehash(m_buckets.size() * REHASH_SIZE_MULTIPLICATION_FACTOR);
+            rehash(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR);
             ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
         }
         
@@ -830,7 +839,7 @@ private:
             
         }
     
-        rehash(m_buckets.size() * REHASH_SIZE_MULTIPLICATION_FACTOR);
+        rehash(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR);
         
         ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
         return insert_internal(std::forward<P>(key_value), ibucket_for_hash);
@@ -850,7 +859,7 @@ private:
             const value_type & key_value = m_buckets[ibucket].get_key_value();
             const size_t hash = m_hash(key_value.first);
             
-            if((hash & (m_buckets.size() - 1)) != (hash & (m_buckets.size() * REHASH_SIZE_MULTIPLICATION_FACTOR - 1))) {
+            if(bucket_for_hash(hash) != bucket_for_hash(hash, bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR)) {
                 return true;
             }
         }
@@ -1013,7 +1022,7 @@ private:
 
     
     /*
-     * m_buckets.size() should be a power of 2. We can then use "hash & (m_buckets.size - 1)" 
+     * bucket_count() should be a power of 2. We can then use "hash & (bucket_count() - 1)" 
      * to get the bucket for a hash
      */
     static_assert(is_power_of_two(DEFAULT_INIT_BUCKETS_SIZE), "DEFAULT_INIT_BUCKETS_SIZE should be a power of 2.");
