@@ -863,13 +863,14 @@ private:
      * If none, the returned index equals m_buckets.size()
      */
     std::size_t find_empty_bucket(std::size_t ibucket_start) const {
-        for(; ibucket_start < m_buckets.size(); ibucket_start++) {
+        const std::size_t limit = std::min(ibucket_start + MAX_LINEAR_PROBE_SEARCH_EMPTY_BUCKET, m_buckets.size());
+        for(; ibucket_start < limit; ibucket_start++) {
             if(m_buckets[ibucket_start].is_empty()) {
-                break;
+                return ibucket_start;
             }
         }
         
-        return ibucket_start;
+        return m_buckets.size();
     }
     
     /*
@@ -1006,6 +1007,7 @@ private:
     
 private:    
     static const std::size_t DEFAULT_INIT_BUCKETS_SIZE = 16;
+    static const std::size_t MAX_LINEAR_PROBE_SEARCH_EMPTY_BUCKET = 4096;
     static const std::size_t REHASH_SIZE_MULTIPLICATION_FACTOR = 2;
     static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.9f;
 
