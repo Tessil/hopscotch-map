@@ -18,6 +18,7 @@ using test_types = boost::mpl::list<hopscotch_map<int64_t, int64_t>,
                                     hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 6>,
                                     hopscotch_map<int64_t, std::string>,
                                     hopscotch_map<int64_t, move_only_test>,
+                                    hopscotch_map<move_only_test, int64_t>,
                                     hopscotch_map<int64_t, move_only_test, mod_hash<9>, std::equal_to<int64_t>, 6>,
                                     hopscotch_map<self_reference_member_test, self_reference_member_test>,
                                     hopscotch_map<self_reference_member_test, self_reference_member_test, 
@@ -72,52 +73,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_all, HMap, test_types) {
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_loop, HMap, test_types) {
     size_t nb_values = 1000;
     HMap map = utils::get_filled_hash_map<HMap>(nb_values);
+    HMap map2 = utils::get_filled_hash_map<HMap>(nb_values);
     
     auto it = map.begin();
+    // Use second map to check for key after delete as we may not copy the key with move-only types.
+    auto it2 = map2.begin();
     while(it != map.end()) {
-        auto key = it->first;
-        
         it = map.erase(it);
         --nb_values;
-        BOOST_CHECK_EQUAL(map.count(key), 0);
+        
+        BOOST_CHECK_EQUAL(map.count(it2->first), 0);
         BOOST_CHECK_EQUAL(map.size(), nb_values);
+        ++it2;
     }
     
     BOOST_CHECK(map.empty());
-}
-
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(test_iterator, HMap, test_types) {
-    using key_t = typename HMap::key_type; using value_t = typename HMap:: mapped_type;
-    
-    const size_t nb_values = 1000;
-    const HMap map = utils::get_filled_hash_map<HMap>(nb_values);
-    BOOST_CHECK_EQUAL(std::distance(map.begin(), map.end()), nb_values);
-    BOOST_CHECK_EQUAL(std::distance(map.cbegin(), map.cend()), nb_values);
-    
-    
-    HMap map_tmp1 = utils::get_filled_hash_map<HMap>(nb_values);
-    std::map<key_t, value_t> sorted;
-    for(auto it = map_tmp1.begin(); it != map_tmp1.end(); ++it) {
-        sorted.insert(std::make_pair(it.key(), std::move(it.value())));
-    }
-    
-    
-    HMap map_tmp2 = utils::get_filled_hash_map<HMap>(nb_values);
-    std::map<key_t, value_t> sorted2;
-    for(auto it = map_tmp2.begin(); it != map_tmp2.end(); ++it) {
-        sorted2.insert(std::make_pair(it.key(), std::move(it.value())));
-    }
-    
-    
-    BOOST_CHECK(sorted == sorted2);
-    BOOST_CHECK_EQUAL(sorted.size(), map.size());
-    
-    for(const auto & key_value : sorted) {
-        auto it_find = map.find(key_value.first);
-        BOOST_CHECK_EQUAL(key_value.first, it_find->first);
-        BOOST_CHECK_EQUAL(key_value.second, it_find->second);
-    }
 }
 
 
@@ -258,5 +228,4 @@ BOOST_AUTO_TEST_CASE(test_virtual_table) {
         BOOST_CHECK_NE(it->first->value(), class_1_elements[i]->value());
         BOOST_CHECK_EQUAL(it->second, 2);
     }
-    
 }

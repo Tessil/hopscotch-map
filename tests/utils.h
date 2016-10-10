@@ -101,6 +101,10 @@ public:
     friend bool operator!=(const move_only_test& lhs, const move_only_test& rhs) { 
         return !(lhs == rhs); 
     }
+    
+    int64_t value() const {
+        return *m_value;
+    }
 private:    
     std::unique_ptr<int64_t> m_value;
 };
@@ -118,7 +122,7 @@ public:
     }
     
 protected:    
-	int64_t m_value;
+    int64_t m_value;
 };
 
 class virtual_table_test_class_1 : public virtual_table_test_base_class {
@@ -126,7 +130,7 @@ public:
     virtual_table_test_class_1(int64_t value) : virtual_table_test_base_class(value) {
     }
     
-	int64_t value() const override {
+    int64_t value() const override {
         return m_value + 1;
     }
 };
@@ -136,7 +140,7 @@ public:
     virtual_table_test_class_2(int64_t value) : virtual_table_test_base_class(value) {
     }
     
-	int64_t value() const override {
+    int64_t value() const override {
         return m_value + 2;
     }
 };
@@ -146,6 +150,13 @@ namespace std {
     template<>
     struct hash<self_reference_member_test> {
         size_t operator()(const self_reference_member_test& val) const {
+            return std::hash<int64_t>()(val.value());
+        }
+    };
+    
+    template<>
+    struct hash<move_only_test> {
+        size_t operator()(const move_only_test& val) const {
             return std::hash<int64_t>()(val.value());
         }
     };
@@ -187,6 +198,12 @@ template<>
 std::string utils::get_key<std::string>(size_t counter) {
     return "Key " + std::to_string(counter);
 }
+
+template<>
+move_only_test utils::get_key<move_only_test>(size_t counter) {
+    return move_only_test(boost::numeric_cast<int64_t>(counter));
+}
+
 
 
 

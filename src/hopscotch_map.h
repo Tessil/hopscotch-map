@@ -57,7 +57,7 @@ namespace {
  * 
  * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62.
  * 
- * The Key must be copy-constructible. The value T must be either move-constructible, copy-constuctible or both.
+ * The Key and the value T must be either move-constructible, copy-constuctible or both.
  * 
  * Iterators invalidation:
  *  - clear, operator=: always invalidate the iterators.
