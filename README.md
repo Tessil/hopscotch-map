@@ -28,6 +28,7 @@ for(auto it = map.begin(); it != map.end(); ++it) {
 hopscotch_map has comparable performances to google::dense_hash_map (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html)), but come with some advantages:
 - There is no need to reserve sentinel values for the key as it is done by google::dense_hash_map where you need to have a sentinel for empty and deleted keys.
 - The type of the value in the map doesn't need a default constructor.
+- It uses less memory.
 
 ## Installation
 To use hopscotch_map, just include the header src/hopscotch_map.h to your project. It's a header-only library.
