@@ -20,7 +20,7 @@ for(auto it = map.begin(); it != map.end(); ++it) {
     it.value() = 2; // Ok
 }
 ```
-- No support for some emplace methods (and some other like reserve, ...).
+- No support for some emplace methods (and some others like reserve, ...).
 
 ## Differences compare to google::dense_hash_map
 hopscotch_map has comparable performances to google::dense_hash_map (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html)), but come with some advantages:
