@@ -11,7 +11,6 @@ Note: The implementation of hopscotch_map is single-thread only. A multi-thread 
 hopscotch_map tries to have an interface similar to std::unordered_map, but some differences exist:
 - Iterator invalidation on insert doesn't behave in the same way (see [API](https://tessil.github.io/hopscotch-map/doc/html/classhopscotch__map.html#details) for details).
 - References and pointers to keys or values in the map are invalidated in the same way as iterators to these keys-values.
-- The key can be move-constructible only.
 - The size of the bucket array in the map grows by a factor of 2, the size will always be a power of 2, which may be a too steep growth rate for some purposes.
 - For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>` making the value `T` not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
 ```c++
