@@ -260,7 +260,14 @@ private:
             }
         }
         
-        
+        void clear() noexcept {
+            if(!is_empty()) {
+                get_key_value().~value_type();
+            }
+            
+            m_neighborhood_infos = 0;
+            assert(is_empty());
+        }
     private:
         void set_is_empty(bool is_empty) noexcept {
             if(is_empty) {
@@ -461,17 +468,16 @@ public:
         return m_nb_elements;
     }
     
-    
-    
     /*
      * Modifiers
      */
     void clear() noexcept {
-        m_buckets.clear();
+        for(auto & bucket : m_buckets) {
+            bucket.clear();
+        }
+        
         m_overflow_elements.clear();
         m_nb_elements = 0;
-        
-        m_buckets.resize(DEFAULT_INIT_BUCKETS_SIZE);
     }
     
     std::pair<iterator, bool> insert(const value_type& value) {
