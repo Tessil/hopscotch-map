@@ -15,6 +15,7 @@
 #include <initializer_list>
 #include <stdexcept>
 #include <algorithm>
+#include <ratio>
 #include <cstdint>
 #include <climits>
 
@@ -59,6 +60,11 @@ namespace {
  * 
  * The Key and the value T must be either move-constructible, copy-constuctible or both.
  * 
+ * By default the map grows by a factor of 2. This has the advantage to allow us to do fast modulo because
+ * the number of buckets is kept to a power of two. The growth factor can be changed with std::ratio 
+ * (ex: std::ratio<3, 2> will give a growth factor of 1.5), but if the resulting growth factor
+ * is not a power of two, the map will be slower as it can't use the power of two modulo optimization.
+ * 
  * Iterators invalidation:
  *  - clear, operator=: always invalidate the iterators.
  *  - insert, operator[]: invalidate the iterators if there is a rehash, or if a displacement is needed to resolve a collision (which mean that most of the time, insert will invalidate the iterators).
@@ -69,7 +75,8 @@ template<class Key,
          class Hash = std::hash<Key>,
          class KeyEqual = std::equal_to<Key>,
          class Allocator = std::allocator<std::pair<Key, T>>,
-         unsigned int NeighborhoodSize = 62>
+         unsigned int NeighborhoodSize = 62,
+         class GrowthFactor = std::ratio<2, 1>>
 class hopscotch_map {
 private:
     static const size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
@@ -77,10 +84,9 @@ private:
     
     /*
      * NeighborhoodSize need to be between 0 and MAX_NEIGHBORHOOD_SIZE.
-     * Static assert need a string litteral, we can't put the 62 in a variable. 
-     * TODO way to avoid this?
      */
     static_assert(NeighborhoodSize > 0, "NeighborhoodSize should be > 0.");
+    static_assert(MAX_NEIGHBORHOOD_SIZE == 62, "");
     static_assert(NeighborhoodSize <= MAX_NEIGHBORHOOD_SIZE, "NeighborhoodSize should be <= 62.");
     
     
@@ -665,26 +671,34 @@ private:
                   const Hash& hash,
                   const KeyEqual& equal,
                   const Allocator& alloc,
-                  float max_load_factor) :  m_buckets(bucket_count + NeighborhoodSize - 1, alloc), 
+                  float max_load_factor) :  m_buckets((USE_POWER_OF_TWO_MOD?round_up_to_power_of_two(bucket_count):bucket_count) 
+                                                        + NeighborhoodSize - 1, alloc), 
                                             m_overflow_elements(alloc),
                                             m_nb_elements(0), 
                                             m_max_load_factor(max_load_factor), 
-                                            m_load_threshold(static_cast<std::size_t>(bucket_count * m_max_load_factor)),
+                                            m_load_threshold(static_cast<std::size_t>(this->bucket_count() * m_max_load_factor)),
                                             m_hash(hash), m_key_equal(equal)
     {
-        // TODO round to nearsest power of 2, bucket_count is the minimal size in standard 
-        if(!is_power_of_two(bucket_count)) {
-            throw std::runtime_error("bucket_count must be a positive number and a power of 2.");
+    }
+    
+    std::size_t bucket_for_hash(std::size_t hash) const {
+        if(USE_POWER_OF_TWO_MOD) {
+            assert(is_power_of_two(bucket_count()));
+            return hash & (bucket_count() - 1);
+        }
+        else {
+            return hash % bucket_count();
         }
     }
     
-    
-    std::size_t bucket_for_hash(std::size_t hash) const {
-        return hash & (bucket_count() - 1);
-    }
-    
     std::size_t bucket_for_hash(std::size_t hash, std::size_t nb_buckets) const {
-        return hash & (nb_buckets - 1);
+        if(USE_POWER_OF_TWO_MOD) {
+            assert(is_power_of_two(nb_buckets));
+            return hash & (nb_buckets - 1);
+        }
+        else {
+            return hash % nb_buckets;
+        }
     }
     
     template<typename U = value_type, typename std::enable_if<!std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
@@ -820,7 +834,7 @@ private:
         assert(!m_buckets.empty());
         
         if((m_nb_elements + 1) > m_load_threshold) {
-            rehash(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR);
+            rehash(static_cast<std::size_t>(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR));
             ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
         }
         
@@ -849,7 +863,7 @@ private:
             
         }
     
-        rehash(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR);
+        rehash(static_cast<std::size_t>(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR));
         
         ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
         return insert_internal(std::forward<P>(key_value), ibucket_for_hash);
@@ -869,7 +883,9 @@ private:
             const value_type & key_value = m_buckets[ibucket].get_key_value();
             const size_t hash = m_hash(key_value.first);
             
-            if(bucket_for_hash(hash) != bucket_for_hash(hash, bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR)) {
+            if(bucket_for_hash(hash) != 
+               bucket_for_hash(hash, static_cast<std::size_t>(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR))) 
+            {
                 return true;
             }
         }
@@ -1020,22 +1036,33 @@ private:
         return m_buckets.end();
     }
     
-    static constexpr bool is_power_of_two(size_t value) {
+    // TODO could be faster
+    static std::size_t round_up_to_power_of_two(std::size_t value) {
+        std::size_t power = 1;
+        while(power < value) {
+            power <<= 1;
+        }
+        
+        return power;
+    }
+    
+    static constexpr bool is_power_of_two(std::size_t value) {
         return value != 0 && (value & (value - 1)) == 0;
     }
     
 private:    
     static const std::size_t DEFAULT_INIT_BUCKETS_SIZE = 16;
     static const std::size_t MAX_LINEAR_PROBE_SEARCH_EMPTY_BUCKET = 4096;
-    static const std::size_t REHASH_SIZE_MULTIPLICATION_FACTOR = 2;
     static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.9f;
-
+    static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
+    static const bool USE_POWER_OF_TWO_MOD = is_power_of_two(GrowthFactor::num) && is_power_of_two(GrowthFactor::den);
     
     /*
      * bucket_count() should be a power of 2. We can then use "hash & (bucket_count() - 1)" 
-     * to get the bucket for a hash
+     * to get the bucket for a hash if the GrowthFactor is right for that.
      */
     static_assert(is_power_of_two(DEFAULT_INIT_BUCKETS_SIZE), "DEFAULT_INIT_BUCKETS_SIZE should be a power of 2.");
+    static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Grow factor should be >= 1.1.");
     
     std::vector<hopscotch_bucket, buckets_allocator> m_buckets;
     std::list<value_type, overflow_elements_allocator> m_overflow_elements;
@@ -1050,8 +1077,8 @@ private:
     key_equal m_key_equal;
 };
 
-template<class Key, class T, class Hash, class KeyEqual, class Allocator, unsigned int NeighborhoodSize>
-inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize>& lhs, 
+template<class Key, class T, class Hash, class KeyEqual, class Allocator, unsigned int NeighborhoodSize, class GrowthFactor>
+inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor>& lhs, 
                        const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor>& rhs)
 {
     if(lhs.size() != rhs.size()) {
@@ -1069,9 +1096,9 @@ inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, Ne
 }
 
 
-template<class Key, class T, class Hash, class KeyEqual, class Allocator, unsigned int NeighborhoodSize>
-inline bool operator!=(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize>& lhs, 
-                       const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize>& rhs)
+template<class Key, class T, class Hash, class KeyEqual, class Allocator, unsigned int NeighborhoodSize, class GrowthFactor>
+inline bool operator!=(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor>& lhs, 
+                       const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor>& rhs)
 {
     return !operator==(lhs, rhs);
 }

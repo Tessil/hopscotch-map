@@ -11,6 +11,8 @@
 using test_types = boost::mpl::list<hopscotch_map<int64_t, int64_t>, 
                                     hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
                                         std::allocator<std::pair<int64_t, int64_t>>, 6>, 
+                                    hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
+                                        std::allocator<std::pair<int64_t, int64_t>>, 6, std::ratio<4,3>>, 
                                     // Test with hash having a lot of collisions
                                     hopscotch_map<int64_t, int64_t, mod_hash<9>>,
                                     hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 
