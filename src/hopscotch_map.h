@@ -753,7 +753,7 @@ private:
                   const KeyEqual& equal,
                   const Allocator& alloc,
                   float max_load_factor) :  m_buckets((USE_POWER_OF_TWO_MOD?round_up_to_power_of_two(bucket_count):bucket_count) 
-                                                        + NeighborhoodSize - 1, alloc), 
+                                                        + NeighborhoodSize - 1, hopscotch_bucket(), alloc), 
                                             m_overflow_elements(alloc),
                                             m_nb_elements(0), 
                                             m_hash(hash), m_key_equal(equal)
