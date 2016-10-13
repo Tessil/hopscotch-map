@@ -66,6 +66,7 @@
 <code>#include &lt;initializer_list&gt;</code><br />
 <code>#include &lt;stdexcept&gt;</code><br />
 <code>#include &lt;algorithm&gt;</code><br />
+<code>#include &lt;ratio&gt;</code><br />
 <code>#include &lt;cstdint&gt;</code><br />
 <code>#include &lt;climits&gt;</code><br />
 </div>
@@ -73,28 +74,28 @@
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map.html">hopscotch_map&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map.html">hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_map&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::hopscotch_iterator&lt; is_const &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;::hopscotch_iterator&lt; is_const &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_map&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt;::hopscotch_iterator&lt; is_const &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classhopscotch__map_1_1hopscotch__iterator.html">hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;::hopscotch_iterator&lt; is_const &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:abb76ed61b1df978948d5ffe5f0b6f633"><td class="memTemplParams" colspan="2">template&lt;class Key , class T , class Hash , class KeyEqual , unsigned int NeighborhoodSize&gt; </td></tr>
-<tr class="memitem:abb76ed61b1df978948d5ffe5f0b6f633"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="hopscotch__map_8h.html#abb76ed61b1df978948d5ffe5f0b6f633">operator==</a> (const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt; &amp;lhs, const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt; &amp;rhs)</td></tr>
-<tr class="separator:abb76ed61b1df978948d5ffe5f0b6f633"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1675ae563b4d8f29d3f3a8e94a291136"><td class="memTemplParams" colspan="2">template&lt;class Key , class T , class Hash , class KeyEqual , unsigned int NeighborhoodSize&gt; </td></tr>
-<tr class="memitem:a1675ae563b4d8f29d3f3a8e94a291136"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="hopscotch__map_8h.html#a1675ae563b4d8f29d3f3a8e94a291136">operator!=</a> (const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt; &amp;lhs, const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt; &amp;rhs)</td></tr>
-<tr class="separator:a1675ae563b4d8f29d3f3a8e94a291136"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac39726c1b6cdfc583933d2786c2716bf"><td class="memTemplParams" colspan="2">template&lt;class Key , class T , class Hash , class KeyEqual , class Allocator , unsigned int NeighborhoodSize, class GrowthFactor &gt; </td></tr>
+<tr class="memitem:ac39726c1b6cdfc583933d2786c2716bf"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="hopscotch__map_8h.html#ac39726c1b6cdfc583933d2786c2716bf">operator==</a> (const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;lhs, const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;rhs)</td></tr>
+<tr class="separator:ac39726c1b6cdfc583933d2786c2716bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a787a51eb9b35c3ffce0593d564ef27c5"><td class="memTemplParams" colspan="2">template&lt;class Key , class T , class Hash , class KeyEqual , class Allocator , unsigned int NeighborhoodSize, class GrowthFactor &gt; </td></tr>
+<tr class="memitem:a787a51eb9b35c3ffce0593d564ef27c5"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="hopscotch__map_8h.html#a787a51eb9b35c3ffce0593d564ef27c5">operator!=</a> (const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;lhs, const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;rhs)</td></tr>
+<tr class="separator:a787a51eb9b35c3ffce0593d564ef27c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
-<a class="anchor" id="a1675ae563b4d8f29d3f3a8e94a291136"></a>
+<a class="anchor" id="a787a51eb9b35c3ffce0593d564ef27c5"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class Key , class T , class Hash , class KeyEqual , unsigned int NeighborhoodSize&gt; </div>
+template&lt;class Key , class T , class Hash , class KeyEqual , class Allocator , unsigned int NeighborhoodSize, class GrowthFactor &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -102,13 +103,13 @@ template&lt;class Key , class T , class Hash , class KeyEqual , unsigned int Nei
         <tr>
           <td class="memname">bool operator!= </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt; &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;&#160;</td>
           <td class="paramname"><em>lhs</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt; &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;&#160;</td>
           <td class="paramname"><em>rhs</em>&#160;</td>
         </tr>
         <tr>
@@ -126,11 +127,11 @@ template&lt;class Key , class T , class Hash , class KeyEqual , unsigned int Nei
 
 </div>
 </div>
-<a class="anchor" id="abb76ed61b1df978948d5ffe5f0b6f633"></a>
+<a class="anchor" id="ac39726c1b6cdfc583933d2786c2716bf"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;class Key , class T , class Hash , class KeyEqual , unsigned int NeighborhoodSize&gt; </div>
+template&lt;class Key , class T , class Hash , class KeyEqual , class Allocator , unsigned int NeighborhoodSize, class GrowthFactor &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -138,13 +139,13 @@ template&lt;class Key , class T , class Hash , class KeyEqual , unsigned int Nei
         <tr>
           <td class="memname">bool operator== </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt; &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;&#160;</td>
           <td class="paramname"><em>lhs</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, NeighborhoodSize &gt; &amp;&#160;</td>
+          <td class="paramtype">const <a class="el" href="classhopscotch__map.html">hopscotch_map</a>&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;&#160;</td>
           <td class="paramname"><em>rhs</em>&#160;</td>
         </tr>
         <tr>
