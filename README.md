@@ -20,8 +20,7 @@ for(auto it = map.begin(); it != map.end(); ++it) {
     it.value() = 2; // Ok
 }
 ```
-- No support for custom allocators yet.
-- No support for some emplace methods (and some other like reserve, ...).
+- No support for some emplace methods (and some others like reserve, ...).
 
 ## Differences compare to google::dense_hash_map
 hopscotch_map has comparable performances to google::dense_hash_map (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html)), but come with some advantages:
@@ -72,8 +71,9 @@ int main() {
     
     // Use a map with a different neighborhood size
     const size_t neighborhood_size = 30;
-    hopscotch_map<std::string, int64_t, std::hash<std::string>, 
-                  std::equal_to<std::string>, neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
+    hopscotch_map<std::string, int64_t, std::hash<std::string>, std::equal_to<std::string>,
+                  std::allocator<std::pair<std::string, int64_t>>,
+                  neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
     
     for(const auto & key_value : map2) {
         std::cout << "map2: " << key_value.first << " " << key_value.second << std::endl;
