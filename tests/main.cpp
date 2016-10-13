@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(test_virtual_table) {
     bool inserted;
     
     
-    HMap map;
+    HMap map(19);
     for(size_t i = 0; i < nb_values; i++) {
         std::tie(it, inserted) = map.insert({class_1_elements[i].get(), 1});
         BOOST_CHECK(inserted);

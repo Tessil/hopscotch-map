@@ -437,6 +437,20 @@ public:
     {
     }
     
+    hopscotch_map(size_type bucket_count,
+                  const Allocator& alloc) : hopscotch_map(bucket_count, Hash(), KeyEqual(), alloc)
+    {
+    }
+    
+    hopscotch_map(size_type bucket_count,
+                  const Hash& hash,
+                  const Allocator& alloc) : hopscotch_map(bucket_count, hash, KeyEqual(), alloc)
+    {
+    }
+    
+    explicit hopscotch_map(const Allocator& alloc) : hopscotch_map(DEFAULT_INIT_BUCKETS_SIZE, alloc) {
+    }
+    
     template<class InputIt>
     hopscotch_map(InputIt first, InputIt last,
                 size_type bucket_count = DEFAULT_INIT_BUCKETS_SIZE,
@@ -446,6 +460,21 @@ public:
     {
         insert(first, last);
     }
+    
+    template<class InputIt>
+    hopscotch_map(InputIt first, InputIt last,
+                size_type bucket_count,
+                const Allocator& alloc) : hopscotch_map(first, last, bucket_count, Hash(), KeyEqual(), alloc)
+    {
+    }
+    
+    template<class InputIt>
+    hopscotch_map(InputIt first, InputIt last,
+                size_type bucket_count,
+                const Hash& hash,
+                const Allocator& alloc) : hopscotch_map(first, last, bucket_count, hash, KeyEqual(), alloc)
+    {
+    }
 
     hopscotch_map(std::initializer_list<value_type> init,
                     size_type bucket_count = DEFAULT_INIT_BUCKETS_SIZE,
@@ -454,10 +483,28 @@ public:
                     const Allocator& alloc = Allocator()) : hopscotch_map(init.begin(), init.end(), bucket_count, hash, equal, alloc)
     {
     }
+
+    hopscotch_map(std::initializer_list<value_type> init,
+                    size_type bucket_count,
+                    const Allocator& alloc) : hopscotch_map(init.begin(), init.end(), bucket_count, Hash(), KeyEqual(), alloc)
+    {
+    }
+
+    hopscotch_map(std::initializer_list<value_type> init,
+                    size_type bucket_count,
+                    const Hash& hash,
+                    const Allocator& alloc) : hopscotch_map(init.begin(), init.end(), bucket_count, hash, KeyEqual(), alloc)
+    {
+    }
+
     
     hopscotch_map& operator=(std::initializer_list<value_type> ilist) {
         *this = hopscotch_map(ilist);
         return *this;
+    }
+    
+    allocator_type get_allocator() const {
+        return m_buckets.get_allocator();
     }
     
     
@@ -498,6 +545,10 @@ public:
     
     size_type size() const noexcept {
         return m_nb_elements;
+    }
+    
+    size_type max_size() const noexcept {
+        return m_buckets.max_size();
     }
     
     /*
@@ -672,11 +723,16 @@ public:
     
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
-        m_load_threshold = static_cast<std::size_t>(bucket_count() * m_max_load_factor);
+        m_load_threshold = static_cast<size_type>(bucket_count()*m_max_load_factor);
     }
     
     void rehash(size_type count) {
+        count = std::max(count, static_cast<size_type>(std::ceil(size()/max_load_factor())));
         rehash_internal(count);
+    }
+    
+    void reserve(size_type count) {
+        rehash(static_cast<size_type>(std::ceil(count/max_load_factor())));
     }
     
     
@@ -690,6 +746,7 @@ public:
     key_equal key_eq() const {
         return m_key_equal;
     }
+    
 private:
     hopscotch_map(size_type bucket_count, 
                   const Hash& hash,
@@ -699,10 +756,9 @@ private:
                                                         + NeighborhoodSize - 1, alloc), 
                                             m_overflow_elements(alloc),
                                             m_nb_elements(0), 
-                                            m_max_load_factor(max_load_factor), 
-                                            m_load_threshold(static_cast<std::size_t>(this->bucket_count() * m_max_load_factor)),
                                             m_hash(hash), m_key_equal(equal)
     {
+        this->max_load_factor(max_load_factor);
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const {
@@ -727,7 +783,7 @@ private:
     
     template<typename U = value_type, typename std::enable_if<!std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
     void rehash_internal(size_type count) {
-        hopscotch_map tmp_map(count, m_hash, m_key_equal, m_buckets.get_allocator(), m_max_load_factor);
+        hopscotch_map tmp_map(count, m_hash, m_key_equal, get_allocator(), m_max_load_factor);
         
         for(const auto & key_value : *this) {
             const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(key_value.first));
@@ -750,7 +806,7 @@ private:
          * This way we don't do any memory allocation (outside the construction of m_buckets) and we avoid
          * any exception which may hinder the strong exception-safe guarantee.
          */
-        hopscotch_map tmp_map(count, m_hash, m_key_equal, m_buckets.get_allocator(), m_max_load_factor);
+        hopscotch_map tmp_map(count, m_hash, m_key_equal, get_allocator(), m_max_load_factor);
         
         for(hopscotch_bucket & bucket : m_buckets) {
             if(bucket.is_empty()) {
@@ -858,7 +914,7 @@ private:
         assert(!m_buckets.empty());
         
         if((m_nb_elements + 1) > m_load_threshold) {
-            rehash(static_cast<std::size_t>(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR));
+            rehash(get_expand_size());
             ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
         }
         
@@ -887,7 +943,7 @@ private:
             
         }
     
-        rehash(static_cast<std::size_t>(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR));
+        rehash(get_expand_size());
         
         ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
         return insert_internal(std::forward<P>(key_value), ibucket_for_hash);
@@ -907,9 +963,7 @@ private:
             const value_type & key_value = m_buckets[ibucket].get_key_value();
             const size_t hash = m_hash(key_value.first);
             
-            if(bucket_for_hash(hash) != 
-               bucket_for_hash(hash, static_cast<std::size_t>(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR))) 
-            {
+            if(bucket_for_hash(hash) != bucket_for_hash(hash, get_expand_size())) {
                 return true;
             }
         }
@@ -1060,6 +1114,11 @@ private:
         return m_buckets.end();
     }
     
+    size_type get_expand_size() const {
+        return static_cast<size_type>(std::ceil(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR));
+    }
+    
+    
     // TODO could be faster
     static std::size_t round_up_to_power_of_two(std::size_t value) {
         std::size_t power = 1;
@@ -1075,11 +1134,13 @@ private:
     }
     
 private:    
-    static const std::size_t DEFAULT_INIT_BUCKETS_SIZE = 16;
+    static const size_type DEFAULT_INIT_BUCKETS_SIZE = 16;
     static const std::size_t MAX_LINEAR_PROBE_SEARCH_EMPTY_BUCKET = 4096;
     static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.9f;
     static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
-    static const bool USE_POWER_OF_TWO_MOD = is_power_of_two(GrowthFactor::num) && is_power_of_two(GrowthFactor::den);
+    static const bool USE_POWER_OF_TWO_MOD = is_power_of_two(GrowthFactor::num) && is_power_of_two(GrowthFactor::den) &&
+                                                static_cast<double>(static_cast<std::size_t>(REHASH_SIZE_MULTIPLICATION_FACTOR)) == 
+                                                REHASH_SIZE_MULTIPLICATION_FACTOR;
     
     /*
      * bucket_count() should be a power of 2. We can then use "hash & (bucket_count() - 1)" 
@@ -1091,11 +1152,11 @@ private:
     std::vector<hopscotch_bucket, buckets_allocator> m_buckets;
     std::list<value_type, overflow_elements_allocator> m_overflow_elements;
     
-    std::size_t m_nb_elements;
+    size_type m_nb_elements;
     
     
     float m_max_load_factor;
-    std::size_t m_load_threshold;
+    size_type m_load_threshold;
     
     hasher m_hash;
     key_equal m_key_equal;
