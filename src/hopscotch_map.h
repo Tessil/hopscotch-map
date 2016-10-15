@@ -29,6 +29,7 @@
 #include <cassert>
 #include <cinttypes>
 #include <climits>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -113,7 +114,6 @@ private:
      * NeighborhoodSize need to be between 0 and MAX_NEIGHBORHOOD_SIZE.
      */
     static_assert(NeighborhoodSize > 0, "NeighborhoodSize should be > 0.");
-    static_assert(MAX_NEIGHBORHOOD_SIZE == 62, "");
     static_assert(NeighborhoodSize <= MAX_NEIGHBORHOOD_SIZE, "NeighborhoodSize should be <= 62.");
     
     
@@ -158,7 +158,7 @@ private:
             assert(is_empty());
         }
         
-        hopscotch_bucket(const hopscotch_bucket & bucket) noexcept(std::is_nothrow_copy_constructible<value_type>::value) : 
+        hopscotch_bucket(const hopscotch_bucket& bucket) noexcept(std::is_nothrow_copy_constructible<value_type>::value) : 
                     m_neighborhood_infos(0) 
         {
             if(!bucket.is_empty()) {
@@ -168,7 +168,7 @@ private:
             m_neighborhood_infos = bucket.m_neighborhood_infos;
         }
         
-        hopscotch_bucket(hopscotch_bucket && bucket) noexcept(std::is_nothrow_move_constructible<value_type>::value) : 
+        hopscotch_bucket(hopscotch_bucket&& bucket) noexcept(std::is_nothrow_move_constructible<value_type>::value) : 
                     m_neighborhood_infos(0) 
         {
             if(!bucket.is_empty()) {
@@ -178,7 +178,7 @@ private:
             m_neighborhood_infos = bucket.m_neighborhood_infos;
         }
         
-        hopscotch_bucket & operator=(const hopscotch_bucket & bucket) noexcept(std::is_nothrow_copy_constructible<value_type>::value) {
+        hopscotch_bucket& operator=(const hopscotch_bucket& bucket) noexcept(std::is_nothrow_copy_constructible<value_type>::value) {
             if(this != &bucket) {
                 if(!is_empty()) {
                     destroy_key_value();
@@ -194,7 +194,7 @@ private:
             return *this;
         }
         
-        hopscotch_bucket & operator=(hopscotch_bucket && bucket) noexcept(std::is_nothrow_move_constructible<value_type>::value) {
+        hopscotch_bucket& operator=(hopscotch_bucket&& bucket) noexcept(std::is_nothrow_move_constructible<value_type>::value) {
             if(!is_empty()) {
                 destroy_key_value();
             }
@@ -270,17 +270,17 @@ private:
             return false;
         }
         
-        value_type & get_key_value() noexcept {
+        value_type& get_key_value() noexcept {
             assert(!is_empty());
             return *reinterpret_cast<value_type *>(std::addressof(m_key_value));
         }
         
-        const value_type & get_key_value() const noexcept {
+        const value_type& get_key_value() const noexcept {
             assert(!is_empty());
             return *reinterpret_cast<const value_type *>(std::addressof(m_key_value));
         }
         
-        void swap_key_value_with_empty_bucket(hopscotch_bucket & empty_bucket) {
+        void swap_key_value_with_empty_bucket(hopscotch_bucket& empty_bucket) {
             assert(empty_bucket.is_empty());
             if(!is_empty()) {
                 ::new (static_cast<void *>(std::addressof(empty_bucket.m_key_value))) value_type(std::move(get_key_value()));
@@ -328,20 +328,26 @@ private:
         storage m_key_value;
     };
     
+    
     using buckets_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<hopscotch_bucket>;
     using overflow_elements_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<value_type>;  
     
+    using iterator_buckets = typename std::vector<hopscotch_bucket, buckets_allocator>::iterator; 
+    using const_iterator_buckets = typename std::vector<hopscotch_bucket, buckets_allocator>::const_iterator;
+    
+    using iterator_overflow = typename std::list<value_type, overflow_elements_allocator>::iterator; 
+    using const_iterator_overflow = typename std::list<value_type, overflow_elements_allocator>::const_iterator; 
 public:    
     template<bool is_const>
     class hopscotch_iterator {
         friend class hopscotch_map;
     private:
         using iterator_bucket = typename std::conditional<is_const, 
-                                                            typename std::vector<hopscotch_bucket>::const_iterator, 
-                                                            typename std::vector<hopscotch_bucket>::iterator>::type;
+                                                            typename hopscotch_map::const_iterator_buckets, 
+                                                            typename hopscotch_map::iterator_buckets>::type;
         using iterator_overflow = typename std::conditional<is_const, 
-                                                            typename std::list<typename hopscotch_map::value_type>::const_iterator, 
-                                                            typename std::list<typename hopscotch_map::value_type>::iterator>::type;
+                                                            typename hopscotch_map::const_iterator_overflow, 
+                                                            typename hopscotch_map::iterator_overflow>::type;
     
         
         hopscotch_iterator(iterator_bucket buckets_iterator, iterator_bucket buckets_end_iterator, 
@@ -364,7 +370,7 @@ public:
         hopscotch_iterator() noexcept {
         }
         
-        hopscotch_iterator(const hopscotch_iterator<false> & other) noexcept :
+        hopscotch_iterator(const hopscotch_iterator<false>& other) noexcept :
             m_buckets_iterator(other.m_buckets_iterator), m_buckets_end_iterator(other.m_buckets_end_iterator),
             m_overflow_iterator(other.m_overflow_iterator)
         {
@@ -570,7 +576,7 @@ public:
      * Modifiers
      */
     void clear() noexcept {
-        for(auto & bucket : m_buckets) {
+        for(auto& bucket : m_buckets) {
             bucket.clear();
         }
         
@@ -609,11 +615,16 @@ public:
     
     iterator erase(const_iterator pos) {
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(pos->first));
+        
         if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
-            return erase_from_bucket(pos, ibucket_for_hash);
+            auto it_bucket = m_buckets.begin() + std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
+            erase_from_bucket(it_bucket, ibucket_for_hash);
+            
+            return ++iterator(it_bucket, m_buckets.end(), m_overflow_elements.begin()); 
         }
         else {
-            return erase_from_overflow(pos, ibucket_for_hash);
+            auto it_next_overflow = erase_from_overflow(pos.m_overflow_iterator, ibucket_for_hash);
+            return iterator(m_buckets.end(), m_buckets.end(), it_next_overflow);
         }
     }
     
@@ -644,20 +655,24 @@ public:
     size_type erase(const key_type& key) {
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         
-        auto it_find = find_internal(key, m_buckets.begin() + ibucket_for_hash);
-        if(it_find != end()) {
-            if(it_find.m_buckets_iterator != it_find.m_buckets_end_iterator) {
-                erase_from_bucket(it_find, ibucket_for_hash);
-            }
-            else {
-                erase_from_overflow(it_find, ibucket_for_hash);
-            }
-            
+        auto it_find = find_in_buckets(key, m_buckets.begin() + ibucket_for_hash);
+        if(it_find != m_buckets.end()) {
+            erase_from_bucket(it_find, ibucket_for_hash);
+
             return 1;
         }
-        else {
-            return 0;
+        
+        if(m_buckets[ibucket_for_hash].has_overflow()) {
+            for(auto it_overflow = m_overflow_elements.begin(); it_overflow != m_overflow_elements.end(); ++it_overflow) {
+                if(m_key_equal(key, it_overflow->first)) {
+                    erase_from_overflow(it_overflow, ibucket_for_hash);
+                    
+                    return 1;
+                }
+            }
         }
+        
+        return 0;
     }
     
     
@@ -847,11 +862,11 @@ private:
     } 
     
     /*
-     * Find in m_overflow_elements an element for which te bucket it initially belong to equals original_bucket_for_hash.
+     * Find in m_overflow_elements an element for which the bucket it initially belongs to, equals original_bucket_for_hash.
      * Return m_overflow_elements.end() if none.
      */
-    typename std::list<value_type>::iterator find_in_overflow_from_bucket(typename std::list<value_type>::iterator search_start, 
-                                                                          std::size_t original_bucket_for_hash) 
+    iterator_overflow find_in_overflow_from_bucket(iterator_overflow search_start, 
+                                                   std::size_t original_bucket_for_hash) 
     {
         for(auto it = search_start; it != m_overflow_elements.end(); ++it) {
             const std::size_t bucket_for_overflow_hash = bucket_for_hash(m_hash(it->first));
@@ -864,10 +879,8 @@ private:
     }
     
     // iterator is in overflow list
-    iterator erase_from_overflow(const_iterator pos, std::size_t ibucket_for_hash) {
-        assert(pos.m_overflow_iterator != m_overflow_elements.cend());
-        
-        auto it = m_overflow_elements.erase(pos.m_overflow_iterator);
+    iterator_overflow erase_from_overflow(const_iterator_overflow pos, std::size_t ibucket_for_hash) {
+        auto it_next = m_overflow_elements.erase(pos);
         m_nb_elements--;
         
         // Check if we can remove the overflow flag
@@ -876,20 +889,16 @@ private:
             m_buckets[ibucket_for_hash].set_overflow(false);
         }
         
-        return iterator(m_buckets.end(), m_buckets.end(), it);
+        return it_next;
     }
     
     // iterator is in bucket
-    iterator erase_from_bucket(const_iterator pos, std::size_t ibucket_for_hash) {
-        assert(pos.m_buckets_iterator != pos.m_buckets_end_iterator);
-        
-        const std::size_t ibucket_for_key = std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
+    void erase_from_bucket(iterator_buckets pos, std::size_t ibucket_for_hash) {
+        const std::size_t ibucket_for_key = std::distance(m_buckets.begin(), pos);
         
         m_buckets[ibucket_for_key].remove_key_value();
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_for_key - ibucket_for_hash);
         m_nb_elements--;
-
-        return ++iterator(m_buckets.begin() + ibucket_for_key, m_buckets.end(), m_overflow_elements.begin()); 
     }
     
         
@@ -975,7 +984,7 @@ private:
         {
             assert(!m_buckets[ibucket].is_empty());
             
-            const value_type & key_value = m_buckets[ibucket].get_key_value();
+            const value_type& key_value = m_buckets[ibucket].get_key_value();
             const size_t hash = m_hash(key_value.first);
             
             if(bucket_for_hash(hash) != bucket_for_hash(hash, get_expand_size())) {
@@ -1007,7 +1016,7 @@ private:
      * Return bucket iterator to ibucket_empty
      */
     template<typename P>
-    typename std::vector<hopscotch_bucket>::iterator insert_in_bucket(P && key_value, std::size_t ibucket_empty, std::size_t ibucket_for_hash) {        
+    iterator_buckets insert_in_bucket(P&& key_value, std::size_t ibucket_empty, std::size_t ibucket_for_hash) {        
         assert(ibucket_empty >= ibucket_for_hash );
         assert(m_buckets[ibucket_empty].is_empty());
         m_buckets[ibucket_empty].set_key_value(std::forward<P>(key_value));
@@ -1024,7 +1033,7 @@ private:
      * 
      * If a swap was possible, the position of ibucket_empty_in_out will be closer to 0 and true will re returned.
      */
-    bool swap_empty_bucket_closer(std::size_t & ibucket_empty_in_out) {
+    bool swap_empty_bucket_closer(std::size_t& ibucket_empty_in_out) {
         assert(ibucket_empty_in_out >= NeighborhoodSize);
         const std::size_t neighborhood_start = ibucket_empty_in_out - NeighborhoodSize + 1;
         
@@ -1059,11 +1068,11 @@ private:
         return false;
     }
     
-    typename std::vector<hopscotch_bucket>::iterator get_first_non_empty_buckets_iterator() {
+    iterator_buckets get_first_non_empty_buckets_iterator() {
         return m_buckets.begin() + std::distance(m_buckets.cbegin(), static_cast<const hopscotch_map*>(this)->get_first_non_empty_buckets_iterator()); 
     }
     
-    typename std::vector<hopscotch_bucket>::const_iterator get_first_non_empty_buckets_iterator() const {
+    const_iterator_buckets get_first_non_empty_buckets_iterator() const {
         auto begin = m_buckets.cbegin();
         while(begin != m_buckets.cend() && begin->is_empty()) {
             ++begin;
@@ -1072,7 +1081,7 @@ private:
         return begin;
     }
     
-    iterator find_internal(const Key& key, typename std::vector<hopscotch_bucket>::iterator it_bucket) {
+    iterator find_internal(const Key& key, iterator_buckets it_bucket) {
         auto it = find_in_buckets(key, it_bucket);
         if(it != m_buckets.cend()) {
             return iterator(it, m_buckets.end(), m_overflow_elements.begin());
@@ -1083,12 +1092,12 @@ private:
         }
         
         return iterator(m_buckets.end(), m_buckets.end(), std::find_if(m_overflow_elements.begin(), m_overflow_elements.end(), 
-                                                                        [&](const value_type & value) { 
+                                                                        [&](const value_type& value) { 
                                                                             return m_key_equal(key, value.first); 
                                                                         }));
     }
     
-    const_iterator find_internal(const Key& key, typename std::vector<hopscotch_bucket>::const_iterator it_bucket) const {
+    const_iterator find_internal(const Key& key, const_iterator_buckets it_bucket) const {
         auto it = find_in_buckets(key, it_bucket);
         if(it != m_buckets.cend()) {
             return const_iterator(it, m_buckets.cend(), m_overflow_elements.cbegin());
@@ -1100,17 +1109,17 @@ private:
 
         
         return const_iterator(m_buckets.cend(), m_buckets.cend(), std::find_if(m_overflow_elements.cbegin(), m_overflow_elements.cend(), 
-                                                                                [&](const value_type & value) { 
+                                                                                [&](const value_type& value) { 
                                                                                     return m_key_equal(key, value.first); 
                                                                                 }));        
     }
     
-    typename std::vector<hopscotch_bucket>::iterator find_in_buckets(const Key& key, typename std::vector<hopscotch_bucket>::iterator it_bucket) {      
+    iterator_buckets find_in_buckets(const Key& key, iterator_buckets it_bucket) {      
         return m_buckets.begin() + std::distance(m_buckets.cbegin(), static_cast<const hopscotch_map*>(this)->find_in_buckets(key, it_bucket)); 
     }
 
     
-    typename std::vector<hopscotch_bucket>::const_iterator find_in_buckets(const Key& key, typename std::vector<hopscotch_bucket>::const_iterator it_bucket) const {      
+    const_iterator_buckets find_in_buckets(const Key& key, const_iterator_buckets it_bucket) const {      
         // TODO Try to optimize the function. 
         // I tried to use ffs and  __builtin_ffs functions but I could not reduce the time the function takes with -march=native
         
@@ -1185,7 +1194,7 @@ inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, Ne
         return false;
     }
     
-    for(const auto & element_lhs : lhs) {
+    for(const auto& element_lhs : lhs) {
         const auto it_element_rhs = rhs.find(element_lhs.first);
         if(it_element_rhs == rhs.cend() || element_lhs.second != it_element_rhs->second) {
             return false;
