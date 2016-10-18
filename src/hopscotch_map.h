@@ -938,7 +938,7 @@ private:
         assert(!m_buckets.empty());
         
         if((m_nb_elements + 1) > m_load_threshold) {
-            rehash(get_expand_size());
+            rehash_internal(get_expand_size());
             ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
         }
         
@@ -967,7 +967,7 @@ private:
             
         }
     
-        rehash(get_expand_size());
+        rehash_internal(get_expand_size());
         
         ibucket_for_hash = bucket_for_hash(m_hash(key_value.first));
         return insert_internal(std::forward<P>(key_value), ibucket_for_hash);
