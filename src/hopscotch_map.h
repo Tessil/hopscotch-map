@@ -27,16 +27,12 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cinttypes>
-#include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
-#include <functional>
 #include <initializer_list>
 #include <iterator>
-#include <limits>
 #include <list>
 #include <memory>
 #include <ratio>
@@ -317,7 +313,7 @@ private:
                 get_key_value().~value_type();
             }
             catch(...) {
-                std::unexpected();
+                std::terminate();
             }
         }
         
