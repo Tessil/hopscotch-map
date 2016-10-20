@@ -41,7 +41,35 @@
 #include <utility>
 #include <vector>
 
-namespace {
+
+/**
+ * Implementation of a hash map using the hopscotch hashing algorithm.
+ * 
+ * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62.
+ * 
+ * The Key and the value T must be either move-constructible, copy-constuctible or both.
+ * 
+ * By default the map grows by a factor of 2. This has the advantage to allow us to do fast modulo because
+ * the number of buckets is kept to a power of two. The growth factor can be changed with std::ratio 
+ * (ex: std::ratio<3, 2> will give a growth factor of 1.5), but if the resulting growth factor
+ * is not a power of two, the map will be slower as it can't use the power of two modulo optimization.
+ * 
+ * If the destructors of Key or T throw an exception, behaviour of the class is undefined.
+ * 
+ * Iterators invalidation:
+ *  - clear, operator=: always invalidate the iterators.
+ *  - insert, operator[]: invalidate the iterators if there is a rehash, or if a displacement is needed to resolve a collision (which mean that most of the time, insert will invalidate the iterators).
+ *  - erase: iterator on the erased element is the only one which become invalid.
+ */
+template<class Key, 
+         class T, 
+         class Hash = std::hash<Key>,
+         class KeyEqual = std::equal_to<Key>,
+         class Allocator = std::allocator<std::pair<Key, T>>,
+         unsigned int NeighborhoodSize = 62,
+         class GrowthFactor = std::ratio<2, 1>>
+class hopscotch_map {
+private:
     /*
      * smallest_type_for_min_bits::type returns the smallest type that can fit MinBits.
      */
@@ -73,35 +101,7 @@ namespace {
     public:
         using type = std::uint64_t;
     };
-}
-
-/**
- * Implementation of a hash map using the hopscotch hashing algorithm.
- * 
- * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62.
- * 
- * The Key and the value T must be either move-constructible, copy-constuctible or both.
- * 
- * By default the map grows by a factor of 2. This has the advantage to allow us to do fast modulo because
- * the number of buckets is kept to a power of two. The growth factor can be changed with std::ratio 
- * (ex: std::ratio<3, 2> will give a growth factor of 1.5), but if the resulting growth factor
- * is not a power of two, the map will be slower as it can't use the power of two modulo optimization.
- * 
- * If the destructors of Key or T throw an exception, behaviour of the class is undefined.
- * 
- * Iterators invalidation:
- *  - clear, operator=: always invalidate the iterators.
- *  - insert, operator[]: invalidate the iterators if there is a rehash, or if a displacement is needed to resolve a collision (which mean that most of the time, insert will invalidate the iterators).
- *  - erase: iterator on the erased element is the only one which become invalid.
- */
-template<class Key, 
-         class T, 
-         class Hash = std::hash<Key>,
-         class KeyEqual = std::equal_to<Key>,
-         class Allocator = std::allocator<std::pair<Key, T>>,
-         unsigned int NeighborhoodSize = 62,
-         class GrowthFactor = std::ratio<2, 1>>
-class hopscotch_map {
+    
 private:
     static const size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
     static const size_t MAX_NEIGHBORHOOD_SIZE = SMALLEST_TYPE_MAX_BITS_SUPPORTED - NB_RESERVED_BITS_IN_NEIGHBORHOOD; 
