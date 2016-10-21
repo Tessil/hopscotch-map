@@ -8,26 +8,26 @@
 #include "hopscotch_map.h"
 
 
-using test_types = boost::mpl::list<hopscotch_map<int64_t, int64_t>, 
-                                    hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
+using test_types = boost::mpl::list<tsl::hopscotch_map<int64_t, int64_t>, 
+                                    tsl::hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
                                         std::allocator<std::pair<int64_t, int64_t>>, 6>, 
-                                    hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
+                                    tsl::hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
                                         std::allocator<std::pair<int64_t, int64_t>>, 6, std::ratio<4,3>>, 
                                     // Test with hash having a lot of collisions
-                                    hopscotch_map<int64_t, int64_t, mod_hash<9>>,
-                                    hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 
+                                    tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>>,
+                                    tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 
                                         std::allocator<std::pair<int64_t, int64_t>>, 6>, 
-                                    hopscotch_map<std::string, std::string>,
-                                    hopscotch_map<std::string, std::string, mod_hash<9>>,
-                                    hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
+                                    tsl::hopscotch_map<std::string, std::string>,
+                                    tsl::hopscotch_map<std::string, std::string, mod_hash<9>>,
+                                    tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
                                         std::allocator<std::pair<std::string, std::string>>, 6>,
-                                    hopscotch_map<int64_t, std::string>,
-                                    hopscotch_map<int64_t, move_only_test>,
-                                    hopscotch_map<move_only_test, int64_t>,
-                                    hopscotch_map<int64_t, move_only_test, mod_hash<9>, std::equal_to<int64_t>, 
+                                    tsl::hopscotch_map<int64_t, std::string>,
+                                    tsl::hopscotch_map<int64_t, move_only_test>,
+                                    tsl::hopscotch_map<move_only_test, int64_t>,
+                                    tsl::hopscotch_map<int64_t, move_only_test, mod_hash<9>, std::equal_to<int64_t>, 
                                         std::allocator<std::pair<int64_t, move_only_test>>, 6>,
-                                    hopscotch_map<self_reference_member_test, self_reference_member_test>,
-                                    hopscotch_map<self_reference_member_test, self_reference_member_test, 
+                                    tsl::hopscotch_map<self_reference_member_test, self_reference_member_test>,
+                                    tsl::hopscotch_map<self_reference_member_test, self_reference_member_test, 
                                         mod_hash<9>, std::equal_to<self_reference_member_test>, 
                                         std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6>>;
                                     
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_loop, HMap, test_types) {
 
 BOOST_AUTO_TEST_CASE(test_clear) {
     const size_t nb_values = 1000;
-    auto map = utils::get_filled_hash_map<hopscotch_map<int64_t, int64_t>>(nb_values);
+    auto map = utils::get_filled_hash_map<tsl::hopscotch_map<int64_t, int64_t>>(nb_values);
     
     map.clear();
     BOOST_CHECK_EQUAL(map.size(), 0);
@@ -148,7 +148,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_compare, HMap, test_types) {
  */
 BOOST_AUTO_TEST_CASE(test_insert_overflow_rehash_nothrow_move_construbtible) {
     static const size_t mod = 100;
-    using HMap = hopscotch_map<int64_t, move_only_test, mod_hash<mod>, std::equal_to<int64_t>, 
+    using HMap = tsl::hopscotch_map<int64_t, move_only_test, mod_hash<mod>, std::equal_to<int64_t>, 
                                std::allocator<std::pair<int64_t, move_only_test>>, 6>;
     static_assert(std::is_nothrow_move_constructible<HMap::value_type>::value, "");
     
@@ -202,7 +202,7 @@ BOOST_AUTO_TEST_CASE(test_virtual_table) {
     }
     
     
-    using HMap = hopscotch_map<virtual_table_test_base_class*, int64_t, mod_hash<9>>;
+    using HMap = tsl::hopscotch_map<virtual_table_test_base_class*, int64_t, mod_hash<9>>;
     HMap::iterator it;
     bool inserted;
     

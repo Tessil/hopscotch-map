@@ -42,6 +42,9 @@
 #include <vector>
 
 
+namespace tsl {
+
+namespace detail {
 /**
  * Common class used by hopscotch_map and hopscotch_set.
  */
@@ -1060,6 +1063,7 @@ private:
     key_equal m_key_equal;
 };
 
+}
 
 
 
@@ -1106,9 +1110,9 @@ private:
         }
     };
     
-    using ht = hopscotch_hash<Key, T, Hash, KeyEqual, 
-                              Allocator, NeighborhoodSize, GrowthFactor,
-                              std::pair<Key, T>, KeySelect>;
+    using ht = detail::hopscotch_hash<Key, T, Hash, KeyEqual, 
+                                      Allocator, NeighborhoodSize, GrowthFactor,
+                                      std::pair<Key, T>, KeySelect>;
     
 public:
     using key_type = typename ht::key_type;
@@ -1366,10 +1370,10 @@ private:
         }
     };
     
-    using ht = hopscotch_hash<Key, void, Hash, KeyEqual, 
-                              Allocator, NeighborhoodSize, GrowthFactor, 
-                              Key, KeySelect>;
-    
+    using ht = detail::hopscotch_hash<Key, void, Hash, KeyEqual, 
+                                      Allocator, NeighborhoodSize, GrowthFactor, 
+                                      Key, KeySelect>;
+            
 public:
     using key_type = typename ht::key_type;
     using value_type = typename ht::value_type;
@@ -1542,5 +1546,7 @@ public:
 private:
     ht m_ht;    
 };
+
+}
 
 #endif
