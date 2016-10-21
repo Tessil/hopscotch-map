@@ -46,13 +46,14 @@
  * Common class used by hopscotch_map and hopscotch_set.
  */
 template<class Key, 
-         class ValueType,
-         class KeySelect,
+         class T,
          class Hash,
          class KeyEqual,
          class Allocator,
          unsigned int NeighborhoodSize,
-         class GrowthFactor>
+         class GrowthFactor,
+         class ValueType,
+         class KeySelect>
 class hopscotch_hash {
 private:
     /*
@@ -100,7 +101,7 @@ private:
     
     using neighborhood_bitmap = typename smallest_type_for_min_bits<NeighborhoodSize + NB_RESERVED_BITS_IN_NEIGHBORHOOD>::type;
 public:
-    template<bool is_const>
+    template<bool is_const, class mapped_type = void>
     class hopscotch_iterator;
     
     using key_type = Key;
@@ -114,8 +115,8 @@ public:
     using const_reference = const value_type&;
     using pointer = value_type*;
     using const_pointer = const value_type*;
-    using iterator = hopscotch_iterator<false>;
-    using const_iterator = hopscotch_iterator<true>;
+    using iterator = hopscotch_iterator<false, T>;
+    using const_iterator = hopscotch_iterator<true, T>;
     
 private:
     /*
@@ -319,7 +320,7 @@ private:
     using const_iterator_overflow = typename std::list<value_type, overflow_elements_allocator>::const_iterator; 
     
 public:    
-    template<bool is_const>
+    template<bool is_const, class mapped_type>
     class hopscotch_iterator {
         friend class hopscotch_hash;
     private:
@@ -343,35 +344,33 @@ public:
         using difference_type = std::ptrdiff_t;
         using reference = value_type&;
         using pointer = value_type*;
-//         using key_reference = const typename hopscotch_hash::key_type&;
-//         using mapped_reference = typename std::conditional<is_const, 
-//                                             const typename hopscotch_hash::mapped_type&,
-//                                             typename hopscotch_hash::mapped_type&>::type;
+        
         
         hopscotch_iterator() noexcept {
         }
         
-        hopscotch_iterator(const hopscotch_iterator<false>& other) noexcept :
+        hopscotch_iterator(const hopscotch_iterator<false, mapped_type>& other) noexcept :
             m_buckets_iterator(other.m_buckets_iterator), m_buckets_end_iterator(other.m_buckets_end_iterator),
             m_overflow_iterator(other.m_overflow_iterator)
         {
         }
         
-//         key_reference key() const {
-//             if(m_buckets_iterator != m_buckets_end_iterator) {
-//                 return m_buckets_iterator->get_key_value().first;
-//             }
-//             
-//             return m_overflow_iterator->first;
-//         }
-//         
-//         mapped_reference value() const {
-//             if(m_buckets_iterator != m_buckets_end_iterator) {
-//                 return m_buckets_iterator->get_key_value().second;
-//             }
-//             
-//             return m_overflow_iterator->second;
-//         }
+        const typename hopscotch_hash::key_type& key() const {
+            if(m_buckets_iterator != m_buckets_end_iterator) {
+                return m_buckets_iterator->get_key_value().first;
+            }
+            
+            return m_overflow_iterator->first;
+        }
+
+        template<class U = mapped_type, typename std::enable_if<!std::is_same<void, U>::value>::type* = nullptr>
+        typename std::conditional<is_const, const U&, U&>::type value() const {
+            if(m_buckets_iterator != m_buckets_end_iterator) {
+                return m_buckets_iterator->get_key_value().second;
+            }
+            
+            return m_overflow_iterator->second;
+        }
         
         reference operator*() const { 
             if(m_buckets_iterator != m_buckets_end_iterator) {
@@ -1107,8 +1106,9 @@ private:
         }
     };
     
-    using ht = hopscotch_hash<Key, std::pair<Key, T>, KeySelect, Hash, KeyEqual, 
-                              Allocator, NeighborhoodSize, GrowthFactor>;
+    using ht = hopscotch_hash<Key, T, Hash, KeyEqual, 
+                              Allocator, NeighborhoodSize, GrowthFactor,
+                              std::pair<Key, T>, KeySelect>;
     
 public:
     using key_type = typename ht::key_type;
@@ -1366,7 +1366,9 @@ private:
         }
     };
     
-    using ht = hopscotch_hash<Key, Key, KeySelect, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor>;
+    using ht = hopscotch_hash<Key, void, Hash, KeyEqual, 
+                              Allocator, NeighborhoodSize, GrowthFactor, 
+                              Key, KeySelect>;
     
 public:
     using key_type = typename ht::key_type;
