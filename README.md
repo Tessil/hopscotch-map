@@ -14,7 +14,7 @@ hopscotch_map tries to have an interface similar to std::unordered_map, but some
 - The size of the bucket array in the map grows by a factor of 2, the size will always be a power of 2, which may be a too steep growth rate for some purposes.
 - For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>` making the value `T` not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
 ```c++
-hopscotch_map<int, int> map = {{1, 1}, {2, 1}, {3, 1}};
+tsl::hopscotch_map<int, int> map = {{1, 1}, {2, 1}, {3, 1}};
 for(auto it = map.begin(); it != map.end(); ++it) {
     //it->second = 2; // Illegal
     it.value() = 2; // Ok
@@ -57,7 +57,7 @@ All methods are not documented yet, but they replicate the behaviour of the ones
 #include "hopscotch_map.h"
 
 int main() {
-    hopscotch_map<std::string, int64_t> map = {{"a", 1}, {"b", 2}};
+    tsl::hopscotch_map<std::string, int64_t> map = {{"a", 1}, {"b", 2}};
     
     map["c"] = 3;
     map["d"] = 4;
@@ -71,9 +71,10 @@ int main() {
     
     // Use a map with a different neighborhood size
     const size_t neighborhood_size = 30;
-    hopscotch_map<std::string, int64_t, std::hash<std::string>, std::equal_to<std::string>,
-                  std::allocator<std::pair<std::string, int64_t>>,
-                  neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
+    tsl::hopscotch_map<std::string, int64_t, std::hash<std::string>, 
+                       std::equal_to<std::string>,
+                       std::allocator<std::pair<std::string, int64_t>>,
+                       neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
     
     for(const auto & key_value : map2) {
         std::cout << "map2: " << key_value.first << " " << key_value.second << std::endl;
