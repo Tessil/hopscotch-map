@@ -31,9 +31,9 @@ tsl::hopscotch_map has comparable performances to google::dense_hash_map (see [b
 - It uses less memory for its speed as it can sustain a load factor of 0.9 (which is the default value in the library compare to the 0.5 of google::dense_hash_map) while keeping good performances.
 
 ### Installation
-To use hopscotch-map, just include the header src/hopscotch_map.h to your project. It's a header-only library.
+To use hopscotch-map, just include the header [src/hopscotch_map.h](src/hopscotch_map.h) to your project. It's a header-only library.
 
-The code should work with any C++11 standard compliant compiler and has been tested with GCC 6.1, Clang 3.6 and Visual Studio 2015.
+The code should work with any C++11 standard-compliant compiler and has been tested with GCC 6.1, Clang 3.6 and Visual Studio 2015.
 
 To run the tests you will need the Boost library and CMake. 
 
@@ -60,7 +60,6 @@ All methods are not documented yet, but they replicate the behaviour of the ones
 
 int main() {
     tsl::hopscotch_map<std::string, std::int64_t> map = {{"a", 1}, {"b", 2}};
-    
     map["c"] = 3;
     map["d"] = 4;
     
@@ -72,7 +71,7 @@ int main() {
         it.value() += 2;
     }
     
-    for(const auto & key_value : map) {
+    for(const auto& key_value : map) {
         std::cout << "map: " << key_value.first << " " << key_value.second << std::endl;
     }
     
@@ -84,7 +83,7 @@ int main() {
                        std::allocator<std::pair<std::string, std::int64_t>>,
                        neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
     
-    for(const auto & key_value : map2) {
+    for(const auto& key_value : map2) {
         std::cout << "map2: " << key_value.first << " " << key_value.second << std::endl;
     }
     
@@ -93,7 +92,7 @@ int main() {
     set.insert({1, 9, 0});
     set.insert({2, -1, 9});
     
-    for(const auto & key : set) {
+    for(const auto& key : set) {
         std::cout << "set: " << key << std::endl;
     }
 }
