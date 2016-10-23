@@ -17,7 +17,7 @@ public:
     self_reference_member_test() : m_value(-1), m_value_ptr(&m_value) {
     }
     
-    self_reference_member_test(int64_t value) : m_value(value), m_value_ptr(&m_value) {
+    explicit self_reference_member_test(int64_t value) : m_value(value), m_value_ptr(&m_value) {
     }
     
     self_reference_member_test(const self_reference_member_test& other) : m_value(*other.m_value_ptr), m_value_ptr(&m_value) {
@@ -70,7 +70,7 @@ private:
 
 class move_only_test {
 public:
-    move_only_test(int64_t value) : m_value(new int64_t(value)) {
+    explicit move_only_test(int64_t value) : m_value(new int64_t(value)) {
     }
     
     move_only_test(const move_only_test&) = delete;
@@ -111,7 +111,7 @@ private:
 
 class virtual_table_test_base_class {
 public:     
-    virtual_table_test_base_class(int64_t value) : m_value(value) {
+    explicit virtual_table_test_base_class(int64_t value) : m_value(value) {
     }
     
     virtual ~virtual_table_test_base_class() {
@@ -127,7 +127,7 @@ protected:
 
 class virtual_table_test_class_1 : public virtual_table_test_base_class {
 public:    
-    virtual_table_test_class_1(int64_t value) : virtual_table_test_base_class(value) {
+    explicit virtual_table_test_class_1(int64_t value) : virtual_table_test_base_class(value) {
     }
     
     int64_t value() const override {
@@ -137,7 +137,7 @@ public:
 
 class virtual_table_test_class_2 : public virtual_table_test_base_class {
 public:    
-    virtual_table_test_class_2(int64_t value) : virtual_table_test_base_class(value) {
+    explicit virtual_table_test_class_2(int64_t value) : virtual_table_test_base_class(value) {
     }
     
     int64_t value() const override {
@@ -185,22 +185,22 @@ public:
 
 
 template<>
-int64_t utils::get_key<int64_t>(size_t counter) {
+inline int64_t utils::get_key<int64_t>(size_t counter) {
     return boost::numeric_cast<int64_t>(counter);
 }
 
 template<>
-self_reference_member_test utils::get_key<self_reference_member_test>(size_t counter) {
+inline self_reference_member_test utils::get_key<self_reference_member_test>(size_t counter) {
     return self_reference_member_test(boost::numeric_cast<int64_t>(counter));
 }
 
 template<>
-std::string utils::get_key<std::string>(size_t counter) {
+inline std::string utils::get_key<std::string>(size_t counter) {
     return "Key " + std::to_string(counter);
 }
 
 template<>
-move_only_test utils::get_key<move_only_test>(size_t counter) {
+inline move_only_test utils::get_key<move_only_test>(size_t counter) {
     return move_only_test(boost::numeric_cast<int64_t>(counter));
 }
 
@@ -208,32 +208,32 @@ move_only_test utils::get_key<move_only_test>(size_t counter) {
 
 
 template<>
-int64_t utils::get_value<int64_t>(size_t counter) {
+inline int64_t utils::get_value<int64_t>(size_t counter) {
     return boost::numeric_cast<int64_t>(counter*2);
 }
 
 template<>
-self_reference_member_test utils::get_value<self_reference_member_test>(size_t counter) {
+inline self_reference_member_test utils::get_value<self_reference_member_test>(size_t counter) {
     return self_reference_member_test(boost::numeric_cast<int64_t>(counter*2));
 }
 
 template<>
-std::string utils::get_value<std::string>(size_t counter) {
+inline std::string utils::get_value<std::string>(size_t counter) {
     return "Value " + std::to_string(counter);
 }
 
 template<>
-move_only_test utils::get_value<move_only_test>(size_t counter) {
+inline move_only_test utils::get_value<move_only_test>(size_t counter) {
     return move_only_test(boost::numeric_cast<int64_t>(counter*2));
 }
 
 
 
 template<typename HMap>
-HMap utils::get_filled_hash_map(size_t nb_elements) {
+inline HMap utils::get_filled_hash_map(size_t nb_elements) {
     using key_t = typename HMap::key_type; using value_t = typename HMap:: mapped_type;
     
-    HMap map;
+    HMap map(nb_elements*2);
     for(size_t i = 0; i < nb_elements; i++) {
         map.insert({utils::get_key<key_t>(i), utils::get_value<value_t>(i)});
     }
