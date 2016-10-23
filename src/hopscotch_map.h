@@ -48,21 +48,20 @@ namespace detail {
 /**
  * Common class used by hopscotch_map and hopscotch_set.
  * 
- * For a set T should be equal to void
- * 
  * ValueType is what will be stored by hopscotch_hash (usually std::pair<Key, T> for map and Key for set).
  * 
- * KeySelect should be a FunctionObject which take ValueType in parameter and return Key.
+ * KeySelect should be a FunctionObject which take ValueType in parameter and return the key.
+ * ValueSelect should be a FunctionObject which take ValueType in parameter and return value. 
+ * ValueSelect should be void if there is no value (in set for example).
  */
-template<class Key, 
-         class T,
+template<class ValueType,
+         class KeySelect,
+         class ValueSelect,
          class Hash,
          class KeyEqual,
          class Allocator,
          unsigned int NeighborhoodSize,
-         class GrowthFactor,
-         class ValueType,
-         class KeySelect>
+         class GrowthFactor>
 class hopscotch_hash {
 private:
     /*
@@ -109,8 +108,9 @@ private:
     
     
     using neighborhood_bitmap = typename smallest_type_for_min_bits<NeighborhoodSize + NB_RESERVED_BITS_IN_NEIGHBORHOOD>::type;
+    using Key = typename KeySelect::key_type;
 public:
-    template<bool is_const, class mapped_type = void>
+    template<bool is_const>
     class hopscotch_iterator;
     
     using key_type = Key;
@@ -124,8 +124,8 @@ public:
     using const_reference = const value_type&;
     using pointer = value_type*;
     using const_pointer = const value_type*;
-    using iterator = hopscotch_iterator<false, T>;
-    using const_iterator = hopscotch_iterator<true, T>;
+    using iterator = hopscotch_iterator<false>;
+    using const_iterator = hopscotch_iterator<true>;
     
 private:
     /*
@@ -329,7 +329,7 @@ private:
     using const_iterator_overflow = typename std::list<value_type, overflow_elements_allocator>::const_iterator; 
     
 public:    
-    template<bool is_const, class mapped_type>
+    template<bool is_const>
     class hopscotch_iterator {
         friend class hopscotch_hash;
     private:
@@ -358,7 +358,7 @@ public:
         hopscotch_iterator() noexcept {
         }
         
-        hopscotch_iterator(const hopscotch_iterator<false, mapped_type>& other) noexcept :
+        hopscotch_iterator(const hopscotch_iterator<false>& other) noexcept :
             m_buckets_iterator(other.m_buckets_iterator), m_buckets_end_iterator(other.m_buckets_end_iterator),
             m_overflow_iterator(other.m_overflow_iterator)
         {
@@ -372,8 +372,8 @@ public:
             return KeySelect()(*m_overflow_iterator);
         }
 
-        template<class U = mapped_type, typename std::enable_if<!std::is_same<void, U>::value>::type* = nullptr>
-        typename std::conditional<is_const, const U&, U&>::type value() const {
+        template<class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+        typename std::conditional<is_const, const typename U::value_type&, typename U::value_type&>::type value() const {
             if(m_buckets_iterator != m_buckets_end_iterator) {
                 return m_buckets_iterator->get_key_value().second;
             }
@@ -820,7 +820,7 @@ private:
     std::pair<iterator, bool> insert_internal(P&& key_value, std::size_t ibucket_for_hash) {
         assert(!m_buckets.empty());
         
-        if((m_nb_elements + 1) > m_load_threshold) {
+        if((m_nb_elements - m_overflow_elements.size() + 1) > m_load_threshold) {
             rehash_internal(get_expand_size());
             ibucket_for_hash = bucket_for_hash(m_hash(KeySelect()(key_value)));
         }
@@ -836,18 +836,15 @@ private:
             }
             // else, try to swap values to get a closer empty bucket
             while(swap_empty_bucket_closer(ibucket_empty));
+        }
             
+        // A rehash will not change the neighborhood, put the value in overflow list
+        if(!will_neighborhood_change_on_rehash(ibucket_for_hash)) {
+            m_overflow_elements.push_back(std::forward<P>(key_value));
+            m_buckets[ibucket_for_hash].set_overflow(true);
+            m_nb_elements++;
             
-            // A rehash will not change the neighborhood, put the value in overflow list
-            if(!will_neighborhood_change_on_rehash(ibucket_for_hash)) {
-                m_overflow_elements.push_back(std::forward<P>(key_value));
-                m_buckets[ibucket_for_hash].set_overflow(true);
-                m_nb_elements++;
-                
-                return std::make_pair(iterator(m_buckets.end(), m_buckets.end(), std::prev(m_overflow_elements.end())), true);
-            }
-            
-            
+            return std::make_pair(iterator(m_buckets.end(), m_buckets.end(), std::prev(m_overflow_elements.end())), true);
         }
     
         rehash_internal(get_expand_size());
@@ -1108,18 +1105,33 @@ class hopscotch_map {
 private:    
     class KeySelect {
     public:
-        const Key& operator()(const std::pair<Key, T>& key_value) const {
+        using key_type = Key;
+        
+        const key_type& operator()(const std::pair<Key, T>& key_value) const {
             return key_value.first;
         }
         
-        Key& operator()(std::pair<Key, T>& key_value) {
+        key_type& operator()(std::pair<Key, T>& key_value) {
             return key_value.first;
+        }
+    };  
+    
+    class ValueSelect {
+    public:
+        using value_type = T;
+        
+        const value_type& operator()(const std::pair<Key, T>& key_value) const {
+            return key_value.second;
+        }
+        
+        value_type& operator()(std::pair<Key, T>& key_value) {
+            return key_value.second;
         }
     };
     
-    using ht = detail::hopscotch_hash<Key, T, Hash, KeyEqual, 
-                                      Allocator, NeighborhoodSize, GrowthFactor,
-                                      std::pair<Key, T>, KeySelect>;
+    using ht = detail::hopscotch_hash<std::pair<Key, T>, KeySelect, ValueSelect,
+                                      Hash, KeyEqual, 
+                                      Allocator, NeighborhoodSize, GrowthFactor>;
     
 public:
     using key_type = typename ht::key_type;
@@ -1379,18 +1391,20 @@ class hopscotch_set {
 private:    
     class KeySelect {
     public:
-        const Key& operator()(const Key& key) const {
+        using key_type = Key;
+        
+        const key_type& operator()(const Key& key) const {
             return key;
         }
         
-        Key& operator()(Key& key) {
+        key_type& operator()(Key& key) {
             return key;
         }
     };
     
-    using ht = detail::hopscotch_hash<Key, void, Hash, KeyEqual, 
-                                      Allocator, NeighborhoodSize, GrowthFactor, 
-                                      Key, KeySelect>;
+    using ht = detail::hopscotch_hash<Key, KeySelect, void,
+                                      Hash, KeyEqual, 
+                                      Allocator, NeighborhoodSize, GrowthFactor>;
             
 public:
     using key_type = typename ht::key_type;
