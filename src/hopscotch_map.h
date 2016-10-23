@@ -50,8 +50,9 @@ namespace detail {
  * 
  * ValueType is what will be stored by hopscotch_hash (usually std::pair<Key, T> for map and Key for set).
  * 
- * KeySelect should be a FunctionObject which take ValueType in parameter and return the key.
- * ValueSelect should be a FunctionObject which take ValueType in parameter and return value. 
+ * KeySelect should be a FunctionObject which take ValueType in parameter and return a reference to the key.
+ * 
+ * ValueSelect should be a FunctionObject which take ValueType in parameter and return a reference to the value. 
  * ValueSelect should be void if there is no value (in set for example).
  */
 template<class ValueType,
@@ -63,6 +64,9 @@ template<class ValueType,
          unsigned int NeighborhoodSize,
          class GrowthFactor>
 class hopscotch_hash {
+private:    
+    using Key = typename KeySelect::key_type;
+    
 private:
     /*
      * smallest_type_for_min_bits::type returns the smallest type that can fit MinBits.
@@ -108,7 +112,7 @@ private:
     
     
     using neighborhood_bitmap = typename smallest_type_for_min_bits<NeighborhoodSize + NB_RESERVED_BITS_IN_NEIGHBORHOOD>::type;
-    using Key = typename KeySelect::key_type;
+    
 public:
     template<bool is_const>
     class hopscotch_iterator;
@@ -152,7 +156,7 @@ private:
                     m_neighborhood_infos(0) 
         {
             if(!bucket.is_empty()) {
-                ::new (static_cast<void *>(std::addressof(m_key_value))) value_type(bucket.get_key_value());
+                ::new (static_cast<void*>(std::addressof(m_value_type))) value_type(bucket.get_value_type());
             }
             
             m_neighborhood_infos = bucket.m_neighborhood_infos;
@@ -162,7 +166,7 @@ private:
                     m_neighborhood_infos(0) 
         {
             if(!bucket.is_empty()) {
-                ::new (static_cast<void *>(std::addressof(m_key_value))) value_type(std::move(bucket.get_key_value()));
+                ::new (static_cast<void*>(std::addressof(m_value_type))) value_type(std::move(bucket.get_value_type()));
             }
             
             m_neighborhood_infos = bucket.m_neighborhood_infos;
@@ -171,11 +175,11 @@ private:
         hopscotch_bucket& operator=(const hopscotch_bucket& bucket) noexcept(std::is_nothrow_copy_constructible<value_type>::value) {
             if(this != &bucket) {
                 if(!is_empty()) {
-                    destroy_key_value();
+                    destroy_value_type();
                 }
                 
                 if(!bucket.is_empty()) {
-                    ::new (static_cast<void *>(std::addressof(m_key_value))) value_type(bucket.get_key_value());
+                    ::new (static_cast<void*>(std::addressof(m_value_type))) value_type(bucket.get_value_type());
                 }
                 
                 m_neighborhood_infos = bucket.m_neighborhood_infos;
@@ -186,11 +190,11 @@ private:
         
         hopscotch_bucket& operator=(hopscotch_bucket&& bucket) noexcept(std::is_nothrow_move_constructible<value_type>::value) {
             if(!is_empty()) {
-                destroy_key_value();
+                destroy_value_type();
             }
             
             if(!bucket.is_empty()) {
-                ::new (static_cast<void *>(std::addressof(m_key_value))) value_type(std::move(bucket.get_key_value()));
+                ::new (static_cast<void*>(std::addressof(m_value_type))) value_type(std::move(bucket.get_value_type()));
             }
             
             m_neighborhood_infos = bucket.m_neighborhood_infos;
@@ -200,7 +204,7 @@ private:
         
         ~hopscotch_bucket() noexcept {
             if(!is_empty()) {
-                destroy_key_value();
+                destroy_value_type();
             }
             
             m_neighborhood_infos = 0;
@@ -228,20 +232,20 @@ private:
         }
         
         template<typename P>
-        void set_key_value(P&& key_value) {
+        void set_value_type(P&& value) {
             if(!is_empty()) {
-                destroy_key_value();
-                ::new (static_cast<void *>(std::addressof(m_key_value))) value_type(std::forward<P>(key_value));
+                destroy_value_type();
+                ::new (static_cast<void*>(std::addressof(m_value_type))) value_type(std::forward<P>(value));
             }
             else {
-                ::new (static_cast<void *>(std::addressof(m_key_value))) value_type(std::forward<P>(key_value));
+                ::new (static_cast<void*>(std::addressof(m_value_type))) value_type(std::forward<P>(value));
                 set_is_empty(false);
             }
         }
         
-        void remove_key_value() noexcept {
+        void remove_value_type() noexcept {
             if(!is_empty()) {
-                destroy_key_value();
+                destroy_value_type();
                 set_is_empty(true);
             }
         }
@@ -260,30 +264,30 @@ private:
             return false;
         }
         
-        value_type& get_key_value() noexcept {
+        value_type& get_value_type() noexcept {
             assert(!is_empty());
-            return *reinterpret_cast<value_type *>(std::addressof(m_key_value));
+            return *reinterpret_cast<value_type*>(std::addressof(m_value_type));
         }
         
-        const value_type& get_key_value() const noexcept {
+        const value_type& get_value_type() const noexcept {
             assert(!is_empty());
-            return *reinterpret_cast<const value_type *>(std::addressof(m_key_value));
+            return *reinterpret_cast<const value_type*>(std::addressof(m_value_type));
         }
         
-        void swap_key_value_with_empty_bucket(hopscotch_bucket& empty_bucket) {
+        void swap_value_type_into_empty_bucket(hopscotch_bucket& empty_bucket) {
             assert(empty_bucket.is_empty());
             if(!is_empty()) {
-                ::new (static_cast<void *>(std::addressof(empty_bucket.m_key_value))) value_type(std::move(get_key_value()));
+                ::new (static_cast<void*>(std::addressof(empty_bucket.m_value_type))) value_type(std::move(get_value_type()));
                 empty_bucket.set_is_empty(false);
                 
-                destroy_key_value();
+                destroy_value_type();
                 set_is_empty(true);
             }
         }
         
         void clear() noexcept {
             if(!is_empty()) {
-                destroy_key_value();
+                destroy_value_type();
             }
             
             m_neighborhood_infos = 0;
@@ -300,11 +304,11 @@ private:
             }
         }
         
-        void destroy_key_value() noexcept {
+        void destroy_value_type() noexcept {
             try {
                 assert(!is_empty());
                 
-                get_key_value().~value_type();
+                get_value_type().~value_type();
             }
             catch(...) {
                 std::terminate();
@@ -315,7 +319,7 @@ private:
         using storage = typename std::aligned_storage<sizeof(value_type), alignof(value_type)>::type;
         
         neighborhood_bitmap m_neighborhood_infos;
-        storage m_key_value;
+        storage m_value_type;
     };
     
     
@@ -366,7 +370,7 @@ public:
         
         const typename hopscotch_hash::key_type& key() const {
             if(m_buckets_iterator != m_buckets_end_iterator) {
-                return KeySelect()(m_buckets_iterator->get_key_value());
+                return KeySelect()(m_buckets_iterator->get_value_type());
             }
             
             return KeySelect()(*m_overflow_iterator);
@@ -375,7 +379,7 @@ public:
         template<class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
         typename std::conditional<is_const, const typename U::value_type&, typename U::value_type&>::type value() const {
             if(m_buckets_iterator != m_buckets_end_iterator) {
-                return m_buckets_iterator->get_key_value().second;
+                return m_buckets_iterator->get_value_type().second;
             }
             
             return m_overflow_iterator->second;
@@ -383,7 +387,7 @@ public:
         
         reference operator*() const { 
             if(m_buckets_iterator != m_buckets_end_iterator) {
-                return m_buckets_iterator->get_key_value();
+                return m_buckets_iterator->get_value_type();
             }
             
             return *m_overflow_iterator;
@@ -391,7 +395,7 @@ public:
         
         pointer operator->() const { 
             if(m_buckets_iterator != m_buckets_end_iterator) {
-                return std::addressof(m_buckets_iterator->get_key_value()); 
+                return std::addressof(m_buckets_iterator->get_value_type()); 
             }
             
             return std::addressof(*m_overflow_iterator); 
@@ -673,6 +677,31 @@ public:
         return m_key_equal;
     }
     
+    
+    /*
+     * Avoid the creation of an iterator to just get the value for operator[] and at() in maps. Faster this way.
+     *
+     * Return null if no value for key (TODO use std::optional when available).
+     */
+    template<class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+    const typename U::value_type* find_value(const Key& key) const {
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
+        
+        auto it_find = find_in_buckets(key, m_buckets.begin() + ibucket_for_hash);
+        if(it_find != m_buckets.end()) {
+            return &ValueSelect()(it_find->get_value_type());
+        }
+        
+        if(m_buckets[ibucket_for_hash].has_overflow()) {
+            for(auto it_overflow = m_overflow_elements.begin(); it_overflow != m_overflow_elements.end(); ++it_overflow) {
+                if(m_key_equal(key, KeySelect()(*it_overflow))) {
+                    return &ValueSelect()(*it_overflow);
+                }
+            }
+        }
+        
+        return nullptr;
+    }
 private:
     std::size_t bucket_for_hash(std::size_t hash) const {
         if(USE_POWER_OF_TWO_MOD) {
@@ -698,9 +727,9 @@ private:
     void rehash_internal(size_type count) {
         hopscotch_hash tmp_map(count, m_hash, m_key_equal, get_allocator(), m_max_load_factor);
         
-        for(const auto& key_value : *this) {
-            const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(KeySelect()(key_value)));
-            tmp_map.insert_internal(key_value, ibucket_for_hash);
+        for(const auto& value : *this) {
+            const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(KeySelect()(value)));
+            tmp_map.insert_internal(value, ibucket_for_hash);
         }
         
         std::swap(*this, tmp_map);
@@ -726,8 +755,8 @@ private:
                 continue;
             }
             
-            const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(KeySelect()(bucket.get_key_value())));
-            tmp_map.insert_internal(std::move(bucket.get_key_value()), ibucket_for_hash);
+            const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(KeySelect()(bucket.get_value_type())));
+            tmp_map.insert_internal(std::move(bucket.get_value_type()), ibucket_for_hash);
         }
         
         assert(tmp_map.m_overflow_elements.empty());
@@ -735,8 +764,8 @@ private:
             tmp_map.m_overflow_elements.swap(m_overflow_elements);
             tmp_map.m_nb_elements += tmp_map.m_overflow_elements.size();
             
-            for(const value_type& key_value : tmp_map.m_overflow_elements) {
-                const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(KeySelect()(key_value)));
+            for(const value_type& value : tmp_map.m_overflow_elements) {
+                const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(KeySelect()(value)));
                 tmp_map.m_buckets[ibucket_for_hash].set_overflow(true);
             }
         }
@@ -779,7 +808,7 @@ private:
     void erase_from_bucket(iterator_buckets pos, std::size_t ibucket_for_hash) {
         const std::size_t ibucket_for_key = std::distance(m_buckets.begin(), pos);
         
-        m_buckets[ibucket_for_key].remove_key_value();
+        m_buckets[ibucket_for_key].remove_value_type();
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_for_key - ibucket_for_hash);
         m_nb_elements--;
     }
@@ -803,26 +832,26 @@ private:
     }
     
     template<typename P>
-    std::pair<iterator, bool> insert_internal(P&& key_value) {
-        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(KeySelect()(key_value)));
+    std::pair<iterator, bool> insert_internal(P&& value) {
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(KeySelect()(value)));
         
         // Check if already presents
-        auto it_find = find_internal(KeySelect()(key_value), m_buckets.begin() + ibucket_for_hash);
+        auto it_find = find_internal(KeySelect()(value), m_buckets.begin() + ibucket_for_hash);
         if(it_find != end()) {
             return std::make_pair(it_find, false);
         }
         
         
-        return insert_internal(std::forward<P>(key_value), ibucket_for_hash);
+        return insert_internal(std::forward<P>(value), ibucket_for_hash);
     }
     
     template<typename P>
-    std::pair<iterator, bool> insert_internal(P&& key_value, std::size_t ibucket_for_hash) {
+    std::pair<iterator, bool> insert_internal(P&& value, std::size_t ibucket_for_hash) {
         assert(!m_buckets.empty());
         
         if((m_nb_elements - m_overflow_elements.size() + 1) > m_load_threshold) {
             rehash_internal(get_expand_size());
-            ibucket_for_hash = bucket_for_hash(m_hash(KeySelect()(key_value)));
+            ibucket_for_hash = bucket_for_hash(m_hash(KeySelect()(value)));
         }
         
         std::size_t ibucket_empty = find_empty_bucket(ibucket_for_hash);
@@ -830,7 +859,7 @@ private:
             do {
                 // Empty bucket is in range of NeighborhoodSize, use it
                 if(ibucket_empty - ibucket_for_hash < NeighborhoodSize) {
-                    auto it = insert_in_bucket(std::forward<P>(key_value), ibucket_empty, ibucket_for_hash);
+                    auto it = insert_in_bucket(std::forward<P>(value), ibucket_empty, ibucket_for_hash);
                     return std::make_pair(iterator(it, m_buckets.end(), m_overflow_elements.begin()), true);
                 }
             }
@@ -840,7 +869,7 @@ private:
             
         // A rehash will not change the neighborhood, put the value in overflow list
         if(!will_neighborhood_change_on_rehash(ibucket_for_hash)) {
-            m_overflow_elements.push_back(std::forward<P>(key_value));
+            m_overflow_elements.push_back(std::forward<P>(value));
             m_buckets[ibucket_for_hash].set_overflow(true);
             m_nb_elements++;
             
@@ -849,8 +878,8 @@ private:
     
         rehash_internal(get_expand_size());
         
-        ibucket_for_hash = bucket_for_hash(m_hash(KeySelect()(key_value)));
-        return insert_internal(std::forward<P>(key_value), ibucket_for_hash);
+        ibucket_for_hash = bucket_for_hash(m_hash(KeySelect()(value)));
+        return insert_internal(std::forward<P>(value), ibucket_for_hash);
     }    
     
     /*
@@ -864,7 +893,7 @@ private:
         {
             assert(!m_buckets[ibucket].is_empty());
             
-            const size_t hash = m_hash(KeySelect()(m_buckets[ibucket].get_key_value()));
+            const size_t hash = m_hash(KeySelect()(m_buckets[ibucket].get_value_type()));
             if(bucket_for_hash(hash) != bucket_for_hash(hash, get_expand_size())) {
                 return true;
             }
@@ -889,15 +918,15 @@ private:
     }
     
     /*
-     * Insert key_value in ibucket_empty for key_value originally belonging to ibucket_for_hash
+     * Insert value in ibucket_empty where value originally belongs to ibucket_for_hash
      * 
      * Return bucket iterator to ibucket_empty
      */
     template<typename P>
-    iterator_buckets insert_in_bucket(P&& key_value, std::size_t ibucket_empty, std::size_t ibucket_for_hash) {        
+    iterator_buckets insert_in_bucket(P&& value, std::size_t ibucket_empty, std::size_t ibucket_for_hash) {        
         assert(ibucket_empty >= ibucket_for_hash );
         assert(m_buckets[ibucket_empty].is_empty());
-        m_buckets[ibucket_empty].set_key_value(std::forward<P>(key_value));
+        m_buckets[ibucket_empty].set_value_type(std::forward<P>(value));
         
         assert(!m_buckets[ibucket_for_hash].is_empty());
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_empty - ibucket_for_hash);
@@ -924,7 +953,7 @@ private:
                     assert(m_buckets[ibucket_empty_in_out].is_empty());
                     assert(!m_buckets[to_swap].is_empty());
                     
-                    m_buckets[to_swap].swap_key_value_with_empty_bucket(m_buckets[ibucket_empty_in_out]);
+                    m_buckets[to_swap].swap_value_type_into_empty_bucket(m_buckets[ibucket_empty_in_out]);
                     
                     assert(!m_buckets[to_check].check_neighbor_presence(ibucket_empty_in_out - to_check));
                     assert(m_buckets[to_check].check_neighbor_presence(to_swap - to_check));
@@ -1006,7 +1035,7 @@ private:
         neighborhood_bitmap neighborhood_infos = it_bucket->get_neighborhood_infos();
         while(neighborhood_infos != 0) {
             if((neighborhood_infos & 1) == 1) {
-                if(m_key_equal(KeySelect()(it_bucket->get_key_value()), key)) {
+                if(m_key_equal(KeySelect()(it_bucket->get_value_type()), key)) {
                     return it_bucket;
                 }
             }
@@ -1290,22 +1319,22 @@ public:
     }
     
     const T& at(const Key& key) const {
-        auto it_find = find(key);
-        if(it_find == cend()) {
+        const T* value = m_ht.find_value(key);
+        if(value == nullptr) {
             throw std::out_of_range("Couldn't find key.");
         }
         else {
-            return it_find->second;
+            return *value;
         }
     }
     
     T& operator[](const Key& key) {
-        auto it_find = find(key);
-        if(it_find == end()) {
+        T* value = const_cast<T*>(m_ht.find_value(key));
+        if(value == nullptr) {
             return insert(std::make_pair(key, T())).first.value();
         }
         else {
-            return it_find.value();
+            return *value;
         }
     }    
     
@@ -1380,6 +1409,22 @@ inline bool operator!=(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, Ne
 
 /**
  * Implementation of a hash set using the hopscotch hashing algorithm.
+ * 
+ * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62.
+ * 
+ * The Key must be either move-constructible, copy-constuctible or both.
+ * 
+ * By default the map grows by a factor of 2. This has the advantage to allow us to do fast modulo because
+ * the number of buckets is kept to a power of two. The growth factor can be changed with std::ratio 
+ * (ex: std::ratio<3, 2> will give a growth factor of 1.5), but if the resulting growth factor
+ * is not a power of two, the map will be slower as it can't use the power of two modulo optimization.
+ * 
+ * If the destructor of Key throws an exception, behaviour of the class is undefined.
+ * 
+ * Iterators invalidation:
+ *  - clear, operator=: always invalidate the iterators.
+ *  - insert: invalidate the iterators if there is a rehash, or if a displacement is needed to resolve a collision (which mean that most of the time, insert will invalidate the iterators).
+ *  - erase: iterator on the erased element is the only one which become invalid.
  */
 template<class Key, 
          class Hash = std::hash<Key>,
