@@ -1,14 +1,14 @@
 # A C++ implementation of a hash map using hopscotch hashing
-The hopscotch_map is a C++ implementation of a single-thread hash map using hopscotch hashing. It offers good performances if all the elements of the key used by the equal function are contiguous in memory (no pointers to other parts of the memory for example) thanks to its good cache locality. The number of memory allocations are also small, they only happen on rehash or if there is an overflow (see [implementation details](https://tessil.github.io/2016/08/29/hopscotch-hashing.html)), allowing hopscotch_map to do fast inserts. It may be a good alternative to std::unordered_map in some cases and is mainly a concurrent to Google dense_hash_map, it trades off some memory space (if the key is more than 8 bytes, else it has the advantage compare to std::unordered_map) for speed.
+The hopscotch-map library is a C++ implementation of a single-thread hash map and hash set using hopscotch hashing. It offers good performances if all the elements of the key used by the equal function are contiguous in memory (no pointers to other parts of the memory that may cause a cache-miss) thanks to its good cache locality. The number of memory allocations are also small, they only happen on rehash or if there is an overflow (see [implementation details](https://tessil.github.io/2016/08/29/hopscotch-hashing.html)), allowing hopscotch-map to do fast inserts. It may be a good alternative to std::unordered_map in some cases and is mainly a concurrent to google::dense_hash_map, it trades off some memory space (if the key is big, else it has the advantage compare to std::unordered_map) for speed.
+
+The library provides two classes: tsl::hopscotch_map and tsl::hopscotch_set.
 
 An overview of hopscotch hashing and some implementation details may be found [here](https://tessil.github.io/2016/08/29/hopscotch-hashing.html).
 
-A benchmark of hopscotch_map against other hash maps may be found [there](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html).
-
-Note: The implementation of hopscotch_map is single-thread only. A multi-thread implementation may arrive later.
+A benchmark of tsl::hopscotch_map against other hash maps may be found [there](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html).
 
 ## Differences compare to std::unordered_map
-hopscotch_map tries to have an interface similar to std::unordered_map, but some differences exist:
+tsl::hopscotch_map tries to have an interface similar to std::unordered_map, but some differences exist:
 - Iterator invalidation on insert doesn't behave in the same way (see [API](https://tessil.github.io/hopscotch-map/doc/html/classhopscotch__map.html#details) for details).
 - References and pointers to keys or values in the map are invalidated in the same way as iterators to these keys-values.
 - The size of the bucket array in the map grows by a factor of 2, the size will always be a power of 2, which may be a too steep growth rate for some purposes.
@@ -22,14 +22,16 @@ for(auto it = map.begin(); it != map.end(); ++it) {
 ```
 - No support for some emplace methods (and some others like bucket_size, bucket, ...).
 
+These differences also apply between std::unordered_set and tsl::hopscotch_set.
+
 ## Differences compare to google::dense_hash_map
-hopscotch_map has comparable performances to google::dense_hash_map (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html)), but come with some advantages:
+tsl::hopscotch_map has comparable performances to google::dense_hash_map (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html)), but come with some advantages:
 - There is no need to reserve sentinel values for the key as it is done by google::dense_hash_map where you need to have a sentinel for empty and deleted keys.
 - The type of the value in the map doesn't need a default constructor.
-- It uses less memory.
+- It uses less memory for its speed as it can sustain a load factor of 0.9 (which is the default value in the library compare to the 0.5 of google::dense_hash_map) while keeping good performances.
 
 ## Installation
-To use hopscotch_map, just include the header src/hopscotch_map.h to your project. It's a header-only library.
+To use hopscotch-map, just include the header src/hopscotch_map.h to your project. It's a header-only library.
 
 The code should work with any C++11 standard compliant compiler and has been tested with GCC 6.1, Clang 3.6 and Visual Studio 2015.
 
@@ -49,7 +51,7 @@ make
 ## Usage
 The API can be found [here](https://tessil.github.io/hopscotch-map/doc/html/). 
 
-All methods are not documented yet, but they replicate the behaviour of the ones in std::unordered_map, except if specified otherwise.
+All methods are not documented yet, but they replicate the behaviour of the ones in std::unordered_map and std::unordered_set, except if specified otherwise.
 
 ## Example
 ```c++
@@ -57,7 +59,7 @@ All methods are not documented yet, but they replicate the behaviour of the ones
 #include "hopscotch_map.h"
 
 int main() {
-    tsl::hopscotch_map<std::string, int64_t> map = {{"a", 1}, {"b", 2}};
+    tsl::hopscotch_map<std::string, std::int64_t> map = {{"a", 1}, {"b", 2}};
     
     map["c"] = 3;
     map["d"] = 4;
@@ -65,19 +67,34 @@ int main() {
     map.insert({"e", 5});
     map.erase("b");
     
+    for(auto it = map.begin(); it != map.end(); ++it) {
+        //it->second += 2; // Not valid.
+        it.value() += 2;
+    }
+    
     for(const auto & key_value : map) {
         std::cout << "map: " << key_value.first << " " << key_value.second << std::endl;
     }
     
+    
     // Use a map with a different neighborhood size
     const size_t neighborhood_size = 30;
-    tsl::hopscotch_map<std::string, int64_t, std::hash<std::string>, 
+    tsl::hopscotch_map<std::string, std::int64_t, std::hash<std::string>, 
                        std::equal_to<std::string>,
-                       std::allocator<std::pair<std::string, int64_t>>,
+                       std::allocator<std::pair<std::string, std::int64_t>>,
                        neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
     
     for(const auto & key_value : map2) {
         std::cout << "map2: " << key_value.first << " " << key_value.second << std::endl;
+    }
+    
+    
+    tsl::hopscotch_set<std::int64_t> set;
+    set.insert({1, 9, 0});
+    set.insert({2, -1, 9});
+    
+    for(const auto & key : set) {
+        std::cout << "set: " << key << std::endl;
     }
 }
 ```
