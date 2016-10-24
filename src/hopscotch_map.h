@@ -445,6 +445,7 @@ public:
                   float max_load_factor) :  m_buckets(alloc), 
                                             m_overflow_elements(alloc),
                                             m_nb_elements(0), 
+                                            m_max_probes_for_empty_bucket(DEFAULT_MAX_PROBES_FOR_EMPTY_BUCKET),
                                             m_hash(hash), m_key_equal(equal)
     {
         m_buckets.resize((USE_POWER_OF_TWO_MOD?round_up_to_power_of_two(bucket_count):bucket_count) + 
@@ -679,6 +680,10 @@ public:
     
     
     /*
+     * Other
+     */
+    
+    /*
      * Avoid the creation of an iterator to just get the value for operator[] and at() in maps. Faster this way.
      *
      * Return null if no value for key (TODO use std::optional when available).
@@ -702,6 +707,15 @@ public:
         
         return nullptr;
     }
+    
+    std::size_t max_probes_for_empty_bucket() const {
+        return m_max_probes_for_empty_bucket;
+    }
+    
+    void max_probes_for_empty_bucket(std::size_t max_probes) {
+        m_max_probes_for_empty_bucket = std::max(static_cast<std::size_t>(1), max_probes);
+    }
+    
 private:
     std::size_t bucket_for_hash(std::size_t hash) const {
         if(USE_POWER_OF_TWO_MOD) {
@@ -907,7 +921,7 @@ private:
      * If none, the returned index equals m_buckets.size()
      */
     std::size_t find_empty_bucket(std::size_t ibucket_start) const {
-        const std::size_t limit = std::min(ibucket_start + MAX_LINEAR_PROBE_SEARCH_EMPTY_BUCKET, m_buckets.size());
+        const std::size_t limit = std::min(ibucket_start + m_max_probes_for_empty_bucket, m_buckets.size());
         for(; ibucket_start < limit; ibucket_start++) {
             if(m_buckets[ibucket_start].is_empty()) {
                 return ibucket_start;
@@ -1068,8 +1082,10 @@ private:
     
 public:    
     static const size_type DEFAULT_INIT_BUCKETS_SIZE = 16;
-    static const std::size_t MAX_LINEAR_PROBE_SEARCH_EMPTY_BUCKET = 4096;
     static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.9f;
+    static const std::size_t DEFAULT_MAX_PROBES_FOR_EMPTY_BUCKET = 10*NeighborhoodSize;
+    
+private:    
     static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
     static const bool USE_POWER_OF_TWO_MOD = is_power_of_two(GrowthFactor::num) && is_power_of_two(GrowthFactor::den) &&
                                                 static_cast<double>(static_cast<std::size_t>(REHASH_SIZE_MULTIPLICATION_FACTOR)) == 
@@ -1091,6 +1107,8 @@ private:
     
     float m_max_load_factor;
     size_type m_load_threshold;
+    
+    std::size_t m_max_probes_for_empty_bucket;
     
     hasher m_hash;
     key_equal m_key_equal;
@@ -1366,6 +1384,20 @@ public:
     hasher hash_function() const { return m_ht.hash_function(); }
     key_equal key_eq() const { return m_ht.key_eq(); }
     
+    /*
+     * Other
+     */
+    std::size_t max_probes_for_empty_bucket() const { return m_ht.max_probes_for_empty_bucket; }
+    
+    /**
+     * On insert, when searching for an empty bucket, linear probing is used. 
+     * The maximum number of bucket checked is defined by 'max_probes'. If no empty bucket is found before that, 
+     * a rehash occurs.
+     * 
+     * A high value will result in a more aggressive rehash policy but may speed-up inserts.
+     */
+    void max_probes_for_empty_bucket(std::size_t max_probes) { m_ht.max_probes_for_empty_bucket(max_probes); }
+    
 private:
     ht m_ht;
 };
@@ -1619,6 +1651,21 @@ public:
      */
     hasher hash_function() const { return m_ht.hash_function(); }
     key_equal key_eq() const { return m_ht.key_eq(); }
+    
+    
+    /*
+     * Other
+     */
+    std::size_t max_probes_for_empty_bucket() const { return m_ht.max_probes_for_empty_bucket; }
+    
+    /**
+     * On insert, when searching for an empty bucket, linear probing is used. 
+     * The maximum number of bucket checked is defined by 'max_probe'. If no empty bucket is found before that, 
+     * a rehash occurs.
+     * 
+     * A high value will result in a more aggressive rehash policy but may speed-up inserts.
+     */
+    void max_probes_for_empty_bucket(std::size_t max_probes) { m_ht.max_probes_for_empty_bucket(max_probes); }
     
 private:
     ht m_ht;    
