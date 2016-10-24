@@ -1082,7 +1082,7 @@ private:
     
 public:    
     static const size_type DEFAULT_INIT_BUCKETS_SIZE = 16;
-    static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.9f;
+    static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.95f;
     static const std::size_t DEFAULT_MAX_PROBES_FOR_EMPTY_BUCKET = 10*NeighborhoodSize;
     
 private:    
