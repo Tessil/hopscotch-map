@@ -448,8 +448,11 @@ public:
                                             m_max_probes_for_empty_bucket(DEFAULT_MAX_PROBES_FOR_EMPTY_BUCKET),
                                             m_hash(hash), m_key_equal(equal)
     {
-        m_buckets.resize((USE_POWER_OF_TWO_MOD?round_up_to_power_of_two(bucket_count):bucket_count) + 
-                         NeighborhoodSize - 1);
+        const size_type init_size = (USE_POWER_OF_TWO_MOD?round_up_to_power_of_two(bucket_count):bucket_count) + 
+                                     NeighborhoodSize - 1;
+        const size_type min_size = MIN_BUCKETS_SIZE + NeighborhoodSize - 1;
+        
+        m_buckets.resize(std::max(min_size, init_size));
         this->max_load_factor(max_load_factor);
     }
     
@@ -615,14 +618,12 @@ public:
     }
     
     iterator find(const Key& key) {
-        assert(!m_buckets.empty());
         const std::size_t ibucket_for_hash =  bucket_for_hash(m_hash(key));
         
         return find_internal(key, m_buckets.begin() + ibucket_for_hash);
     }
     
     const_iterator find(const Key& key) const {
-        assert(!m_buckets.empty());
         const std::size_t ibucket_for_hash =  bucket_for_hash(m_hash(key));
         
         return find_internal(key, m_buckets.begin() + ibucket_for_hash);
@@ -713,11 +714,12 @@ public:
     }
     
     void max_probes_for_empty_bucket(std::size_t max_probes) {
-        m_max_probes_for_empty_bucket = std::max(static_cast<std::size_t>(1), max_probes);
+        m_max_probes_for_empty_bucket = std::max(std::size_t(1), max_probes);
     }
     
 private:
     std::size_t bucket_for_hash(std::size_t hash) const {
+        assert(bucket_count() > 0);
         if(USE_POWER_OF_TWO_MOD) {
             assert(is_power_of_two(bucket_count()));
             return hash & (bucket_count() - 1);
@@ -728,6 +730,7 @@ private:
     }
     
     std::size_t bucket_for_hash(std::size_t hash, std::size_t nb_buckets) const {
+        assert(nb_buckets > 0);
         if(USE_POWER_OF_TWO_MOD) {
             assert(is_power_of_two(nb_buckets));
             return hash & (nb_buckets - 1);
@@ -861,8 +864,6 @@ private:
     
     template<typename P>
     std::pair<iterator, bool> insert_internal(P&& value, std::size_t ibucket_for_hash) {
-        assert(!m_buckets.empty());
-        
         if((m_nb_elements - m_overflow_elements.size() + 1) > m_load_threshold) {
             rehash_internal(get_expand_size());
             ibucket_for_hash = bucket_for_hash(m_hash(KeySelect()(value)));
@@ -1086,6 +1087,7 @@ public:
     static const std::size_t DEFAULT_MAX_PROBES_FOR_EMPTY_BUCKET = 10*NeighborhoodSize;
     
 private:    
+    static const size_type MIN_BUCKETS_SIZE = 2;
     static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
     static const bool USE_POWER_OF_TWO_MOD = is_power_of_two(GrowthFactor::num) && is_power_of_two(GrowthFactor::den) &&
                                                 static_cast<double>(static_cast<std::size_t>(REHASH_SIZE_MULTIPLICATION_FACTOR)) == 
@@ -1096,6 +1098,7 @@ private:
      * to get the bucket for a hash if the GrowthFactor is right for that.
      */
     static_assert(is_power_of_two(DEFAULT_INIT_BUCKETS_SIZE), "DEFAULT_INIT_BUCKETS_SIZE should be a power of 2.");
+    static_assert(is_power_of_two(MIN_BUCKETS_SIZE), "MIN_BUCKETS_SIZE should be a power of 2.");
     static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Grow factor should be >= 1.1.");
     
 private:    
