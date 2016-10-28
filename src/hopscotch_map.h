@@ -531,6 +531,11 @@ public:
         }
     }
     
+    template<class... Args>
+    std::pair<iterator,bool> emplace(Args&&... args) {
+        return insert(value_type(std::forward<Args>(args)...));
+    }
+    
     template <class... Args>
     std::pair<iterator, bool> try_emplace(const key_type& k, Args&&... args) {
         return try_emplace_internal(k, std::forward<Args>(args)...);
@@ -1318,6 +1323,15 @@ public:
     void insert(InputIt first, InputIt last) { m_ht.insert(first, last); }
     void insert(std::initializer_list<value_type> ilist) { m_ht.insert(ilist.begin(), ilist.end()); }
 
+    /**
+     * Due to the Implementation, emplace will need to move or copy the std::pair<Key, Value> once.
+     * The method is the equivalent of insert(value_type(std::forward<Args>(args)...));
+     * 
+     * Mainly here for compatibility with the std::unordered_map interface.
+     */
+    template<class... Args>
+    std::pair<iterator,bool> emplace(Args&&... args) { return m_ht.emplace(std::forward<Args>(args)...); }
+    
     template <class... Args>
     std::pair<iterator, bool> try_emplace(const key_type& k, Args&&... args) { 
         return m_ht.try_emplace(k, std::forward<Args>(args)...);
@@ -1619,6 +1633,15 @@ public:
     template<class InputIt>
     void insert(InputIt first, InputIt last) { m_ht.insert(first, last); }
     void insert(std::initializer_list<value_type> ilist) { m_ht.insert(ilist.begin(), ilist.end()); }
+
+    /**
+     * Due to the Implementation, emplace will need to move or copy the Key once.
+     * The method is the equivalent of insert(value_type(std::forward<Args>(args)...));
+     * 
+     * Mainly here for compatibility with the std::unordered_map interface.
+     */
+    template<class... Args>
+    std::pair<iterator,bool> emplace(Args&&... args) { return m_ht.emplace(std::forward<Args>(args)...); }
 
     iterator erase(const_iterator pos) { return m_ht.erase(pos); }
     iterator erase(const_iterator first, const_iterator last) { return m_ht.erase(first, last); }
