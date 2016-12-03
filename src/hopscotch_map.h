@@ -40,6 +40,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <functional>
 
 
 namespace tsl {
