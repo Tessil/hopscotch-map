@@ -43,6 +43,17 @@
 #include <vector>
 
 
+/*
+ * Only activate tsl_assert if TSL_DEBUG is defined. 
+ * This way we avoid the performance hit when NDEBUG is not defined 
+ * (people usually compile with "-O3" and not "-O3 -DNDEBUG").
+ */
+#ifdef TSL_DEBUG
+#define tsl_assert(expr) assert(expr)
+#else
+#define tsl_assert(expr) (static_cast<void>(0))
+#endif
+
 namespace tsl {
 
 namespace detail {
@@ -151,7 +162,7 @@ private:
     class hopscotch_bucket {
     public:
         hopscotch_bucket() noexcept : m_neighborhood_infos(0) {
-            assert(is_empty());
+            tsl_assert(is_empty());
         }
         
         hopscotch_bucket(const hopscotch_bucket& bucket) 
@@ -257,13 +268,13 @@ private:
         }
         
         void toggle_neighbor_presence(std::size_t ineighbor) noexcept {
-            assert(ineighbor <= NeighborhoodSize);
+            tsl_assert(ineighbor <= NeighborhoodSize);
             m_neighborhood_infos = static_cast<neighborhood_bitmap>(
                                       m_neighborhood_infos ^ (1ull << (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)));
         }
         
         bool check_neighbor_presence(std::size_t ineighbor) const noexcept {
-            assert(ineighbor <= NeighborhoodSize);
+            tsl_assert(ineighbor <= NeighborhoodSize);
             if(((m_neighborhood_infos >> (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)) & 1) == 1) {
                 return true;
             }
@@ -272,17 +283,17 @@ private:
         }
         
         value_type& get_value() noexcept {
-            assert(!is_empty());
+            tsl_assert(!is_empty());
             return *reinterpret_cast<value_type*>(std::addressof(m_value));
         }
         
         const value_type& get_value() const noexcept {
-            assert(!is_empty());
+            tsl_assert(!is_empty());
             return *reinterpret_cast<const value_type*>(std::addressof(m_value));
         }
         
         void swap_value_into_empty_bucket(hopscotch_bucket& empty_bucket) {
-            assert(empty_bucket.is_empty());
+            tsl_assert(empty_bucket.is_empty());
             if(!is_empty()) {
                 ::new (static_cast<void*>(std::addressof(empty_bucket.m_value))) value_type(std::move(get_value()));
                 empty_bucket.set_is_empty(false);
@@ -298,7 +309,7 @@ private:
             }
             
             m_neighborhood_infos = 0;
-            assert(is_empty());
+            tsl_assert(is_empty());
         }
         
     private:
@@ -313,7 +324,7 @@ private:
         
         void destroy_value() noexcept {
             try {
-                assert(!is_empty());
+                tsl_assert(!is_empty());
                 
                 get_value().~value_type();
             }
@@ -740,9 +751,9 @@ private:
     }
     
     std::size_t bucket_for_hash(std::size_t hash, std::size_t nb_buckets) const {
-        assert(nb_buckets > 0);
+        tsl_assert(nb_buckets > 0);
         if(USE_POWER_OF_TWO_MOD) {
-            assert(is_power_of_two(nb_buckets));
+            tsl_assert(is_power_of_two(nb_buckets));
             return hash & (nb_buckets - 1);
         }
         else {
@@ -789,7 +800,7 @@ private:
             tmp_map.insert_internal(std::move(bucket.get_value()), ibucket_for_hash);
         }
         
-        assert(tmp_map.m_overflow_elements.empty());
+        tsl_assert(tmp_map.m_overflow_elements.empty());
         if(!m_overflow_elements.empty()) {
             tmp_map.m_overflow_elements.swap(m_overflow_elements);
             tmp_map.m_nb_elements += tmp_map.m_overflow_elements.size();
@@ -828,7 +839,7 @@ private:
         m_nb_elements--;
         
         // Check if we can remove the overflow flag
-        assert(m_buckets[ibucket_for_hash].has_overflow());
+        tsl_assert(m_buckets[ibucket_for_hash].has_overflow());
         if(find_in_overflow_from_bucket(m_overflow_elements.begin(), ibucket_for_hash) == m_overflow_elements.end()) {
             m_buckets[ibucket_for_hash].set_overflow(false);
         }
@@ -922,7 +933,7 @@ private:
             ibucket < m_buckets.size() && (ibucket - ibucket_neighborhood_check) < NeighborhoodSize; 
             ++ibucket)
         {
-            assert(!m_buckets[ibucket].is_empty());
+            tsl_assert(!m_buckets[ibucket].is_empty());
             
             const size_t hash = m_hash(KeySelect()(m_buckets[ibucket].get_value()));
             if(bucket_for_hash(hash) != bucket_for_hash(hash, get_expand_size())) {
@@ -955,11 +966,11 @@ private:
      */
     template<typename P>
     iterator_buckets insert_in_bucket(P&& value, std::size_t ibucket_empty, std::size_t ibucket_for_hash) {        
-        assert(ibucket_empty >= ibucket_for_hash );
-        assert(m_buckets[ibucket_empty].is_empty());
+        tsl_assert(ibucket_empty >= ibucket_for_hash );
+        tsl_assert(m_buckets[ibucket_empty].is_empty());
         m_buckets[ibucket_empty].set_value(std::forward<P>(value));
         
-        assert(!m_buckets[ibucket_for_hash].is_empty());
+        tsl_assert(!m_buckets[ibucket_for_hash].is_empty());
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_empty - ibucket_for_hash);
         m_nb_elements++;
         
@@ -973,7 +984,7 @@ private:
      * If a swap was possible, the position of ibucket_empty_in_out will be closer to 0 and true will re returned.
      */
     bool swap_empty_bucket_closer(std::size_t& ibucket_empty_in_out) {
-        assert(ibucket_empty_in_out >= NeighborhoodSize);
+        tsl_assert(ibucket_empty_in_out >= NeighborhoodSize);
         const std::size_t neighborhood_start = ibucket_empty_in_out - NeighborhoodSize + 1;
         
         for(std::size_t to_check = neighborhood_start; to_check < ibucket_empty_in_out; to_check++) {
@@ -982,13 +993,13 @@ private:
             
             while(neighborhood_infos != 0 && to_swap < ibucket_empty_in_out) {
                 if((neighborhood_infos & 1) == 1) {
-                    assert(m_buckets[ibucket_empty_in_out].is_empty());
-                    assert(!m_buckets[to_swap].is_empty());
+                    tsl_assert(m_buckets[ibucket_empty_in_out].is_empty());
+                    tsl_assert(!m_buckets[to_swap].is_empty());
                     
                     m_buckets[to_swap].swap_value_into_empty_bucket(m_buckets[ibucket_empty_in_out]);
                     
-                    assert(!m_buckets[to_check].check_neighbor_presence(ibucket_empty_in_out - to_check));
-                    assert(m_buckets[to_check].check_neighbor_presence(to_swap - to_check));
+                    tsl_assert(!m_buckets[to_check].check_neighbor_presence(ibucket_empty_in_out - to_check));
+                    tsl_assert(m_buckets[to_check].check_neighbor_presence(to_swap - to_check));
                     
                     m_buckets[to_check].toggle_neighbor_presence(ibucket_empty_in_out - to_check);
                     m_buckets[to_check].toggle_neighbor_presence(to_swap - to_check);
