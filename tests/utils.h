@@ -1,5 +1,5 @@
-#ifndef __T_UTILS_H__
-#define __T_UTILS_H__
+#ifndef TSL_UTILS_H
+#define TSL_UTILS_H
 
 #include <boost/numeric/conversion/cast.hpp>
 
