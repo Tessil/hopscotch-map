@@ -45,7 +45,7 @@
 
 /*
  * Only activate tsl_assert if TSL_DEBUG is defined. 
- * This way we avoid the performance hit when NDEBUG is not defined 
+ * This way we avoid the performance hit when NDEBUG is not defined with assert
  * (people usually compile with "-O3" and not "-O3 -DNDEBUG").
  */
 #ifdef TSL_DEBUG

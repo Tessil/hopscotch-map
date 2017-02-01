@@ -5,8 +5,8 @@ enable_testing()
 find_package(Boost 1.55.0 REQUIRED COMPONENTS unit_test_framework) 
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-    #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 -Werror -Wall -Wextra -Wold-style-cast -g --coverage")
-    set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 -Werror -Wall -Wextra -Wold-style-cast -O3")
+    #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 -Werror -Wall -Wextra -Wold-style-cast -g --coverage -DTSL_DEBUG")
+    set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 -Werror -Wall -Wextra -Wold-style-cast -O3 -DTSL_DEBUG")
 endif()
 
 
