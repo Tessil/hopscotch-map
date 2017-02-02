@@ -183,7 +183,6 @@ private:
             }
             
             m_neighborhood_infos = bucket.m_neighborhood_infos;
-            bucket.set_is_empty(true);
         }
         
         hopscotch_bucket& operator=(const hopscotch_bucket& bucket) 
@@ -192,7 +191,6 @@ private:
             if(this != &bucket) {
                 if(!is_empty()) {
                     destroy_value();
-                    set_is_empty(true);
                 }
                 
                 if(!bucket.is_empty()) {
@@ -210,7 +208,6 @@ private:
         {
             if(!is_empty()) {
                 destroy_value();
-                set_is_empty(true);
             }
             
             if(!bucket.is_empty()) {
@@ -218,7 +215,6 @@ private:
             }
             
             m_neighborhood_infos = bucket.m_neighborhood_infos;
-            bucket.set_is_empty(true);
             
             return *this;
         }
@@ -479,47 +475,6 @@ public:
         m_buckets.resize(std::max(min_size, init_size));
         this->max_load_factor(max_load_factor);
     }
-    
-
-    hopscotch_hash(const hopscotch_hash& other) = default;
-    
-    hopscotch_hash(hopscotch_hash&& other) : m_buckets(MIN_BUCKETS_SIZE + NeighborhoodSize - 1),
-                                             m_overflow_elements(std::move(other.m_overflow_elements)),
-                                             m_nb_elements(other.m_nb_elements),
-                                             m_max_load_factor(other.m_max_load_factor),
-                                             m_load_threshold(other.m_load_threshold),
-                                             m_max_probes_for_empty_bucket(other.m_max_probes_for_empty_bucket),
-                                             m_hash(std::move(other.m_hash)),
-                                             m_key_equal(std::move(other.m_key_equal))
-    {
-        // Get the m_buckets of 'other' for 'this' and provide to 'other' the new m_buckets we created
-        m_buckets.swap(other.m_buckets);
-        // With the new m_buckets size for 'other' also set m_load_threshold
-        other.max_load_factor(other.m_max_load_factor);
-        
-        other.clear();
-    }
-    
-    hopscotch_hash& operator=(const hopscotch_hash& other) = default;
-    
-    hopscotch_hash& operator=(hopscotch_hash&& other) {
-        // 'other' reuses the space of our current m_buckets so we don't end-up with an empty m_buckets
-        m_buckets.swap(other.m_buckets); 
-        m_overflow_elements = std::move(other.m_overflow_elements);
-        
-        m_nb_elements = other.m_nb_elements;
-        m_max_load_factor = other.m_max_load_factor;
-        // We reuse m_buckets and its size so we also have to reuse m_load_threshold
-        std::swap(m_load_threshold, other.m_load_threshold);
-        m_max_probes_for_empty_bucket = other.m_max_probes_for_empty_bucket;
-        m_hash = std::move(other.m_hash);
-        m_key_equal = std::move(other.m_key_equal);
-        
-        other.clear();
-        
-        return *this;
-    }
-    
     
     allocator_type get_allocator() const {
         return m_buckets.get_allocator();
