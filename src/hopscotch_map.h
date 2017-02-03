@@ -497,18 +497,8 @@ public:
     hopscotch_hash& operator=(const hopscotch_hash& other) = default;
     
     hopscotch_hash& operator=(hopscotch_hash&& other) {
-        m_buckets.swap(other.m_buckets); // Reuse space of m_buckets for 'other'
-        m_overflow_elements = std::move(other.m_overflow_elements);
-        m_nb_elements = other.m_nb_elements;
-        m_max_load_factor = other.m_max_load_factor;
-        m_load_threshold = other.m_load_threshold;
-        m_max_probes_for_empty_bucket = other.m_max_probes_for_empty_bucket;
-        m_hash = std::move(other.m_hash);
-        m_key_equal = std::move(other.m_key_equal);
-        
+        other.swap(*this);
         other.clear();
-        // Reset m_load_threshold
-        other.max_load_factor(other.m_max_load_factor);
         
         return *this;
     }    
@@ -669,6 +659,18 @@ public:
         return 0;
     }
     
+    void swap(hopscotch_hash& other) {
+        using std::swap;
+        
+        swap(m_buckets, other.m_buckets);
+        swap(m_overflow_elements, other.m_overflow_elements);
+        swap(m_nb_elements, other.m_nb_elements);
+        swap(m_max_load_factor, other.m_max_load_factor);
+        swap(m_load_threshold, other.m_load_threshold);
+        swap(m_max_probes_for_empty_bucket, other.m_max_probes_for_empty_bucket);
+        swap(m_hash, other.m_hash);
+        swap(m_key_equal, other.m_key_equal);
+    }
     
     
     /*
@@ -809,7 +811,7 @@ private:
             tmp_map.insert_internal(value, ibucket_for_hash);
         }
         
-        std::swap(*this, tmp_map);
+        tmp_map.swap(*this);
     }   
     
     template<typename U = value_type, 
@@ -849,7 +851,7 @@ private:
             }
         }
         
-        std::swap(*this, tmp_map);
+        tmp_map.swap(*this);
     } 
     
     /*
@@ -1418,6 +1420,8 @@ public:
     iterator erase(const_iterator first, const_iterator last) { return m_ht.erase(first, last); }
     size_type erase(const key_type& key) { return m_ht.erase(key); }
     
+    void swap(hopscotch_map& other) { other.swap(*this); }
+    
     /*
      * Lookup
      */
@@ -1492,7 +1496,6 @@ private:
 };
 
 
-
 template<class Key, class T, class Hash, class KeyEqual, class Allocator, 
          unsigned int NeighborhoodSize, class GrowthFactor>
 inline bool operator==(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor>& lhs, 
@@ -1521,6 +1524,14 @@ inline bool operator!=(const hopscotch_map<Key, T, Hash, KeyEqual, Allocator, Ne
     return !operator==(lhs, rhs);
 }
 
+
+template<class Key, class T, class Hash, class KeyEqual, class Allocator, 
+         unsigned int NeighborhoodSize, class GrowthFactor>
+inline void swap(hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor>& lhs, 
+                 hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor>& rhs)
+{
+    lhs.swap(rhs);
+}
 
 
 
@@ -1725,6 +1736,8 @@ public:
     iterator erase(const_iterator first, const_iterator last) { return m_ht.erase(first, last); }
     size_type erase(const key_type& key) { return m_ht.erase(key); }
     
+    void swap(hopscotch_set& other) { other.swap(*this); }
+    
     /*
      * Lookup
      */
@@ -1802,6 +1815,13 @@ inline bool operator!=(const hopscotch_set<Key, Hash, KeyEqual, Allocator, Neigh
     return !operator==(lhs, rhs);
 }
 
+
+template<class Key, class Hash, class KeyEqual, class Allocator, unsigned int NeighborhoodSize, class GrowthFactor>
+inline void swap(hopscotch_set<Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor>& lhs, 
+                 hopscotch_set<Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor>& rhs)
+{
+    lhs.swap(rhs);
+}
 
 }
 
