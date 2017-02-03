@@ -706,6 +706,16 @@ public:
         return find_internal(key, m_buckets.begin() + ibucket_for_hash);
     }
     
+    std::pair<iterator, iterator> equal_range(const Key& key) {
+        iterator it = find(key);
+        return std::make_pair(it, it);
+    }
+    
+    std::pair<const_iterator, const_iterator> equal_range(const Key& key) const {
+        const_iterator it = find(key);
+        return std::make_pair(it, it);
+    }
+    
     /*
      * Bucket interface 
      */
@@ -716,6 +726,10 @@ public:
          * it is easier this way and we avoid weird behaviour with iterators.
          */
         return m_buckets.size() - NeighborhoodSize + 1; 
+    }
+    
+    size_type max_bucket_count() const {
+        return m_buckets.max_size() - NeighborhoodSize + 1;
     }
     
     
@@ -1463,10 +1477,14 @@ public:
     iterator find(const Key& key) { return m_ht.find(key); }
     const_iterator find(const Key& key) const { return m_ht.find(key); }
     
+    std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
+    std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
+    
     /*
      * Bucket interface 
      */
     size_type bucket_count() const { return m_ht.bucket_count(); }
+    size_type max_bucket_count() const { return m_ht.max_bucket_count(); }
     
     
     /*
@@ -1755,10 +1773,14 @@ public:
     iterator find(const Key& key) { return m_ht.find(key); }
     const_iterator find(const Key& key) const { return m_ht.find(key); }
     
+    std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
+    std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
+    
     /*
      * Bucket interface 
      */
     size_type bucket_count() const { return m_ht.bucket_count(); }
+    size_type max_bucket_count() const { return m_ht.max_bucket_count(); }
     
     
     /*
