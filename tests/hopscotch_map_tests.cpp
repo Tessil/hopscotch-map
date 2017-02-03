@@ -368,3 +368,35 @@ BOOST_AUTO_TEST_CASE(test_try_emplace) {
     BOOST_CHECK(!inserted);
 }
 
+BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_constructor) {
+    tsl::hopscotch_map<int64_t, int64_t> map = {{1, 1}, {2, 1}, {3, 1}};
+    BOOST_CHECK_EQUAL(map.size(), 3);
+    
+    tsl::hopscotch_map<int64_t, int64_t> map_move(std::move(map));
+    BOOST_CHECK_EQUAL(map_move.size(), 3);
+    BOOST_CHECK_EQUAL(map.size(), 0);
+    
+    BOOST_CHECK(map_move == (tsl::hopscotch_map<int64_t, int64_t>({{1, 1}, {2, 1}, {3, 1}})));
+    BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>()));
+    
+    map = {{4, 1}, {5, 1}};
+    BOOST_CHECK_EQUAL(map.size(), 2);
+    BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>({{4, 1}, {5, 1}})));
+}
+
+BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_operator) {
+    tsl::hopscotch_map<int64_t, int64_t> map = {{1, 1}, {2, 1}, {3, 1}};
+    BOOST_CHECK_EQUAL(map.size(), 3);
+    
+    tsl::hopscotch_map<int64_t, int64_t> map_move = std::move(map);
+    BOOST_CHECK_EQUAL(map_move.size(), 3);
+    BOOST_CHECK_EQUAL(map.size(), 0);
+    
+    BOOST_CHECK(map_move == (tsl::hopscotch_map<int64_t, int64_t>({{1, 1}, {2, 1}, {3, 1}})));
+    BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>()));
+    
+    map = {{4, 1}, {5, 1}};
+    BOOST_CHECK_EQUAL(map.size(), 2);
+    BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>({{4, 1}, {5, 1}})));
+}
+

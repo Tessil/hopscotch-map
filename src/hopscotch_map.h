@@ -191,6 +191,7 @@ private:
             if(this != &bucket) {
                 if(!is_empty()) {
                     destroy_value();
+                    set_is_empty(true);
                 }
                 
                 if(!bucket.is_empty()) {
@@ -208,6 +209,7 @@ private:
         {
             if(!is_empty()) {
                 destroy_value();
+                set_is_empty(true);
             }
             
             if(!bucket.is_empty()) {
@@ -475,6 +477,42 @@ public:
         m_buckets.resize(std::max(min_size, init_size));
         this->max_load_factor(max_load_factor);
     }
+    
+    hopscotch_hash(const hopscotch_hash& other) = default;
+    
+    hopscotch_hash(hopscotch_hash&& other) : m_buckets(std::move(other.m_buckets)),
+                                             m_overflow_elements(std::move(other.m_overflow_elements)),
+                                             m_nb_elements(other.m_nb_elements),
+                                             m_max_load_factor(other.m_max_load_factor),
+                                             m_load_threshold(other.m_load_threshold),
+                                             m_max_probes_for_empty_bucket(other.m_max_probes_for_empty_bucket),
+                                             m_hash(std::move(other.m_hash)),
+                                             m_key_equal(std::move(other.m_key_equal))
+    {
+        other.clear();
+        // Reset m_load_threshold
+        other.max_load_factor(other.m_max_load_factor);
+    }
+    
+    hopscotch_hash& operator=(const hopscotch_hash& other) = default;
+    
+    hopscotch_hash& operator=(hopscotch_hash&& other) {
+        m_buckets.swap(other.m_buckets); // Reuse space of m_buckets for 'other'
+        m_overflow_elements = std::move(other.m_overflow_elements);
+        m_nb_elements = other.m_nb_elements;
+        m_max_load_factor = other.m_max_load_factor;
+        m_load_threshold = other.m_load_threshold;
+        m_max_probes_for_empty_bucket = other.m_max_probes_for_empty_bucket;
+        m_hash = std::move(other.m_hash);
+        m_key_equal = std::move(other.m_key_equal);
+        
+        other.clear();
+        // Reset m_load_threshold
+        other.max_load_factor(other.m_max_load_factor);
+        
+        return *this;
+    }    
+    
     
     allocator_type get_allocator() const {
         return m_buckets.get_allocator();
@@ -1316,7 +1354,10 @@ public:
     
     hopscotch_map& operator=(std::initializer_list<value_type> ilist) {
         m_ht.clear();
+        
+        m_ht.reserve(ilist.size());
         m_ht.insert(ilist.begin(), ilist.end());
+        
         return *this;
     }
     
@@ -1630,7 +1671,10 @@ public:
     
     hopscotch_set& operator=(std::initializer_list<value_type> ilist) {
         m_ht.clear();
+        
+        m_ht.reserve(ilist.size());
         m_ht.insert(ilist.begin(), ilist.end());
+        
         return *this;
     }
     
