@@ -574,6 +574,15 @@ public:
     
     template<class InputIt>
     void insert(InputIt first, InputIt last) {
+        if(std::is_same<typename std::iterator_traits<InputIt>::iterator_category, std::forward_iterator_tag>::value) {
+            const std::size_t nb_elements_insert = std::distance(first, last);
+            const std::size_t nb_free_buckets = m_buckets.size() - (m_nb_elements - m_overflow_elements.size());
+            
+            if(nb_free_buckets < nb_elements_insert) {
+                reserve(m_nb_elements + (nb_elements_insert - nb_free_buckets));
+            }
+        }
+        
         for(; first != last; ++first) {
             insert(*first);
         }
