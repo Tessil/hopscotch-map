@@ -578,7 +578,7 @@ public:
             const auto nb_elements_insert = std::distance(first, last);
             const std::size_t nb_free_buckets = m_buckets.size() - (m_nb_elements - m_overflow_elements.size());
             
-            if(nb_free_buckets < nb_elements_insert) {
+            if(nb_elements_insert > 0 && nb_free_buckets < static_cast<std::size_t>(nb_elements_insert)) {
                 reserve(m_nb_elements + (nb_elements_insert - nb_free_buckets));
             }
         }
