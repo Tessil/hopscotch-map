@@ -5,7 +5,7 @@ The library provides two classes: `tsl::hopscotch_map` and `tsl::hopscotch_set`.
 
 An overview of hopscotch hashing and some implementation details may be found [here](https://tessil.github.io/2016/08/29/hopscotch-hashing.html).
 
-A benchmark of `tsl::hopscotch_map` against other hash maps may be found [there](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html).
+A **benchmark** of `tsl::hopscotch_map` against other hash maps may be found [there](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html).
 
 ### Differences compare to `std::unordered_map`
 `tsl::hopscotch_map` tries to have an interface similar to `std::unordered_map`, but some differences exist:
