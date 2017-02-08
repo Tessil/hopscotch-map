@@ -685,7 +685,8 @@ public:
     /*
      * Lookup
      */    
-    size_type count(const Key& key) const {
+    template<typename TransparentKey = Key>
+    size_type count(const TransparentKey& key) const {
         if(find(key) == end()) {
             return 0;
         }
@@ -694,24 +695,28 @@ public:
         }
     }
     
-    iterator find(const Key& key) {
+    template<typename TransparentKey = Key>
+    iterator find(const TransparentKey& key) {
         const std::size_t ibucket_for_hash =  bucket_for_hash(m_hash(key));
         
         return find_internal(key, m_buckets.begin() + ibucket_for_hash);
     }
     
-    const_iterator find(const Key& key) const {
+    template<typename TransparentKey = Key>
+    const_iterator find(const TransparentKey& key) const {
         const std::size_t ibucket_for_hash =  bucket_for_hash(m_hash(key));
         
         return find_internal(key, m_buckets.begin() + ibucket_for_hash);
     }
     
-    std::pair<iterator, iterator> equal_range(const Key& key) {
+    template<typename TransparentKey = Key>
+    std::pair<iterator, iterator> equal_range(const TransparentKey& key) {
         iterator it = find(key);
         return std::make_pair(it, it);
     }
     
-    std::pair<const_iterator, const_iterator> equal_range(const Key& key) const {
+    template<typename TransparentKey = Key>
+    std::pair<const_iterator, const_iterator> equal_range(const TransparentKey& key) const {
         const_iterator it = find(key);
         return std::make_pair(it, it);
     }
@@ -1448,11 +1453,13 @@ public:
     /*
      * Lookup
      */
-    T& at(const Key& key) {
+    template<typename TransparentKey = Key>
+    T& at(const TransparentKey& key) {
         return const_cast<T&>(static_cast<const hopscotch_map*>(this)->at(key));
     }
     
-    const T& at(const Key& key) const {
+    template<typename TransparentKey = Key>
+    const T& at(const TransparentKey& key) const {
         const T* value = m_ht.find_value(key);
         if(value == nullptr) {
             throw std::out_of_range("Couldn't find key.");
@@ -1462,7 +1469,8 @@ public:
         }
     }
     
-    T& operator[](const Key& key) {
+    template<typename TransparentKey = Key>
+    T& operator[](const TransparentKey& key) {
         T* value = const_cast<T*>(m_ht.find_value(key));
         if(value == nullptr) {
             return insert(std::make_pair(key, T())).first.value();
@@ -1472,13 +1480,18 @@ public:
         }
     }    
     
-    size_type count(const Key& key) const { return m_ht.count(key); }
+    template<typename TransparentKey = Key>
+    size_type count(const TransparentKey& key) const { return m_ht.count(key); }
     
-    iterator find(const Key& key) { return m_ht.find(key); }
-    const_iterator find(const Key& key) const { return m_ht.find(key); }
+    template<typename TransparentKey = Key>
+    iterator find(const TransparentKey& key) { return m_ht.find(key); }
+    template<typename TransparentKey = Key>
+    const_iterator find(const TransparentKey& key) const { return m_ht.find(key); }
     
-    std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
-    std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
+    template<typename TransparentKey = Key>
+    std::pair<iterator, iterator> equal_range(const TransparentKey& key) { return m_ht.equal_range(key); }
+    template<typename TransparentKey = Key>
+    std::pair<const_iterator, const_iterator> equal_range(const TransparentKey& key) const { return m_ht.equal_range(key); }
     
     /*
      * Bucket interface 
