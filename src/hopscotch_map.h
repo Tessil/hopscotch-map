@@ -1475,8 +1475,7 @@ public:
         }
     }
     
-    template<typename TransparentKey = Key>
-    T& operator[](const TransparentKey& key) {
+    T& operator[](const Key& key) {
         T* value = const_cast<T*>(m_ht.find_value(key));
         if(value == nullptr) {
             return insert(std::make_pair(key, T())).first.value();
