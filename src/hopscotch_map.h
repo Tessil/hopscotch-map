@@ -603,6 +603,9 @@ public:
         return try_emplace_internal(std::move(k), std::forward<Args>(args)...);
     }
     
+    iterator erase(iterator pos) {
+        return erase(const_iterator(pos));
+    }
     iterator erase(const_iterator pos) {
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(pos.key()));
         
@@ -1449,6 +1452,7 @@ public:
         return m_ht.try_emplace(std::move(k), std::forward<Args>(args)...);
     }
 
+    iterator erase(iterator pos) { return m_ht.erase(pos); }
     iterator erase(const_iterator pos) { return m_ht.erase(pos); }
     iterator erase(const_iterator first, const_iterator last) { return m_ht.erase(first, last); }
     template<typename TransparentKey = key_type>
