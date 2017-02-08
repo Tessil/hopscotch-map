@@ -642,7 +642,8 @@ public:
         return to_delete;
     }
     
-    size_type erase(const key_type& key) {
+    template<typename TransparentKey = key_type>
+    size_type erase(const TransparentKey& key) {
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         
         auto it_find = find_in_buckets(key, m_buckets.begin() + ibucket_for_hash);
@@ -785,8 +786,8 @@ public:
      *
      * Return null if no value for key (TODO use std::optional when available).
      */
-    template<class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
-    const typename U::value_type* find_value(const Key& key) const {
+    template<typename U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr, typename TransparentKey = Key>
+    const typename U::value_type* find_value(const TransparentKey& key) const {
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         
         auto it_find = find_in_buckets(key, m_buckets.begin() + ibucket_for_hash);
@@ -1100,7 +1101,8 @@ private:
         return begin;
     }
     
-    iterator find_internal(const Key& key, iterator_buckets it_bucket) {
+    template<typename TransparentKey = Key>
+    iterator find_internal(const TransparentKey& key, iterator_buckets it_bucket) {
         auto it = find_in_buckets(key, it_bucket);
         if(it != m_buckets.cend()) {
             return iterator(it, m_buckets.end(), m_overflow_elements.begin());
@@ -1117,7 +1119,8 @@ private:
                                         }));
     }
     
-    const_iterator find_internal(const Key& key, const_iterator_buckets it_bucket) const {
+    template<typename TransparentKey = Key>
+    const_iterator find_internal(const TransparentKey& key, const_iterator_buckets it_bucket) const {
         auto it = find_in_buckets(key, it_bucket);
         if(it != m_buckets.cend()) {
             return const_iterator(it, m_buckets.cend(), m_overflow_elements.cbegin());
@@ -1135,13 +1138,15 @@ private:
                                             }));        
     }
     
-    iterator_buckets find_in_buckets(const Key& key, iterator_buckets it_bucket) {   
+    template<typename TransparentKey = Key>
+    iterator_buckets find_in_buckets(const TransparentKey& key, iterator_buckets it_bucket) {
         auto it_find = static_cast<const hopscotch_hash*>(this)->find_in_buckets(key, it_bucket); 
         return m_buckets.begin() + std::distance(m_buckets.cbegin(), it_find);
     }
 
     
-    const_iterator_buckets find_in_buckets(const Key& key, const_iterator_buckets it_bucket) const {      
+    template<typename TransparentKey = Key>
+    const_iterator_buckets find_in_buckets(const TransparentKey& key, const_iterator_buckets it_bucket) const {
         // TODO Try to optimize the function. 
         // I tried to use ffs and  __builtin_ffs functions but I could not reduce the time the function
         // takes with -march=native
@@ -1446,7 +1451,8 @@ public:
 
     iterator erase(const_iterator pos) { return m_ht.erase(pos); }
     iterator erase(const_iterator first, const_iterator last) { return m_ht.erase(first, last); }
-    size_type erase(const key_type& key) { return m_ht.erase(key); }
+    template<typename TransparentKey = key_type>
+    size_type erase(const TransparentKey& key) { return m_ht.erase(key); }
     
     void swap(hopscotch_map& other) { other.swap(*this); }
     
