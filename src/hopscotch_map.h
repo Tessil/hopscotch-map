@@ -57,6 +57,23 @@
 namespace tsl {
 
 namespace detail {
+    
+    
+    
+template<typename T>
+struct make_void {
+    using type = void;
+};
+
+template <typename T, typename = void>
+struct has_is_transparent : std::false_type {
+};
+
+template <typename T>
+struct has_is_transparent<T, typename make_void<typename T::is_transparent>::type> : std::true_type {
+};
+        
+    
 /**
  * Common class used by hopscotch_map and hopscotch_set.
  * 
@@ -111,6 +128,7 @@ private:
     public:
         using type = std::uint64_t;
     };
+    
     
 private:
     static const size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
@@ -606,6 +624,7 @@ public:
     iterator erase(iterator pos) {
         return erase(const_iterator(pos));
     }
+    
     iterator erase(const_iterator pos) {
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(pos.key()));
         
@@ -645,8 +664,8 @@ public:
         return to_delete;
     }
     
-    template<typename TransparentKey = key_type>
-    size_type erase(const TransparentKey& key) {
+    template<class K>
+    size_type erase(const K& key) {
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         
         auto it_find = find_in_buckets(key, m_buckets.begin() + ibucket_for_hash);
@@ -689,8 +708,8 @@ public:
     /*
      * Lookup
      */    
-    template<typename TransparentKey = Key>
-    size_type count(const TransparentKey& key) const {
+    template<class K>
+    size_type count(const K& key) const {
         if(find(key) == end()) {
             return 0;
         }
@@ -699,28 +718,28 @@ public:
         }
     }
     
-    template<typename TransparentKey = Key>
-    iterator find(const TransparentKey& key) {
+    template<class K>
+    iterator find(const K& key) {
         const std::size_t ibucket_for_hash =  bucket_for_hash(m_hash(key));
         
         return find_internal(key, m_buckets.begin() + ibucket_for_hash);
     }
     
-    template<typename TransparentKey = Key>
-    const_iterator find(const TransparentKey& key) const {
+    template<class K>
+    const_iterator find(const K& key) const {
         const std::size_t ibucket_for_hash =  bucket_for_hash(m_hash(key));
         
         return find_internal(key, m_buckets.begin() + ibucket_for_hash);
     }
     
-    template<typename TransparentKey = Key>
-    std::pair<iterator, iterator> equal_range(const TransparentKey& key) {
+    template<class K>
+    std::pair<iterator, iterator> equal_range(const K& key) {
         iterator it = find(key);
         return std::make_pair(it, it);
     }
     
-    template<typename TransparentKey = Key>
-    std::pair<const_iterator, const_iterator> equal_range(const TransparentKey& key) const {
+    template<class K>
+    std::pair<const_iterator, const_iterator> equal_range(const K& key) const {
         const_iterator it = find(key);
         return std::make_pair(it, it);
     }
@@ -789,8 +808,8 @@ public:
      *
      * Return null if no value for key (TODO use std::optional when available).
      */
-    template<typename U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr, typename TransparentKey = Key>
-    const typename U::value_type* find_value(const TransparentKey& key) const {
+    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+    const typename U::value_type* find_value(const K& key) const {
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         
         auto it_find = find_in_buckets(key, m_buckets.begin() + ibucket_for_hash);
@@ -1104,8 +1123,8 @@ private:
         return begin;
     }
     
-    template<typename TransparentKey = Key>
-    iterator find_internal(const TransparentKey& key, iterator_buckets it_bucket) {
+    template<class K>
+    iterator find_internal(const K& key, iterator_buckets it_bucket) {
         auto it = find_in_buckets(key, it_bucket);
         if(it != m_buckets.cend()) {
             return iterator(it, m_buckets.end(), m_overflow_elements.begin());
@@ -1122,8 +1141,8 @@ private:
                                         }));
     }
     
-    template<typename TransparentKey = Key>
-    const_iterator find_internal(const TransparentKey& key, const_iterator_buckets it_bucket) const {
+    template<class K>
+    const_iterator find_internal(const K& key, const_iterator_buckets it_bucket) const {
         auto it = find_in_buckets(key, it_bucket);
         if(it != m_buckets.cend()) {
             return const_iterator(it, m_buckets.cend(), m_overflow_elements.cbegin());
@@ -1141,15 +1160,15 @@ private:
                                             }));        
     }
     
-    template<typename TransparentKey = Key>
-    iterator_buckets find_in_buckets(const TransparentKey& key, iterator_buckets it_bucket) {
+    template<class K>
+    iterator_buckets find_in_buckets(const K& key, iterator_buckets it_bucket) {   
         auto it_find = static_cast<const hopscotch_hash*>(this)->find_in_buckets(key, it_bucket); 
         return m_buckets.begin() + std::distance(m_buckets.cbegin(), it_find);
     }
 
     
-    template<typename TransparentKey = Key>
-    const_iterator_buckets find_in_buckets(const TransparentKey& key, const_iterator_buckets it_bucket) const {
+    template<class K>
+    const_iterator_buckets find_in_buckets(const K& key, const_iterator_buckets it_bucket) const {      
         // TODO Try to optimize the function. 
         // I tried to use ffs and  __builtin_ffs functions but I could not reduce the time the function
         // takes with -march=native
@@ -1452,32 +1471,33 @@ public:
         return m_ht.try_emplace(std::move(k), std::forward<Args>(args)...);
     }
 
+    
+    
     iterator erase(iterator pos) { return m_ht.erase(pos); }
     iterator erase(const_iterator pos) { return m_ht.erase(pos); }
     iterator erase(const_iterator first, const_iterator last) { return m_ht.erase(first, last); }
-    template<typename TransparentKey = key_type>
-    size_type erase(const TransparentKey& key) { return m_ht.erase(key); }
+    size_type erase(const key_type& key) { return m_ht.erase(key); }
+    
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
+    size_type erase(const K& key) { return m_ht.erase(key); }
+    
+    
     
     void swap(hopscotch_map& other) { other.swap(*this); }
     
     /*
      * Lookup
      */
-    template<typename TransparentKey = Key>
-    T& at(const TransparentKey& key) {
-        return const_cast<T&>(static_cast<const hopscotch_map*>(this)->at(key));
-    }
+    T& at(const Key& key) { return at_internal(key); }
+    const T& at(const Key& key) const { return at_internal(key); }
     
-    template<typename TransparentKey = Key>
-    const T& at(const TransparentKey& key) const {
-        const T* value = m_ht.find_value(key);
-        if(value == nullptr) {
-            throw std::out_of_range("Couldn't find key.");
-        }
-        else {
-            return *value;
-        }
-    }
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
+    T& at(const K& key) { return at_internal(key); }
+    
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    const T& at(const K& key) const { return at_internal(key); }
+    
+    
     
     T& operator[](const Key& key) {
         T* value = const_cast<T*>(m_ht.find_value(key));
@@ -1489,18 +1509,34 @@ public:
         }
     }    
     
-    template<typename TransparentKey = Key>
-    size_type count(const TransparentKey& key) const { return m_ht.count(key); }
     
-    template<typename TransparentKey = Key>
-    iterator find(const TransparentKey& key) { return m_ht.find(key); }
-    template<typename TransparentKey = Key>
-    const_iterator find(const TransparentKey& key) const { return m_ht.find(key); }
     
-    template<typename TransparentKey = Key>
-    std::pair<iterator, iterator> equal_range(const TransparentKey& key) { return m_ht.equal_range(key); }
-    template<typename TransparentKey = Key>
-    std::pair<const_iterator, const_iterator> equal_range(const TransparentKey& key) const { return m_ht.equal_range(key); }
+    size_type count(const Key& key) const { return m_ht.count(key); }
+    
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    size_type count(const K& key) const { return m_ht.count(key); }
+    
+    
+    
+    iterator find(const Key& key) { return m_ht.find(key); }
+    const_iterator find(const Key& key) const { return m_ht.find(key); }
+    
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
+    iterator find(const K& key) { return m_ht.find(key); }
+    
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
+    const_iterator find(const K& key) const { return m_ht.find(key); }
+    
+    
+    
+    std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
+    std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
+
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    std::pair<iterator, iterator> equal_range(const K& key) { return m_ht.equal_range(key); }
+    
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
     
     /*
      * Bucket interface 
@@ -1539,6 +1575,23 @@ public:
      * A high value will result in a more aggressive rehash policy but may speed-up inserts.
      */
     void max_probes_for_empty_bucket(std::size_t max_probes) { m_ht.max_probes_for_empty_bucket(max_probes); }
+    
+private:
+    template<class K>
+    T& at_internal(const K& key) {
+        return const_cast<T&>(static_cast<const hopscotch_map*>(this)->at(key));
+    }
+    
+    template<class K>
+    const T& at_internal(const K& key) const {
+        const T* value = m_ht.find_value(key);
+        if(value == nullptr) {
+            throw std::out_of_range("Couldn't find key.");
+        }
+        else {
+            return *value;
+        }
+    }    
     
 private:
     ht m_ht;
@@ -1647,7 +1700,7 @@ public:
     using const_reference = typename ht::const_reference;
     using pointer = typename ht::pointer;
     using const_pointer = typename ht::const_pointer;
-    using iterator = typename ht::const_iterator;
+    using iterator = typename ht::iterator;
     using const_iterator = typename ht::const_iterator;
 
     
@@ -1781,9 +1834,17 @@ public:
     template<class... Args>
     std::pair<iterator,bool> emplace(Args&&... args) { return m_ht.emplace(std::forward<Args>(args)...); }
 
+    
+    
+    iterator erase(iterator pos) { return m_ht.erase(pos); }
     iterator erase(const_iterator pos) { return m_ht.erase(pos); }
     iterator erase(const_iterator first, const_iterator last) { return m_ht.erase(first, last); }
     size_type erase(const key_type& key) { return m_ht.erase(key); }
+    
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
+    size_type erase(const K& key) { return m_ht.erase(key); }
+    
+    
     
     void swap(hopscotch_set& other) { other.swap(*this); }
     
@@ -1792,11 +1853,32 @@ public:
      */
     size_type count(const Key& key) const { return m_ht.count(key); }
     
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>
+    size_type count(const K& key) const { return m_ht.count(key); }
+    
+    
+    
+    
     iterator find(const Key& key) { return m_ht.find(key); }
     const_iterator find(const Key& key) const { return m_ht.find(key); }
     
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>
+    iterator find(const K& key) { return m_ht.find(key); }
+    
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>
+    const_iterator find(const K& key) const { return m_ht.find(key); }
+    
+    
+    
     std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
     std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
+    
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    std::pair<iterator, iterator> equal_range(const K& key) { return m_ht.equal_range(key); }
+    
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
+    
     
     /*
      * Bucket interface 

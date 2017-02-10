@@ -400,3 +400,81 @@ BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_operator) {
     BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>({{4, 1}, {5, 1}})));
 }
 
+BOOST_AUTO_TEST_CASE(test_heterogeneous_lookups) {
+    struct hash_ptr {
+        size_t operator()(const std::unique_ptr<int>& p) const {
+            return std::hash<std::unique_ptr<int>>()(p);
+        }
+        
+        size_t operator()(uintptr_t p) const {
+            return std::hash<uintptr_t>()(p);
+        }
+        
+        size_t operator()(const int* const& p) const {
+            return std::hash<uintptr_t>()(reinterpret_cast<uintptr_t>(p));
+        }
+    };
+    
+    struct equal_to_ptr {
+        using is_transparent = std::true_type;
+        
+        bool operator()(const std::unique_ptr<int>& p1, const std::unique_ptr<int>& p2) const {
+            return p1 == p2;
+        }
+        
+        bool operator()(const std::unique_ptr<int>& p1, uintptr_t p2) const {
+            return reinterpret_cast<uintptr_t>(p1.get()) == p2;
+        }
+        
+        bool operator()(uintptr_t p1, const std::unique_ptr<int>& p2) const {
+            return p1 == reinterpret_cast<uintptr_t>(p2.get());
+        }
+        
+        bool operator()(const std::unique_ptr<int>& p1, const int* const& p2) const {
+            return p1.get() == p2;
+        }
+        
+        bool operator()(const int* const& p1, const std::unique_ptr<int>& p2) const {
+            return p1 == p2.get();
+        }
+    };
+    
+    std::unique_ptr<int> ptr1(new int(1));
+    std::unique_ptr<int> ptr2(new int(2));
+    std::unique_ptr<int> ptr3(new int(3));
+    int other;
+    
+    const uintptr_t addr1 = reinterpret_cast<uintptr_t>(ptr1.get());
+    const int* const addr2 = ptr2.get();
+    const int* const addr_unknown = &other;
+     
+    tsl::hopscotch_map<std::unique_ptr<int>, int, hash_ptr, equal_to_ptr> map;
+    map.insert({std::move(ptr1), 4});
+    map.insert({std::move(ptr2), 5});
+    map.insert({std::move(ptr3), 6});
+    
+    BOOST_CHECK_EQUAL(map.size(), 3);
+    
+    
+    BOOST_CHECK_EQUAL(map.at(addr1), 4);
+    BOOST_CHECK_EQUAL(map.at(addr2), 5);
+    BOOST_CHECK_THROW(map.at(addr_unknown), std::out_of_range);
+    
+    
+    BOOST_CHECK_EQUAL(*map.find(addr1)->first, 1);
+    BOOST_CHECK_EQUAL(*map.find(addr2)->first, 2);
+    BOOST_CHECK(map.find(addr_unknown) == map.end());
+    
+    
+    BOOST_CHECK_EQUAL(map.count(addr1), 1);
+    BOOST_CHECK_EQUAL(map.count(addr2), 1);
+    BOOST_CHECK_EQUAL(map.count(addr_unknown), 0);
+    
+    
+    BOOST_CHECK_EQUAL(map.erase(addr1), 1);
+    BOOST_CHECK_EQUAL(map.erase(addr2), 1);
+    BOOST_CHECK_EQUAL(map.erase(addr_unknown), 0);
+    
+    
+    BOOST_CHECK_EQUAL(map.size(), 1);
+}
