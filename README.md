@@ -147,7 +147,7 @@ struct equal_to_str {
 int main() {
     using namespace std::literals;    
     
-    // Use std::equal_to<> which will automatically deduce and forward the paramaters
+    // Use std::equal_to<> which will automatically deduce and forward the parameters
     tsl::hopscotch_map<std::string, int, hash_str, std::equal_to<>> map = 
                                     {{"a", 1}, {"b", 2}, {"c", 3}, {"d", 4}};
     
@@ -163,7 +163,7 @@ int main() {
     
 
     
-    // Use a custome KeyEqual which has an is_transparent member type
+    // Use a custom KeyEqual which has an is_transparent member type
     tsl::hopscotch_map<std::string, int, hash_str, equal_to_str> map2;
     map2["e"] = 5;
                                                 
