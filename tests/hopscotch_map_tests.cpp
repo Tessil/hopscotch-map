@@ -403,7 +403,7 @@ BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_operator) {
 BOOST_AUTO_TEST_CASE(test_heterogeneous_lookups) {
     struct hash_ptr {
         size_t operator()(const std::unique_ptr<int>& p) const {
-            return std::hash<std::unique_ptr<int>>()(p);
+            return std::hash<uintptr_t>()(reinterpret_cast<uintptr_t>(p.get()));
         }
         
         size_t operator()(uintptr_t p) const {
