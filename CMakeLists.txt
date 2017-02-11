@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.0)
 project(test_hopscotch_map)
 enable_testing()
 
-find_package(Boost 1.55.0 REQUIRED COMPONENTS unit_test_framework) 
+find_package(Boost 1.54.0 REQUIRED COMPONENTS unit_test_framework) 
 
-if(CMAKE_COMPILER_IS_GNUCXX)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 -Werror -Wall -Wextra -Wold-style-cast -g --coverage -DTSL_DEBUG")
     set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 -Werror -Wall -Wextra -Wold-style-cast -O3 -DTSL_DEBUG")
 endif()
