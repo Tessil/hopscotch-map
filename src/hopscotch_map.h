@@ -1201,6 +1201,8 @@ private:
     
 private:    
     std::vector<hopscotch_bucket, buckets_allocator> m_buckets;
+    // TODO Add the possibility to use a tree instead of a list if there is an appropriate comparator for Key.
+    // It would allow a worst case of O(log N) instead of O(n).
     std::list<value_type, overflow_elements_allocator> m_overflow_elements;
     
     size_type m_nb_elements;
