@@ -56,7 +56,9 @@ All methods are not documented yet, but they replicate the behaviour of the ones
 
 ### Example
 ```c++
+#include <cstdint>
 #include <iostream>
+#include <string>
 #include "hopscotch_map.h"
 
 int main() {
@@ -96,6 +98,76 @@ int main() {
     for(const auto& key : set) {
         std::cout << "set: " << key << std::endl;
     }
+}
+```
+
+#### Heterogeneous lookup
+
+Heterogeneous overloads allow the usage of other types than `Key` for lookup and erase operations as long as the used types are hashable and comparable to `Key`.
+
+To activate the heterogeneous overloads in `tsl::hopscotch_map/set`, the qualified-id `KeyEqual::is_transparent` must be valid. It works the same way as for [`std::map::find`](http://en.cppreference.com/w/cpp/container/map/find). You can either use [`std::equal_to<>`](http://en.cppreference.com/w/cpp/utility/functional/equal_to_void) or define your own function object.
+
+Both `KeyEqual` and `Hash` will need to be able to deal with the different types.
+
+```c++
+#include <functional>
+#include <iostream>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include "hopscotch_map.h"
+
+struct hash_str {
+    std::size_t operator()(const std::string& s) const {
+        return std::hash<std::string>{}(s);
+    }
+
+    std::size_t operator()(const std::string_view& s) const {
+        return std::hash<std::string_view>{}(s);
+    }
+};
+
+struct equal_to_str {
+    using is_transparent = void;
+    
+    template<typename Str1, typename Str2>
+    bool operator()(const Str1& s1, const Str2& s2) const {
+        static_assert((std::is_same<Str1, std::string>::value || 
+                       std::is_same<Str1, std::string_view>::value) && 
+                      (std::is_same<Str2, std::string>::value || 
+                       std::is_same<Str2, std::string_view>::value), 
+                      "Need a string or string_view.");
+        
+        return s1 == s2;
+    }
+};
+
+
+
+int main() {
+    using namespace std::literals;    
+    
+    // Use std::equal_to<> which will automatically deduce and forward the parameters
+    tsl::hopscotch_map<std::string, int, hash_str, std::equal_to<>> map = 
+                                    {{"a", 1}, {"b", 2}, {"c", 3}, {"d", 4}};
+    
+
+    std::cout << "map: " << map.at(std::string_view("c")) << std::endl;
+
+    auto it = map.find("a"sv);
+    if(it != map.end()) {
+        std::cout << "map: " << it->first << " " << it->second << std::endl;
+    }
+    
+    map.erase("c"sv);
+    
+
+    
+    // Use a custom KeyEqual which has an is_transparent member type
+    tsl::hopscotch_map<std::string, int, hash_str, equal_to_str> map2;
+    map2["e"] = 5;
+                                                
+    std::cout << "map2: " << map2.at("e"sv) << std::endl;
 }
 ```
 
