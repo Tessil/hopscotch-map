@@ -605,7 +605,7 @@ public:
     
     template<class K, class M>
     std::pair<iterator, bool> insert_or_assign(K&& k, M&& obj) {
-        return try_emplace_internal(std::forward<K>(k), std::forward<M>(obj));
+        return insert_or_assign_internal(std::forward<K>(k), std::forward<M>(obj));
     }
     
     template<class... Args>
@@ -957,7 +957,23 @@ private:
         m_nb_elements--;
     }
     
+
+    
+    template<class K, class M>
+    std::pair<iterator, bool> insert_or_assign_internal(K&& key, M&& obj) {
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         
+        // Check if already presents
+        auto it_find = find_internal(key, m_buckets.begin() + ibucket_for_hash);
+        if(it_find != end()) {
+            it_find.value() = std::forward<M>(obj);
+            return std::make_pair(it_find, false);
+        }
+        
+
+        return insert_internal(value_type(std::forward<K>(key), std::forward<M>(obj)), ibucket_for_hash);
+    }
+    
     template <typename P, class... Args>
     std::pair<iterator, bool> try_emplace_internal(P&& key, Args&&... args_value) {
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
