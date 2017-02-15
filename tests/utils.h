@@ -76,7 +76,7 @@ public:
     move_only_test(const move_only_test&) = delete;
     move_only_test(move_only_test&&) = default;
     move_only_test& operator=(const move_only_test&) = delete;
-    move_only_test& operator=(move_only_test&&) = delete;
+    move_only_test& operator=(move_only_test&&) = default;
     
     friend std::ostream& operator<<(std::ostream& stream, const move_only_test& value) {
         if(value.m_value == nullptr) {

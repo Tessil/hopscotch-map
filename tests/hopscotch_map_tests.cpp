@@ -32,8 +32,11 @@ using test_types = boost::mpl::list<tsl::hopscotch_map<int64_t, int64_t>,
                                     
                               
                                     
-                                    
-                                             
+
+                                        
+/**
+ * insert
+ */                                      
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HMap, test_types) {
     // insert x values, insert them again, check values
     using key_t = typename HMap::key_type; using value_t = typename HMap:: mapped_type;
@@ -68,6 +71,179 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HMap, test_types) {
     }
 }
 
+
+// Get nothrow_move_construbtible elements into the overflow list before rehash.
+BOOST_AUTO_TEST_CASE(test_insert_overflow_rehash_nothrow_move_construbtible) {
+    // insert x/mod values, insert x values, check values
+    
+    static const size_t mod = 100;
+    using HMap = tsl::hopscotch_map<int64_t, move_only_test, mod_hash<mod>, std::equal_to<int64_t>, 
+                               std::allocator<std::pair<int64_t, move_only_test>>, 6>;
+    static_assert(std::is_nothrow_move_constructible<HMap::value_type>::value, "");
+    
+    HMap map;
+    HMap::iterator it;
+    bool inserted;
+    
+    
+    const size_t nb_values = 5000;
+    for(size_t i = 1; i < nb_values; i+= mod) {
+        std::tie(it, inserted) = map.insert({i, move_only_test(i+1)});
+        
+        BOOST_CHECK_EQUAL(it->first, i);
+        BOOST_CHECK_EQUAL(it->second, move_only_test(i+1));
+        BOOST_CHECK(inserted);
+        
+    }
+    BOOST_CHECK_EQUAL(map.size(), nb_values/mod);
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        std::tie(it, inserted) = map.insert({i, move_only_test(i+1)});
+        
+        BOOST_CHECK_EQUAL(it->first, i);
+        BOOST_CHECK_EQUAL(it->second, move_only_test(i+1));
+        BOOST_CHECK((i%mod==1)?!inserted:inserted);
+    }
+    BOOST_CHECK_EQUAL(map.size(), nb_values);
+    
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        it = map.find(i);
+        
+        BOOST_CHECK_EQUAL(it->first, i);
+        BOOST_CHECK_EQUAL(it->second, move_only_test(i+1));
+    }
+}
+
+
+// Check that the virtual table stays intact. 
+BOOST_AUTO_TEST_CASE(test_insert_virtual_table) {
+    // insert 2x values with same base class, check values
+    const size_t nb_values = 5000;
+    
+    std::vector<std::unique_ptr<virtual_table_test_base_class>> class_1_elements;
+    std::vector<std::unique_ptr<virtual_table_test_base_class>> class_2_elements;
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        class_1_elements.emplace_back(new virtual_table_test_class_1(i));
+        class_2_elements.emplace_back(new virtual_table_test_class_2(i));
+    }
+    
+    
+    using HMap = tsl::hopscotch_map<virtual_table_test_base_class*, int64_t, mod_hash<9>>;
+    HMap::iterator it;
+    bool inserted;
+    
+    
+    HMap map(19);
+    for(size_t i = 0; i < nb_values; i++) {
+        std::tie(it, inserted) = map.insert({class_1_elements[i].get(), 1});
+        BOOST_CHECK(inserted);
+        BOOST_CHECK_EQUAL(it->first->value(), class_1_elements[i]->value());
+        BOOST_CHECK_NE(it->first->value(), class_2_elements[i]->value());
+        BOOST_CHECK_EQUAL(it->second, 1);
+        
+        std::tie(it, inserted) = map.insert({class_2_elements[i].get(), 2});
+        BOOST_CHECK(inserted);
+        BOOST_CHECK_EQUAL(it->first->value(), class_2_elements[i]->value());
+        BOOST_CHECK_NE(it->first->value(), class_1_elements[i]->value());
+        BOOST_CHECK_EQUAL(it->second, 2);
+    }
+    
+    BOOST_CHECK_EQUAL(map.size(), nb_values*2);
+    
+    
+    for(size_t i = 0; i < nb_values; i++) {
+        it = map.find(class_1_elements[i].get());
+        BOOST_CHECK_EQUAL(it->first->value(), class_1_elements[i]->value());
+        BOOST_CHECK_NE(it->first->value(), class_2_elements[i]->value());
+        BOOST_CHECK_EQUAL(it->second, 1);
+        
+        it = map.find(class_2_elements[i].get());
+        BOOST_CHECK_EQUAL(it->first->value(), class_2_elements[i]->value());
+        BOOST_CHECK_NE(it->first->value(), class_1_elements[i]->value());
+        BOOST_CHECK_EQUAL(it->second, 2);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(test_range_insert) {
+    const size_t nb_values = 1000;
+    std::vector<std::pair<int, int>> values;
+    for(size_t i = 0; i < nb_values; i++) {
+        values.push_back(std::make_pair(i, i+1));
+    }
+    
+    
+    tsl::hopscotch_map<int, int> map = {{-1, 0}, {-2, 0}};
+    map.insert(std::next(values.begin(), 10), values.end());
+    
+    BOOST_CHECK_EQUAL(map.size(), 992);
+}
+
+
+BOOST_AUTO_TEST_CASE(test_insert_with_hint) {
+    tsl::hopscotch_map<int, int> map{{1, 0}, {2, 1}, {3, 2}};
+    BOOST_CHECK(map.insert(map.find(2), std::make_pair(3, 4)) == map.find(3));
+    BOOST_CHECK(map.insert(map.find(2), std::make_pair(2, 4)) == map.find(2));
+    BOOST_CHECK(map.insert(map.find(10), std::make_pair(2, 4)) == map.find(2));
+    
+    BOOST_CHECK_EQUAL(map.size(), 3);
+    BOOST_CHECK_EQUAL(map.insert(map.find(10), std::make_pair(4, 3))->first, 4);
+    BOOST_CHECK_EQUAL(map.insert(map.find(2), std::make_pair(5, 4))->first, 5);
+}
+
+
+/**
+ * try_emplace
+ */
+BOOST_AUTO_TEST_CASE(test_try_emplace) {
+    tsl::hopscotch_map<int64_t, move_only_test> map;
+    tsl::hopscotch_map<int64_t, move_only_test>::iterator it;
+    bool inserted;
+    
+    
+    std::tie(it, inserted) = map.try_emplace(10, 1);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    BOOST_CHECK(inserted);
+    
+    
+    std::tie(it, inserted) = map.try_emplace(10, 3);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    BOOST_CHECK(!inserted);
+}
+
+
+/**
+ * insert_or_assign
+ */
+BOOST_AUTO_TEST_CASE(test_insert_or_assign) {
+    tsl::hopscotch_map<int64_t, move_only_test> map;
+    tsl::hopscotch_map<int64_t, move_only_test>::iterator it;    
+    bool inserted;
+    
+    
+    std::tie(it, inserted) = map.insert_or_assign(10, move_only_test(1));
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    BOOST_CHECK(inserted);
+    
+    
+    std::tie(it, inserted) = map.insert_or_assign(10, move_only_test(3));
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(3));
+    BOOST_CHECK(!inserted);
+}
+
+
+
+
+
+
+/**
+ * erase
+ */
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_all, HMap, test_types) {
     // insert x values, delete all
     const size_t nb_values = 1000;
@@ -77,6 +253,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_all, HMap, test_types) {
     BOOST_CHECK(it == map.end());
     BOOST_CHECK(map.empty());
 }
+
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_loop, HMap, test_types) {
     // insert x values, delete all one by one
@@ -98,6 +275,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_erase_loop, HMap, test_types) {
     
     BOOST_CHECK(map.empty());
 }
+
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_erase_insert, HMap, test_types) {
     // insert x/2 values, delete x/4 values, insert x/2 values, find each value
@@ -151,18 +329,25 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_erase_insert, HMap, test_types) {
     }
 }
 
-
-BOOST_AUTO_TEST_CASE(test_clear) {
-    // insert x values, clear map
-    const size_t nb_values = 1000;
+BOOST_AUTO_TEST_CASE(test_range_erase_same_iterators) {
+    const size_t nb_values = 100;
     auto map = utils::get_filled_hash_map<tsl::hopscotch_map<int64_t, int64_t>>(nb_values);
     
-    map.clear();
-    BOOST_CHECK_EQUAL(map.size(), 0);
-    BOOST_CHECK_EQUAL(std::distance(map.begin(), map.end()), 0);
+    tsl::hopscotch_map<int64_t, int64_t>::const_iterator it_const = map.cbegin();
+    std::advance(it_const, 10);
+    
+    tsl::hopscotch_map<int64_t, int64_t>::iterator it_mutable = map.erase(it_const, it_const);
+    BOOST_CHECK(it_const == it_mutable);
+    BOOST_CHECK_EQUAL(map.size(), 100);
+    
+    it_mutable.value() = -100;
+    BOOST_CHECK_EQUAL(it_const.value(), -100);
 }
 
-                                      
+
+/**
+ * operator== and operator!=
+ */
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_compare, HMap, test_types) {
     // create 3 maps, 2 are the same, compare maps
     using key_t = typename HMap::key_type; using value_t = typename HMap:: mapped_type;
@@ -199,106 +384,28 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_compare, HMap, test_types) {
     BOOST_CHECK(map_2_1 != map_1_2);
 }
 
-/*
- * Get nothrow_move_construbtible elements into the overflow list before rehash.
- */
-BOOST_AUTO_TEST_CASE(test_insert_overflow_rehash_nothrow_move_construbtible) {
-    // insert x/mod values, insert x values, check values
-    
-    static const size_t mod = 100;
-    using HMap = tsl::hopscotch_map<int64_t, move_only_test, mod_hash<mod>, std::equal_to<int64_t>, 
-                               std::allocator<std::pair<int64_t, move_only_test>>, 6>;
-    static_assert(std::is_nothrow_move_constructible<HMap::value_type>::value, "");
-    
-    HMap map;
-    HMap::iterator it;
-    bool inserted;
-    
-    
-    const size_t nb_values = 5000;
-    for(size_t i = 1; i < nb_values; i+= mod) {
-        std::tie(it, inserted) = map.insert({i, move_only_test(i+1)});
-        
-        BOOST_CHECK_EQUAL(it->first, i);
-        BOOST_CHECK_EQUAL(it->second, move_only_test(i+1));
-        BOOST_CHECK(inserted);
-        
-    }
-    BOOST_CHECK_EQUAL(map.size(), nb_values/mod);
-    
-    for(size_t i = 0; i < nb_values; i++) {
-        std::tie(it, inserted) = map.insert({i, move_only_test(i+1)});
-        
-        BOOST_CHECK_EQUAL(it->first, i);
-        BOOST_CHECK_EQUAL(it->second, move_only_test(i+1));
-        BOOST_CHECK((i%mod==1)?!inserted:inserted);
-    }
-    BOOST_CHECK_EQUAL(map.size(), nb_values);
-    
-    
-    for(size_t i = 0; i < nb_values; i++) {
-        it = map.find(i);
-        
-        BOOST_CHECK_EQUAL(it->first, i);
-        BOOST_CHECK_EQUAL(it->second, move_only_test(i+1));
-    }
-}
 
 
-/*
- * Check that the virtual table stays intact. 
+
+/**
+ * clear
  */
-BOOST_AUTO_TEST_CASE(test_virtual_table) {
-    // insert 2x values with same base class, check values
-    const size_t nb_values = 5000;
+BOOST_AUTO_TEST_CASE(test_clear) {
+    // insert x values, clear map
+    const size_t nb_values = 1000;
+    auto map = utils::get_filled_hash_map<tsl::hopscotch_map<int64_t, int64_t>>(nb_values);
     
-    std::vector<std::unique_ptr<virtual_table_test_base_class>> class_1_elements;
-    std::vector<std::unique_ptr<virtual_table_test_base_class>> class_2_elements;
-    
-    for(size_t i = 0; i < nb_values; i++) {
-        class_1_elements.emplace_back(new virtual_table_test_class_1(i));
-        class_2_elements.emplace_back(new virtual_table_test_class_2(i));
-    }
-    
-    
-    using HMap = tsl::hopscotch_map<virtual_table_test_base_class*, int64_t, mod_hash<9>>;
-    HMap::iterator it;
-    bool inserted;
-    
-    
-    HMap map(19);
-    for(size_t i = 0; i < nb_values; i++) {
-        std::tie(it, inserted) = map.insert({class_1_elements[i].get(), 1});
-        BOOST_CHECK(inserted);
-        BOOST_CHECK_EQUAL(it->first->value(), class_1_elements[i]->value());
-        BOOST_CHECK_NE(it->first->value(), class_2_elements[i]->value());
-        BOOST_CHECK_EQUAL(it->second, 1);
-        
-        std::tie(it, inserted) = map.insert({class_2_elements[i].get(), 2});
-        BOOST_CHECK(inserted);
-        BOOST_CHECK_EQUAL(it->first->value(), class_2_elements[i]->value());
-        BOOST_CHECK_NE(it->first->value(), class_1_elements[i]->value());
-        BOOST_CHECK_EQUAL(it->second, 2);
-    }
-    
-    BOOST_CHECK_EQUAL(map.size(), nb_values*2);
-    
-    
-    for(size_t i = 0; i < nb_values; i++) {
-        it = map.find(class_1_elements[i].get());
-        BOOST_CHECK_EQUAL(it->first->value(), class_1_elements[i]->value());
-        BOOST_CHECK_NE(it->first->value(), class_2_elements[i]->value());
-        BOOST_CHECK_EQUAL(it->second, 1);
-        
-        it = map.find(class_2_elements[i].get());
-        BOOST_CHECK_EQUAL(it->first->value(), class_2_elements[i]->value());
-        BOOST_CHECK_NE(it->first->value(), class_1_elements[i]->value());
-        BOOST_CHECK_EQUAL(it->second, 2);
-    }
+    map.clear();
+    BOOST_CHECK_EQUAL(map.size(), 0);
+    BOOST_CHECK_EQUAL(std::distance(map.begin(), map.end()), 0);
 }
 
 
 
+
+/**
+ * iterator.value()
+ */
 BOOST_AUTO_TEST_CASE(test_modify_value) {
     // insert x values, modify value of even keys, check values
     const size_t nb_values = 100;
@@ -320,7 +427,13 @@ BOOST_AUTO_TEST_CASE(test_modify_value) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_equal_operator) {
+
+
+
+/**
+ * operator=
+ */
+BOOST_AUTO_TEST_CASE(test_assign_operator) {
     tsl::hopscotch_map<int64_t, int64_t> map = {{0, 10}, {-2, 20}};
     BOOST_CHECK_EQUAL(map.size(), 2);
     
@@ -329,44 +442,6 @@ BOOST_AUTO_TEST_CASE(test_equal_operator) {
     BOOST_CHECK_EQUAL(map.at(1), 3);
 }
 
-BOOST_AUTO_TEST_CASE(test_at) {
-    // insert x values, use at for known and unknown values.
-    tsl::hopscotch_map<int64_t, int64_t> map = {{0, 10}, {-2, 20}};
-    
-    BOOST_CHECK_EQUAL(map.at(0), 10);
-    BOOST_CHECK_EQUAL(map.at(-2), 20);
-    BOOST_CHECK_THROW(map.at(1), std::out_of_range);
-}
-
-BOOST_AUTO_TEST_CASE(test_access_operator) {
-    // insert x values, use at for known and unknown values.
-    tsl::hopscotch_map<int64_t, int64_t> map = {{0, 10}, {-2, 20}};
-    
-    BOOST_CHECK_EQUAL(map[0], 10);
-    BOOST_CHECK_EQUAL(map[-2], 20);
-    BOOST_CHECK_EQUAL(map[2], int64_t());
-    
-    BOOST_CHECK_EQUAL(map.size(), 3);
-}
-
-BOOST_AUTO_TEST_CASE(test_try_emplace) {
-    // insert x values, use at for known and unknown values.
-    tsl::hopscotch_map<int64_t, move_only_test> map;
-    tsl::hopscotch_map<int64_t, move_only_test>::iterator it;
-    bool inserted;
-    
-    
-    std::tie(it, inserted) = map.try_emplace(10, 1);
-    BOOST_CHECK_EQUAL(it->first, 10);
-    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
-    BOOST_CHECK(inserted);
-    
-    
-    std::tie(it, inserted) = map.try_emplace(10, 3);
-    BOOST_CHECK_EQUAL(it->first, 10);
-    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
-    BOOST_CHECK(!inserted);
-}
 
 BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_constructor) {
     tsl::hopscotch_map<int64_t, int64_t> map = {{1, 1}, {2, 1}, {3, 1}};
@@ -400,6 +475,49 @@ BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_operator) {
     BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>({{4, 1}, {5, 1}})));
 }
 
+
+
+
+/**
+ * at
+ */
+BOOST_AUTO_TEST_CASE(test_at) {
+    // insert x values, use at for known and unknown values.
+    tsl::hopscotch_map<int64_t, int64_t> map = {{0, 10}, {-2, 20}};
+    
+    BOOST_CHECK_EQUAL(map.at(0), 10);
+    BOOST_CHECK_EQUAL(map.at(-2), 20);
+    BOOST_CHECK_THROW(map.at(1), std::out_of_range);
+}
+
+
+
+
+/**
+ * operator[]
+ */
+BOOST_AUTO_TEST_CASE(test_access_operator) {
+    // insert x values, use at for known and unknown values.
+    tsl::hopscotch_map<int64_t, int64_t> map = {{0, 10}, {-2, 20}};
+    
+    BOOST_CHECK_EQUAL(map[0], 10);
+    BOOST_CHECK_EQUAL(map[-2], 20);
+    BOOST_CHECK_EQUAL(map[2], int64_t());
+    
+    BOOST_CHECK_EQUAL(map.size(), 3);
+}
+
+
+
+
+
+
+
+
+
+/**
+ * other
+ */
 BOOST_AUTO_TEST_CASE(test_heterogeneous_lookups) {
     struct hash_ptr {
         size_t operator()(const std::unique_ptr<int>& p) const {
