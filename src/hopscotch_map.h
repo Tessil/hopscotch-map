@@ -582,12 +582,9 @@ public:
         m_nb_elements = 0;
     }
     
-    std::pair<iterator, bool> insert(const value_type& value) {
-        return insert_internal(value);
-    }
-    
-    std::pair<iterator, bool> insert(value_type&& value) {
-        return insert_internal(std::move(value));
+    template<typename P>
+    std::pair<iterator, bool> insert(P&& value) {
+        return insert_internal(std::forward<P>(value));
     }
     
     template<class InputIt>
@@ -606,19 +603,19 @@ public:
         }
     }
     
+    template<class K, class M>
+    std::pair<iterator, bool> insert_or_assign(K&& k, M&& obj) {
+        return try_emplace_internal(std::forward<K>(k), std::forward<M>(obj));
+    }
+    
     template<class... Args>
     std::pair<iterator,bool> emplace(Args&&... args) {
         return insert(value_type(std::forward<Args>(args)...));
     }
     
-    template <class... Args>
-    std::pair<iterator, bool> try_emplace(const key_type& k, Args&&... args) {
-        return try_emplace_internal(k, std::forward<Args>(args)...);
-    }
-    
-    template <class... Args>
-    std::pair<iterator, bool> try_emplace(key_type&& k, Args&&... args) {
-        return try_emplace_internal(std::move(k), std::forward<Args>(args)...);
+    template <class K, class... Args>
+    std::pair<iterator, bool> try_emplace(K&& k, Args&&... args) {
+        return try_emplace_internal(std::forward<K>(k), std::forward<Args>(args)...);
     }
     
     iterator erase(iterator pos) {
@@ -640,20 +637,23 @@ public:
         }
     }
     
+    iterator get_mutable_iterator(const_iterator pos) {
+        if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
+            // Get a non-const iterator
+            auto it = m_buckets.begin() + std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
+            return iterator(it, m_buckets.end(), m_overflow_elements.begin());
+        }
+        else {
+            // Get a non-const iterator
+            auto it = m_overflow_elements.erase(pos.m_overflow_iterator, pos.m_overflow_iterator);
+            return iterator(m_buckets.end(), m_buckets.end(), it);
+        }
+    }
     
     
     iterator erase(const_iterator first, const_iterator last) {
         if(first == last) {
-            if(first.m_buckets_iterator != first.m_buckets_end_iterator) {
-                // Get a non-const iterator
-                auto it = m_buckets.begin() + std::distance(m_buckets.cbegin(), first.m_buckets_iterator);
-                return iterator(it, m_buckets.end(), m_overflow_elements.begin());
-            }
-            else {
-                // Get a non-const iterator
-                auto it = m_overflow_elements.erase(first.m_overflow_iterator, first.m_overflow_iterator);
-                return iterator(m_buckets.end(), m_buckets.end(), it);
-            }
+            return get_mutable_iterator(first);
         }
         
         auto to_delete = erase(first);
@@ -802,30 +802,40 @@ public:
     /*
      * Other
      */
-    
-    /*
-     * Avoid the creation of an iterator to just get the value for operator[] and at() in maps. Faster this way.
-     *
-     * Return null if no value for key (TODO use std::optional when available).
-     */
     template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
-    const typename U::value_type* find_value(const K& key) const {
+    typename U::value_type& at(const K& key) {
+        return const_cast<typename U::value_type&>(static_cast<const hopscotch_hash*>(this)->at(key));
+    }
+    
+    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+    const typename U::value_type& at(const K& key) const {
+        using T = typename U::value_type;
+        
         const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
         
-        auto it_find = find_in_buckets(key, m_buckets.begin() + ibucket_for_hash);
-        if(it_find != m_buckets.end()) {
-            return std::addressof(ValueSelect()(it_find->get_value()));
+        const T* value = find_value_internal(key, m_buckets.begin() + ibucket_for_hash);
+        if(value == nullptr) {
+            throw std::out_of_range("Couldn't find key.");
         }
-        
-        if(m_buckets[ibucket_for_hash].has_overflow()) {
-            for(const value_type& value: m_overflow_elements) {
-                if(m_key_equal(key, KeySelect()(value))) {
-                    return std::addressof(ValueSelect()(value));
-                }
-            }
+        else {
+            return *value;
         }
+    }
+    
+    
+    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+    typename U::value_type& operator[](K&& key) {
+        using T = typename U::value_type;
         
-        return nullptr;
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
+        
+        T* value = find_value_internal(key, m_buckets.begin() + ibucket_for_hash);
+        if(value != nullptr) {
+            return *value;
+        }
+        else {
+            return insert_internal(std::make_pair(std::forward<K>(key), T()), ibucket_for_hash).first.value();
+        }
     }
     
     std::size_t max_probes_for_empty_bucket() const {
@@ -1121,6 +1131,37 @@ private:
         }
         
         return begin;
+    }
+    
+    
+    
+    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+    typename U::value_type* find_value_internal(const K& key, iterator_buckets it_bucket) {
+        return const_cast<typename U::value_type*>(
+                    static_cast<const hopscotch_hash*>(this)->find_value_internal(key, it_bucket));
+    }
+    
+    /*
+     * Avoid the creation of an iterator to just get the value for operator[] and at() in maps. Faster this way.
+     *
+     * Return null if no value for key (TODO use std::optional when available).
+     */
+    template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+    const typename U::value_type* find_value_internal(const K& key, const_iterator_buckets it_bucket) const {
+        auto it_find = find_in_buckets(key, it_bucket);
+        if(it_find != m_buckets.end()) {
+            return std::addressof(ValueSelect()(it_find->get_value()));
+        }
+        
+        if(it_bucket->has_overflow()) {
+            for(const value_type& value: m_overflow_elements) {
+                if(m_key_equal(key, KeySelect()(value))) {
+                    return std::addressof(ValueSelect()(value));
+                }
+            }
+        }
+        
+        return nullptr;
     }
     
     template<class K>
@@ -1447,21 +1488,85 @@ public:
      */
     void clear() noexcept { m_ht.clear(); }
     
+    
+    
     std::pair<iterator, bool> insert(const value_type& value) { return m_ht.insert(value); }
+        
+    template<class P, typename std::enable_if<std::is_constructible<value_type, P&&>::value>::type* = nullptr>
+    std::pair<iterator,bool> insert(P&& value) { return m_ht.emplace(std::forward<P>(value)); }
+    
     std::pair<iterator, bool> insert(value_type&& value) { return m_ht.insert(std::move(value)); }
+    
+    
+    iterator insert(const_iterator hint, const value_type& value) { 
+        if(m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
+        
+        return m_ht.insert(value); 
+    }
+        
+    template<class P, typename std::enable_if<std::is_constructible<value_type, P&&>::value>::type* = nullptr>
+    iterator insert(const_iterator hint, P&& value) {
+        value_type val(std::forward<P>(value));
+        if(m_key_equal(KeySelect()(*hint), KeySelect()(val))) { return get_mutable_iterator(hint); }
+        
+        return insert(std::move(val));
+    }
+    
+    iterator insert(const_iterator hint, value_type&& value) { 
+        if(m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
+        
+        return m_ht.insert(std::move(value)); 
+    }
+    
     
     template<class InputIt>
     void insert(InputIt first, InputIt last) { m_ht.insert(first, last); }
+    
     void insert(std::initializer_list<value_type> ilist) { m_ht.insert(ilist.begin(), ilist.end()); }
 
+    
+    
+    template<class M>
+    std::pair<iterator, bool> insert_or_assign(const key_type& k, M&& obj) { 
+        return m_ht.insert_or_assign(k, std::forward<M>(obj));
+    }
+
+    template<class M>
+    std::pair<iterator, bool> insert_or_assign(key_type&& k, M&& obj) {
+        return m_ht.insert_or_assign(std::move(k), std::forward<M>(obj));
+    }
+    
+    template <class M>
+    iterator insert_or_assign(const_iterator hint, const key_type& k, M&& obj) {
+        if(m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
+        
+        return m_ht.insert_or_assign(k, std::forward<M>(obj));
+    }
+    
+    template <class M>
+    iterator insert_or_assign(const_iterator hint, key_type&& k, M&& obj) {
+        if(m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
+        
+        return m_ht.insert_or_assign(std::move(k), std::forward<M>(obj));
+    }
+    
+    
     /**
-     * Due to the Implementation, emplace will need to move or copy the std::pair<Key, Value> once.
+     * Due to the implementation, emplace will need to move or copy the std::pair<Key, Value> once.
      * The method is the equivalent of insert(value_type(std::forward<Args>(args)...));
      * 
      * Mainly here for compatibility with the std::unordered_map interface.
      */
     template<class... Args>
     std::pair<iterator,bool> emplace(Args&&... args) { return m_ht.emplace(std::forward<Args>(args)...); }
+    
+    template <class... Args>
+    iterator emplace_hint(const_iterator hint, Args&&... args) { 
+        value_type val(std::forward<Args>(args)...);
+        if(m_key_equal(KeySelect()(*hint), KeySelect()(val))) { return get_mutable_iterator(hint); }
+        
+        return insert(std::move(val));        
+    }
     
     template <class... Args>
     std::pair<iterator, bool> try_emplace(const key_type& k, Args&&... args) { 
@@ -1472,8 +1577,22 @@ public:
     std::pair<iterator, bool> try_emplace(key_type&& k, Args&&... args) {
         return m_ht.try_emplace(std::move(k), std::forward<Args>(args)...);
     }
-
     
+    template <class... Args>
+    iterator try_emplace(const_iterator hint, const key_type& k, Args&&... args) { 
+        if(m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
+        
+        return m_ht.try_emplace(k, std::forward<Args>(args)...);
+    }
+    
+    template <class... Args>
+    iterator try_emplace(const_iterator hint, key_type&& k, Args&&... args) {
+        if(m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
+        
+        return m_ht.try_emplace(std::move(k), std::forward<Args>(args)...);
+    }
+    
+
     
     iterator erase(iterator pos) { return m_ht.erase(pos); }
     iterator erase(const_iterator pos) { return m_ht.erase(pos); }
@@ -1490,26 +1609,19 @@ public:
     /*
      * Lookup
      */
-    T& at(const Key& key) { return at_internal(key); }
-    const T& at(const Key& key) const { return at_internal(key); }
+    T& at(const Key& key) { return m_ht.at(key); }
+    const T& at(const Key& key) const { return m_ht.at(key); }
     
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
-    T& at(const K& key) { return at_internal(key); }
+    T& at(const K& key) { return m_ht.at(key); }
     
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
-    const T& at(const K& key) const { return at_internal(key); }
+    const T& at(const K& key) const { return m_ht.at(key); }
     
     
     
-    T& operator[](const Key& key) {
-        T* value = const_cast<T*>(m_ht.find_value(key));
-        if(value == nullptr) {
-            return insert(std::make_pair(key, T())).first.value();
-        }
-        else {
-            return *value;
-        }
-    }    
+    T& operator[](const Key& key) { return m_ht[key]; }    
+    T& operator[](Key&& key) { return m_ht[std::move(key)]; }
     
     
     
@@ -1577,23 +1689,6 @@ public:
      * A high value will result in a more aggressive rehash policy but may speed-up inserts.
      */
     void max_probes_for_empty_bucket(std::size_t max_probes) { m_ht.max_probes_for_empty_bucket(max_probes); }
-    
-private:
-    template<class K>
-    T& at_internal(const K& key) {
-        return const_cast<T&>(static_cast<const hopscotch_map*>(this)->at(key));
-    }
-    
-    template<class K>
-    const T& at_internal(const K& key) const {
-        const T* value = m_ht.find_value(key);
-        if(value == nullptr) {
-            throw std::out_of_range("Couldn't find key.");
-        }
-        else {
-            return *value;
-        }
-    }    
     
 private:
     ht m_ht;
@@ -1820,15 +1915,31 @@ public:
      */
     void clear() noexcept { m_ht.clear(); }
     
+    
+    
     std::pair<iterator, bool> insert(const value_type& value) { return m_ht.insert(value); }
     std::pair<iterator, bool> insert(value_type&& value) { return m_ht.insert(std::move(value)); }
+    
+    iterator insert(const_iterator hint, const value_type& value) { 
+        if(m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
+        
+        return m_ht.insert(value); 
+    }
+    
+    iterator insert(const_iterator hint, value_type&& value) { 
+        if(m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
+        
+        return m_ht.insert(std::move(value)); 
+    }
     
     template<class InputIt>
     void insert(InputIt first, InputIt last) { m_ht.insert(first, last); }
     void insert(std::initializer_list<value_type> ilist) { m_ht.insert(ilist.begin(), ilist.end()); }
 
+    
+    
     /**
-     * Due to the Implementation, emplace will need to move or copy the Key once.
+     * Due to the implementation, emplace will need to move or copy the Key once.
      * The method is the equivalent of insert(value_type(std::forward<Args>(args)...));
      * 
      * Mainly here for compatibility with the std::unordered_map interface.
@@ -1836,7 +1947,14 @@ public:
     template<class... Args>
     std::pair<iterator,bool> emplace(Args&&... args) { return m_ht.emplace(std::forward<Args>(args)...); }
 
-    
+    template<class... Args>
+    iterator emplace_hint(const_iterator hint, Args&&... args) {
+        value_type val(std::forward<Args>(args)...);
+        if(m_key_equal(KeySelect()(*hint), KeySelect()(val))) { return get_mutable_iterator(hint); }
+
+        return insert(std::move(val));              
+    }
+
     
     iterator erase(iterator pos) { return m_ht.erase(pos); }
     iterator erase(const_iterator pos) { return m_ht.erase(pos); }
