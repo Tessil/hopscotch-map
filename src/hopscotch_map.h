@@ -1499,7 +1499,7 @@ public:
     
     
     iterator insert(const_iterator hint, const value_type& value) { 
-        if(m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
         
         return m_ht.insert(value); 
     }
@@ -1507,13 +1507,13 @@ public:
     template<class P, typename std::enable_if<std::is_constructible<value_type, P&&>::value>::type* = nullptr>
     iterator insert(const_iterator hint, P&& value) {
         value_type val(std::forward<P>(value));
-        if(m_key_equal(KeySelect()(*hint), KeySelect()(val))) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), KeySelect()(val))) { return get_mutable_iterator(hint); }
         
         return insert(std::move(val));
     }
     
     iterator insert(const_iterator hint, value_type&& value) { 
-        if(m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
         
         return m_ht.insert(std::move(value)); 
     }
@@ -1538,14 +1538,14 @@ public:
     
     template <class M>
     iterator insert_or_assign(const_iterator hint, const key_type& k, M&& obj) {
-        if(m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
         
         return m_ht.insert_or_assign(k, std::forward<M>(obj));
     }
     
     template <class M>
     iterator insert_or_assign(const_iterator hint, key_type&& k, M&& obj) {
-        if(m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
         
         return m_ht.insert_or_assign(std::move(k), std::forward<M>(obj));
     }
@@ -1563,7 +1563,7 @@ public:
     template <class... Args>
     iterator emplace_hint(const_iterator hint, Args&&... args) { 
         value_type val(std::forward<Args>(args)...);
-        if(m_key_equal(KeySelect()(*hint), KeySelect()(val))) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), KeySelect()(val))) { return get_mutable_iterator(hint); }
         
         return insert(std::move(val));        
     }
@@ -1580,14 +1580,14 @@ public:
     
     template <class... Args>
     iterator try_emplace(const_iterator hint, const key_type& k, Args&&... args) { 
-        if(m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
         
         return m_ht.try_emplace(k, std::forward<Args>(args)...);
     }
     
     template <class... Args>
     iterator try_emplace(const_iterator hint, key_type&& k, Args&&... args) {
-        if(m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), k)) { return get_mutable_iterator(hint); }
         
         return m_ht.try_emplace(std::move(k), std::forward<Args>(args)...);
     }
@@ -1921,13 +1921,13 @@ public:
     std::pair<iterator, bool> insert(value_type&& value) { return m_ht.insert(std::move(value)); }
     
     iterator insert(const_iterator hint, const value_type& value) { 
-        if(m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
         
         return m_ht.insert(value); 
     }
     
     iterator insert(const_iterator hint, value_type&& value) { 
-        if(m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), KeySelect()(value))) { return get_mutable_iterator(hint); }
         
         return m_ht.insert(std::move(value)); 
     }
@@ -1950,7 +1950,7 @@ public:
     template<class... Args>
     iterator emplace_hint(const_iterator hint, Args&&... args) {
         value_type val(std::forward<Args>(args)...);
-        if(m_key_equal(KeySelect()(*hint), KeySelect()(val))) { return get_mutable_iterator(hint); }
+        if(hint != cend() && m_key_equal(KeySelect()(*hint), KeySelect()(val))) { return get_mutable_iterator(hint); }
 
         return insert(std::move(val));              
     }
