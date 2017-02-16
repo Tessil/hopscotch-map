@@ -16,6 +16,6 @@ set(TEST_EXECUTABLE "test_hopscotch_map")
 
 add_executable("${TEST_EXECUTABLE}" "tests/main.cpp" "tests/hopscotch_map_tests.cpp" "tests/hopscotch_set_tests.cpp")
 target_include_directories("${TEST_EXECUTABLE}" PRIVATE "${Boost_INCLUDE_DIRS}" "src") 
-target_link_libraries("${TEST_EXECUTABLE}" "${Boost_LIBRARIES}")
+target_link_libraries("${TEST_EXECUTABLE}" ${Boost_LIBRARIES})
 
 add_test(NAME "all_tests" COMMAND "${TEST_EXECUTABLE}")
