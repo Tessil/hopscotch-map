@@ -1248,7 +1248,7 @@ private:
     }
     
     size_type get_expand_size() const {
-        return static_cast<size_type>(std::ceil(bucket_count() * REHASH_SIZE_MULTIPLICATION_FACTOR));
+        return static_cast<size_type>(std::ceil(static_cast<double>(bucket_count()) * REHASH_SIZE_MULTIPLICATION_FACTOR));
     }
     
     

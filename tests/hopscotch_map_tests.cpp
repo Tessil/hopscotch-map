@@ -167,9 +167,9 @@ BOOST_AUTO_TEST_CASE(test_insert_virtual_table) {
 }
 
 BOOST_AUTO_TEST_CASE(test_range_insert) {
-    const size_t nb_values = 1000;
+    const int nb_values = 1000;
     std::vector<std::pair<int, int>> values;
-    for(size_t i = 0; i < nb_values; i++) {
+    for(int i = 0; i < nb_values; i++) {
         values.push_back(std::make_pair(i, i+1));
     }
     
