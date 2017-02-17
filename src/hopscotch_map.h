@@ -1556,14 +1556,24 @@ public:
     
     template <class M>
     iterator insert_or_assign(const_iterator hint, const key_type& k, M&& obj) {
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), k)) { return m_ht.get_mutable_iterator(hint); }
+        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), k)) { 
+            auto it = m_ht.get_mutable_iterator(hint); 
+            it.value() = std::forward<M>(obj);
+            
+            return it;
+        }
         
         return m_ht.insert_or_assign(k, std::forward<M>(obj)).first;
     }
     
     template <class M>
     iterator insert_or_assign(const_iterator hint, key_type&& k, M&& obj) {
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), k)) { return m_ht.get_mutable_iterator(hint); }
+        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), k)) {
+            auto it = m_ht.get_mutable_iterator(hint); 
+            it.value() = std::forward<M>(obj);
+            
+            return it;
+        }
         
         return m_ht.insert_or_assign(std::move(k), std::forward<M>(obj)).first;
     }
