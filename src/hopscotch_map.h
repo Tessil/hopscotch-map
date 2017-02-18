@@ -372,6 +372,13 @@ private:
     using const_iterator_overflow = typename std::list<value_type, overflow_elements_allocator>::const_iterator; 
     
 public:    
+    /**
+     * The 'operator*()' and 'operator->()' methods return a const reference and const pointer respectively to the 
+     * stored value type.
+     * 
+     * In case of a map, to get a modifiable reference to the value associated to a key (the '.second' in the 
+     * stored pair), you have to call 'value()'.
+     */
     template<bool is_const>
     class hopscotch_iterator {
         friend class hopscotch_hash;
@@ -1580,20 +1587,23 @@ public:
     
     
     /**
-     * Due to the implementation, emplace will need to move or copy the std::pair<Key, Value> once.
-     * The method is the equivalent of insert(value_type(std::forward<Args>(args)...));
+     * Due to the way elements are stored, emplace will need to move or copy the key-value once.
+     * The method is equivalent to insert(value_type(std::forward<Args>(args)...));
      * 
      * Mainly here for compatibility with the std::unordered_map interface.
      */
     template<class... Args>
     std::pair<iterator,bool> emplace(Args&&... args) { return m_ht.emplace(std::forward<Args>(args)...); }
     
+    /**
+     * Due to the way elements are stored, emplace_hint will need to move or copy the key-value once.
+     * The method is equivalent to insert(hint, value_type(std::forward<Args>(args)...));
+     * 
+     * Mainly here for compatibility with the std::unordered_map interface.
+     */
     template <class... Args>
-    iterator emplace_hint(const_iterator hint, Args&&... args) { 
-        value_type val(std::forward<Args>(args)...);
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), KeySelect()(val))) { return m_ht.get_mutable_iterator(hint); }
-        
-        return m_ht.insert(std::move(val)).first;        
+    iterator emplace_hint(const_iterator hint, Args&&... args) {
+        return m_ht.insert(hint, value_type(std::forward<Args>(args)...));        
     }
     
     template <class... Args>
@@ -1627,6 +1637,10 @@ public:
     iterator erase(const_iterator first, const_iterator last) { return m_ht.erase(first, last); }
     size_type erase(const key_type& key) { return m_ht.erase(key); }
     
+    /**
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
     size_type erase(const K& key) { return m_ht.erase(key); }
     
@@ -1640,9 +1654,16 @@ public:
     T& at(const Key& key) { return m_ht.at(key); }
     const T& at(const Key& key) const { return m_ht.at(key); }
     
+    /**
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
     T& at(const K& key) { return m_ht.at(key); }
     
+    /**
+     * @copydoc at(const K& key)
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
     const T& at(const K& key) const { return m_ht.at(key); }
     
@@ -1655,6 +1676,10 @@ public:
     
     size_type count(const Key& key) const { return m_ht.count(key); }
     
+    /**
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
     size_type count(const K& key) const { return m_ht.count(key); }
     
@@ -1663,9 +1688,16 @@ public:
     iterator find(const Key& key) { return m_ht.find(key); }
     const_iterator find(const Key& key) const { return m_ht.find(key); }
     
+    /**
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
     iterator find(const K& key) { return m_ht.find(key); }
     
+    /**
+     * @copydoc find(const K& key)
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
     const_iterator find(const K& key) const { return m_ht.find(key); }
     
@@ -1674,9 +1706,16 @@ public:
     std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
     std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
 
+    /**
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
     std::pair<iterator, iterator> equal_range(const K& key) { return m_ht.equal_range(key); }
     
+    /**
+     * @copydoc equal_range(const K& key)
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
     
@@ -1967,20 +2006,23 @@ public:
     
     
     /**
-     * Due to the implementation, emplace will need to move or copy the Key once.
-     * The method is the equivalent of insert(value_type(std::forward<Args>(args)...));
+     * Due to the way elements are stored, emplace will need to move or copy the key-value once.
+     * The method is equivalent to insert(value_type(std::forward<Args>(args)...));
      * 
      * Mainly here for compatibility with the std::unordered_map interface.
      */
     template<class... Args>
     std::pair<iterator,bool> emplace(Args&&... args) { return m_ht.emplace(std::forward<Args>(args)...); }
-
+    
+    /**
+     * Due to the way elements are stored, emplace_hint will need to move or copy the key-value once.
+     * The method is equivalent to insert(hint, value_type(std::forward<Args>(args)...));
+     * 
+     * Mainly here for compatibility with the std::unordered_map interface.
+     */
     template<class... Args>
     iterator emplace_hint(const_iterator hint, Args&&... args) {
-        value_type val(std::forward<Args>(args)...);
-        if(hint != cend() && m_ht.key_eq()(KeySelect()(*hint), KeySelect()(val))) { return m_ht.get_mutable_iterator(hint); }
-
-        return m_ht.insert(std::move(val)).first;              
+        return m_ht.insert(hint, value_type(std::forward<Args>(args)...));              
     }
 
     
@@ -1989,6 +2031,10 @@ public:
     iterator erase(const_iterator first, const_iterator last) { return m_ht.erase(first, last); }
     size_type erase(const key_type& key) { return m_ht.erase(key); }
     
+    /**
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
     size_type erase(const K& key) { return m_ht.erase(key); }
     
@@ -2001,6 +2047,10 @@ public:
      */
     size_type count(const Key& key) const { return m_ht.count(key); }
     
+    /**
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>
     size_type count(const K& key) const { return m_ht.count(key); }
     
@@ -2010,9 +2060,16 @@ public:
     iterator find(const Key& key) { return m_ht.find(key); }
     const_iterator find(const Key& key) const { return m_ht.find(key); }
     
+    /**
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>
     iterator find(const K& key) { return m_ht.find(key); }
     
+    /**
+     * @copydoc find(const K& key)
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>
     const_iterator find(const K& key) const { return m_ht.find(key); }
     
@@ -2021,13 +2078,20 @@ public:
     std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
     std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
     
+    /**
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * If so, K must be hashable and comparable to Key.
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
     std::pair<iterator, iterator> equal_range(const K& key) { return m_ht.equal_range(key); }
     
+    /**
+     * @copydoc equal_range(const K& key)
+     */
     template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
     
-    
+
     /*
      * Bucket interface 
      */

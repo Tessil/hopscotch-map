@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/Tessil/hopscotch-map.svg?branch=master)](https://travis-ci.org/Tessil/hopscotch-map) [![Build status](https://ci.appveyor.com/api/projects/status/e97rjkcn3qwrhpvf/branch/master?svg=true)](https://ci.appveyor.com/project/Tessil/hopscotch-map/branch/master)
 
-## A C++ implementation of a hash map using hopscotch hashing
+## A C++ implementation of a fast hash map using hopscotch hashing
 The hopscotch-map library is a C++ implementation of a single-thread hash map and hash set using hopscotch hashing. It offers good performances if all the elements of the key used by the equal function are contiguous in memory (no pointers to other parts of the memory that may cause a cache-miss) thanks to its good cache locality. The number of memory allocations are also small, they only happen on rehash or if there is an overflow (see [implementation details](https://tessil.github.io/2016/08/29/hopscotch-hashing.html)), allowing hopscotch-map to do fast inserts. It may be a good alternative to `std::unordered_map` in some cases and is mainly a concurrent to `google::dense_hash_map`, it trades off some memory space (if the key is big, otherwise it has the advantage compare to `std::unordered_map`) to have a fast hash table.
 
 The library provides two classes: `tsl::hopscotch_map` and `tsl::hopscotch_set`.
@@ -8,6 +8,14 @@ The library provides two classes: `tsl::hopscotch_map` and `tsl::hopscotch_set`.
 An overview of hopscotch hashing and some implementation details may be found [here](https://tessil.github.io/2016/08/29/hopscotch-hashing.html).
 
 A **benchmark** of `tsl::hopscotch_map` against other hash maps may be found [there](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html).
+
+### Key features
+- Header-only library, just include [src/hopscotch_map.h](src/hopscotch_map.h) to your project and you're ready to go.
+- Fast, see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html) for some numbers.
+- Support for move-only and non-default constructible key/value.
+- Support for heterogeneous lookups (e.g. if you have a map that uses `std::unique_ptr<int>` as key, you could use an `int*` or a `std::uintptr_t` for example as key parameter for `find`, see [example](https://github.com/Tessil/hopscotch-map#heterogeneous-lookup)).
+- No need to reserve any sentinel value from key.
+- API closely similar to `std::unordered_map` and `std::unordered_set`.
 
 ### Differences compare to `std::unordered_map`
 `tsl::hopscotch_map` tries to have an interface similar to `std::unordered_map`, but some differences exist:
@@ -22,7 +30,7 @@ for(auto it = map.begin(); it != map.end(); ++it) {
     it.value() = 2; // Ok
 }
 ```
-- No support for some emplace methods (and some others like bucket_size, bucket, ...).
+- No support for some bucket related methods (like bucket_size, bucket, ...).
 
 These differences also apply between `std::unordered_set` and `tsl::hopscotch_set`.
 
