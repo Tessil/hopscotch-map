@@ -95,7 +95,14 @@ Friends</h2></td></tr>
 <tr class="memitem:a67f3f907ec2f4707fc3c52d9c90a4003"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail_1_1hopscotch__hash_1_1hopscotch__iterator.html#a67f3f907ec2f4707fc3c52d9c90a4003">operator!=</a> (const <a class="el" href="classtsl_1_1detail_1_1hopscotch__hash_1_1hopscotch__iterator.html">hopscotch_iterator</a> &amp;lhs, const <a class="el" href="classtsl_1_1detail_1_1hopscotch__hash_1_1hopscotch__iterator.html">hopscotch_iterator</a> &amp;rhs)</td></tr>
 <tr class="separator:a67f3f907ec2f4707fc3c52d9c90a4003"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Member Typedef Documentation</h2>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><h3>template&lt;class ValueType, class KeySelect, class ValueSelect, class Hash, class KeyEqual, class Allocator, unsigned int NeighborhoodSize, class GrowthFactor&gt;<br />
+template&lt;bool is_const&gt;<br />
+class tsl::detail::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;::hopscotch_iterator&lt; is_const &gt;</h3>
+
+<p>The '<a class="el" href="classtsl_1_1detail_1_1hopscotch__hash_1_1hopscotch__iterator.html#a707afba4078afc29b9b831bb3220959d">operator*()</a>' and '<a class="el" href="classtsl_1_1detail_1_1hopscotch__hash_1_1hopscotch__iterator.html#ad6a2e7dded183e8ac29af01cd1311dd7">operator-&gt;()</a>' methods return a const reference and const pointer respectively to the stored value type.</p>
+<p>In case of a map, to get a modifiable reference to the value associated to a key (the '.second' in the stored pair), you have to call '<a class="el" href="classtsl_1_1detail_1_1hopscotch__hash_1_1hopscotch__iterator.html#a7265ce45485cb46a9754c81692d67e33">value()</a>'. </p>
+</div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="aa0b7c3c85157975eecece64e2a845d2e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa0b7c3c85157975eecece64e2a845d2e">&#9670;&nbsp;</a></span>difference_type</h2>
 
