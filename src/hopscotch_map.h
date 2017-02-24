@@ -501,6 +501,7 @@ public:
         
         m_buckets.resize(std::max(min_size, init_size));
         this->max_load_factor(max_load_factor);
+        m_mask = this->bucket_count() - 1;
     }
     
     hopscotch_hash(const hopscotch_hash& other) = default;
@@ -508,6 +509,7 @@ public:
     hopscotch_hash(hopscotch_hash&& other) : m_buckets(std::move(other.m_buckets)),
                                              m_overflow_elements(std::move(other.m_overflow_elements)),
                                              m_nb_elements(other.m_nb_elements),
+                                             m_mask(other.m_mask),
                                              m_max_load_factor(other.m_max_load_factor),
                                              m_load_threshold(other.m_load_threshold),
                                              m_max_probes_for_empty_bucket(other.m_max_probes_for_empty_bucket),
@@ -706,6 +708,7 @@ public:
         swap(m_buckets, other.m_buckets);
         swap(m_overflow_elements, other.m_overflow_elements);
         swap(m_nb_elements, other.m_nb_elements);
+        swap(m_mask, other.m_mask);
         swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_load_threshold, other.m_load_threshold);
         swap(m_max_probes_for_empty_bucket, other.m_max_probes_for_empty_bucket);
@@ -857,7 +860,12 @@ public:
     
 private:
     std::size_t bucket_for_hash(std::size_t hash) const {
-        return bucket_for_hash(hash, bucket_count());
+        if(USE_POWER_OF_TWO_MOD) {
+            return hash & m_mask;
+        }
+        else {
+            return hash % bucket_count();
+        }
     }
     
     std::size_t bucket_for_hash(std::size_t hash, std::size_t nb_buckets) const {
@@ -1055,6 +1063,8 @@ private:
      * ibucket_neighborhood_check. In this case a rehash is needed instead of puting the value in overflow list.
      */
     bool will_neighborhood_change_on_rehash(size_t ibucket_neighborhood_check) const {
+        const size_type expand_size = get_expand_size();
+        
         for(size_t ibucket = ibucket_neighborhood_check; 
             ibucket < m_buckets.size() && (ibucket - ibucket_neighborhood_check) < NeighborhoodSize; 
             ++ibucket)
@@ -1062,7 +1072,7 @@ private:
             tsl_assert(!m_buckets[ibucket].is_empty());
             
             const size_t hash = m_hash(KeySelect()(m_buckets[ibucket].get_value()));
-            if(bucket_for_hash(hash) != bucket_for_hash(hash, get_expand_size())) {
+            if(bucket_for_hash(hash) != bucket_for_hash(hash, expand_size)) {
                 return true;
             }
         }
@@ -1304,6 +1314,7 @@ private:
     std::list<value_type, overflow_elements_allocator> m_overflow_elements;
     
     size_type m_nb_elements;
+    std::size_t m_mask;
     
     
     float m_max_load_factor;
