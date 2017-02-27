@@ -7,7 +7,7 @@ template<unsigned int MOD>
 class mod_hash {
 public:   
     template<typename T>
-    size_t operator()(T value) const {
+    size_t operator()(const T& value) const {
         return std::hash<T>()(value) % MOD;
     }
 };
