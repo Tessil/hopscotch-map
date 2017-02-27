@@ -38,6 +38,7 @@
 #include <memory>
 #include <ratio>
 #include <stdexcept>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -45,7 +46,7 @@
 
 /*
  * Only activate tsl_assert if TSL_DEBUG is defined. 
- * This way we avoid the performance hit when NDEBUG is not defined with assert
+ * This way we avoid the performance hit when NDEBUG is not defined with assert as tsl_assert is used a lot
  * (people usually compile with "-O3" and not "-O3 -DNDEBUG").
  */
 #ifdef TSL_DEBUG
@@ -56,7 +57,7 @@
 
 namespace tsl {
 
-namespace detail {
+namespace detail_hopscotch_hash {
     
     
     
@@ -722,7 +723,9 @@ public:
      */    
     template<class K>
     size_type count(const K& key) const {
-        if(find(key) == end()) {
+        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(key));
+        
+        if(find_value_internal(key, m_buckets.begin() + ibucket_for_hash) == nullptr) {
             return 0;
         }
         else {
@@ -1389,9 +1392,9 @@ private:
         }
     };
     
-    using ht = detail::hopscotch_hash<std::pair<Key, T>, KeySelect, ValueSelect,
-                                      Hash, KeyEqual, 
-                                      Allocator, NeighborhoodSize, GrowthFactor>;
+    using ht = detail_hopscotch_hash::hopscotch_hash<std::pair<Key, T>, KeySelect, ValueSelect,
+                                                     Hash, KeyEqual, 
+                                                     Allocator, NeighborhoodSize, GrowthFactor>;
     
 public:
     using key_type = typename ht::key_type;
@@ -1652,7 +1655,7 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr> 
     size_type erase(const K& key) { return m_ht.erase(key); }
     
     
@@ -1669,13 +1672,13 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr> 
     T& at(const K& key) { return m_ht.at(key); }
     
     /**
      * @copydoc at(const K& key)
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr>     
     const T& at(const K& key) const { return m_ht.at(key); }
     
     
@@ -1691,7 +1694,7 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr>     
     size_type count(const K& key) const { return m_ht.count(key); }
     
     
@@ -1703,13 +1706,13 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr> 
     iterator find(const K& key) { return m_ht.find(key); }
     
     /**
      * @copydoc find(const K& key)
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr> 
     const_iterator find(const K& key) const { return m_ht.find(key); }
     
     
@@ -1721,13 +1724,13 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr>     
     std::pair<iterator, iterator> equal_range(const K& key) { return m_ht.equal_range(key); }
     
     /**
      * @copydoc equal_range(const K& key)
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr>     
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
     
     /*
@@ -1859,9 +1862,9 @@ private:
         }
     };
     
-    using ht = detail::hopscotch_hash<Key, KeySelect, void,
-                                      Hash, KeyEqual, 
-                                      Allocator, NeighborhoodSize, GrowthFactor>;
+    using ht = detail_hopscotch_hash::hopscotch_hash<Key, KeySelect, void,
+                                                     Hash, KeyEqual, 
+                                                     Allocator, NeighborhoodSize, GrowthFactor>;
             
 public:
     using key_type = typename ht::key_type;
@@ -2046,7 +2049,7 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr> 
     size_type erase(const K& key) { return m_ht.erase(key); }
     
     
@@ -2062,7 +2065,7 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr>
     size_type count(const K& key) const { return m_ht.count(key); }
     
     
@@ -2075,13 +2078,13 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr>
     iterator find(const K& key) { return m_ht.find(key); }
     
     /**
      * @copydoc find(const K& key)
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr>
     const_iterator find(const K& key) const { return m_ht.find(key); }
     
     
@@ -2093,13 +2096,13 @@ public:
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr>     
     std::pair<iterator, iterator> equal_range(const K& key) { return m_ht.equal_range(key); }
     
     /**
      * @copydoc equal_range(const K& key)
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail::has_is_transparent<KE>::value>::type* = nullptr>     
+    template<class K, class KE = KeyEqual, typename std::enable_if<tsl::detail_hopscotch_hash::has_is_transparent<KE>::value>::type* = nullptr>     
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
     
 
