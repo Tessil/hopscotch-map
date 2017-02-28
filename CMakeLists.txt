@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 2.8.11)
 project(test_hopscotch_map)
 enable_testing()
 
