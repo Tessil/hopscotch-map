@@ -1660,7 +1660,7 @@ public:
     
     
     
-    void swap(hopscotch_map& other) { other.swap(*this); }
+    void swap(hopscotch_map& other) { other.m_ht.swap(m_ht); }
     
     /*
      * Lookup
@@ -2054,7 +2054,7 @@ public:
     
     
     
-    void swap(hopscotch_set& other) { other.swap(*this); }
+    void swap(hopscotch_set& other) { other.m_ht.swap(m_ht); }
     
     /*
      * Lookup

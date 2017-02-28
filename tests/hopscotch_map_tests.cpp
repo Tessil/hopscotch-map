@@ -520,6 +520,19 @@ BOOST_AUTO_TEST_CASE(test_access_operator) {
 
 
 
+/**
+ * swap
+ */
+BOOST_AUTO_TEST_CASE(test_swap) {
+    tsl::hopscotch_map<int64_t, int64_t> map = {{1, 10}, {8, 80}, {3, 30}};
+    tsl::hopscotch_map<int64_t, int64_t> map2 = {{4, 40}, {5, 50}};
+    
+    using std::swap;
+    swap(map, map2);
+    
+    BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>{{4, 40}, {5, 50}}));
+    BOOST_CHECK(map2 == (tsl::hopscotch_map<int64_t, int64_t>{{1, 10}, {8, 80}, {3, 30}}));
+}
 
 
 
