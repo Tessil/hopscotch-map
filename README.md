@@ -72,7 +72,7 @@ All methods are not documented yet, but they replicate the behaviour of the ones
 #include "hopscotch_map.h"
 
 int main() {
-    tsl::hopscotch_map<std::string, std::int64_t> map = {{"a", 1}, {"b", 2}};
+    tsl::hopscotch_map<std::string, int> map = {{"a", 1}, {"b", 2}};
     map["c"] = 3;
     map["d"] = 4;
     
@@ -84,31 +84,34 @@ int main() {
         it.value() += 2;
     }
     
+    // {d, 6} {a, 3} {e, 7} {c, 5}
     for(const auto& key_value : map) {
-        std::cout << "map: " << key_value.first << " " << key_value.second << std::endl;
+        std::cout << "{" << key_value.first << ", " << key_value.second << "}" << std::endl;
     }
     
     
     // Use a map with a different neighborhood size
     const std::size_t neighborhood_size = 30;
-    tsl::hopscotch_map<std::string, std::int64_t, std::hash<std::string>, 
+    tsl::hopscotch_map<std::string, int, std::hash<std::string>, 
                        std::equal_to<std::string>,
-                       std::allocator<std::pair<std::string, std::int64_t>>,
+                       std::allocator<std::pair<std::string, int>>,
                        neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
     
+    // {a, 1} {b, 2}
     for(const auto& key_value : map2) {
-        std::cout << "map2: " << key_value.first << " " << key_value.second << std::endl;
+        std::cout << "{" << key_value.first << ", " << key_value.second << "}" << std::endl;
     }
     
     
-    tsl::hopscotch_set<std::int64_t> set;
+    tsl::hopscotch_set<int> set;
     set.insert({1, 9, 0});
     set.insert({2, -1, 9});
     
+    // {0} {1} {2} {9} {-1}
     for(const auto& key : set) {
-        std::cout << "set: " << key << std::endl;
+        std::cout << "{" << key << "}" << std::endl;
     }
-}
+} 
 ```
 
 #### Heterogeneous lookup
@@ -123,62 +126,83 @@ Both `KeyEqual` and `Hash` will need to be able to deal with the different types
 #include <functional>
 #include <iostream>
 #include <string>
-#include <string_view>
-#include <type_traits>
 #include "hopscotch_map.h"
 
-struct hash_str {
-    std::size_t operator()(const std::string& s) const {
-        return std::hash<std::string>{}(s);
-    }
 
-    std::size_t operator()(const std::string_view& s) const {
-        return std::hash<std::string_view>{}(s);
+struct employee {
+    employee(int id, std::string name) : m_id(id), m_name(std::move(name)) {
+    }
+    
+    
+    friend bool operator==(const employee& empl, int empl_id) {
+        return empl.m_id == empl_id;
+    }
+    
+    friend bool operator==(int empl_id, const employee& empl) {
+        return empl_id == empl.m_id;
+    }
+    
+    friend bool operator==(const employee& empl1, const employee& empl2) {
+        return empl1.m_id == empl2.m_id;
+    }
+    
+    
+    int m_id;
+    std::string m_name;
+};
+
+struct hash_employee {
+    std::size_t operator()(const employee& empl) const {
+        return std::hash<int>()(empl.m_id);
+    }
+    
+    std::size_t operator()(int id) const {
+        return std::hash<int>()(id);
     }
 };
 
-struct equal_to_str {
+struct equal_employee {
     using is_transparent = void;
     
-    template<typename Str1, typename Str2>
-    bool operator()(const Str1& s1, const Str2& s2) const {
-        static_assert((std::is_same<Str1, std::string>::value || 
-                       std::is_same<Str1, std::string_view>::value) && 
-                      (std::is_same<Str2, std::string>::value || 
-                       std::is_same<Str2, std::string_view>::value), 
-                      "Need a string or string_view.");
-        
-        return s1 == s2;
+    bool operator()(const employee& empl, int empl_id) const {
+        return empl.m_id == empl_id;
+    }
+    
+    bool operator()(int empl_id, const employee& empl) const {
+        return empl_id == empl.m_id;
+    }
+    
+    bool operator()(const employee& empl1, const employee& empl2) const {
+        return empl1.m_id == empl2.m_id;
     }
 };
 
 
 
 int main() {
-    using namespace std::literals;    
-    
     // Use std::equal_to<> which will automatically deduce and forward the parameters
-    tsl::hopscotch_map<std::string, int, hash_str, std::equal_to<>> map = 
-                                    {{"a", 1}, {"b", 2}, {"c", 3}, {"d", 4}};
-    
+    tsl::hopscotch_map<employee, int, hash_employee, std::equal_to<>> map; 
+    map.insert({employee(1, "John Doe"), 2001});
+    map.insert({employee(2, "Jane Doe"), 2002});
+    map.insert({employee(3, "John Smith"), 2003});
 
-    std::cout << "map: " << map.at(std::string_view("c")) << std::endl;
-
-    auto it = map.find("a"sv);
+    // John Smith 2003
+    auto it = map.find(3);
     if(it != map.end()) {
-        std::cout << "map: " << it->first << " " << it->second << std::endl;
+        std::cout << it->first.m_name << " " << it->second << std::endl;
     }
-    
-    map.erase("c"sv);
-    
 
-    
+    map.erase(1);
+
+
+
     // Use a custom KeyEqual which has an is_transparent member type
-    tsl::hopscotch_map<std::string, int, hash_str, equal_to_str> map2;
-    map2["e"] = 5;
-                                                
-    std::cout << "map2: " << map2.at("e"sv) << std::endl;
-}
+    tsl::hopscotch_map<employee, int, hash_employee, equal_employee> map2;
+    map2.insert({employee(4, "Johnny Doe"), 2004});
+
+    // 2004
+    std::cout << map2.at(4) << std::endl;
+} 
 ```
 
 ### License
