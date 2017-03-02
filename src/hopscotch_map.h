@@ -73,6 +73,39 @@ struct has_is_transparent : std::false_type {
 template <typename T>
 struct has_is_transparent<T, typename make_void<typename T::is_transparent>::type> : std::true_type {
 };
+
+
+/*
+ * smallest_type_for_min_bits::type returns the smallest type that can fit MinBits.
+ */
+static const size_t SMALLEST_TYPE_MAX_BITS_SUPPORTED = 64;
+template<unsigned int MinBits, typename Enable = void>
+class smallest_type_for_min_bits {
+};
+
+template<unsigned int MinBits>
+class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 0) && (MinBits <= 8)>::type> {
+public:
+    using type = std::uint8_t;
+};
+
+template<unsigned int MinBits>
+class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 8) && (MinBits <= 16)>::type> {
+public:
+    using type = std::uint16_t;
+};
+
+template<unsigned int MinBits>
+class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 16) && (MinBits <= 32)>::type> {
+public:
+    using type = std::uint32_t;
+};
+
+template<unsigned int MinBits>
+class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 32) && (MinBits <= 64)>::type> {
+public:
+    using type = std::uint64_t;
+};
         
     
 /**
@@ -96,40 +129,6 @@ template<class ValueType,
 class hopscotch_hash {
 private:    
     using Key = typename KeySelect::key_type;
-    
-private:
-    /*
-     * smallest_type_for_min_bits::type returns the smallest type that can fit MinBits.
-     */
-    static const size_t SMALLEST_TYPE_MAX_BITS_SUPPORTED = 64;
-    template<unsigned int MinBits, typename Enable = void>
-    class smallest_type_for_min_bits {
-    };
-
-    template<unsigned int MinBits>
-    class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 0) && (MinBits <= 8)>::type> {
-    public:
-        using type = std::uint8_t;
-    };
-
-    template<unsigned int MinBits>
-    class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 8) && (MinBits <= 16)>::type> {
-    public:
-        using type = std::uint16_t;
-    };
-
-    template<unsigned int MinBits>
-    class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 16) && (MinBits <= 32)>::type> {
-    public:
-        using type = std::uint32_t;
-    };
-
-    template<unsigned int MinBits>
-    class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 32) && (MinBits <= 64)>::type> {
-    public:
-        using type = std::uint64_t;
-    };
-    
     
 private:
     static const size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
