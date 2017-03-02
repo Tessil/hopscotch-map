@@ -31,6 +31,7 @@ for(auto it = map.begin(); it != map.end(); ++it) {
 }
 ```
 - No support for some bucket related methods (like bucket_size, bucket, ...).
+- No support for move-only types with a move constructor that may throw an exception (with open adressing, it's not possible to keep the strong exception guarantee on rehash if the move constructor may throw).
 
 These differences also apply between `std::unordered_set` and `tsl::hopscotch_set`.
 
@@ -133,7 +134,6 @@ struct employee {
     employee(int id, std::string name) : m_id(id), m_name(std::move(name)) {
     }
     
-    
     friend bool operator==(const employee& empl, int empl_id) {
         return empl.m_id == empl_id;
     }
@@ -176,7 +176,6 @@ struct equal_employee {
         return empl1.m_id == empl2.m_id;
     }
 };
-
 
 
 int main() {

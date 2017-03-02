@@ -887,8 +887,13 @@ private:
         }
     }
     
+    static_assert(std::is_nothrow_move_constructible<value_type>::value || 
+                  std::is_copy_constructible<value_type>::value, 
+                  "value_type must be either copy constructible or nothrow move constructible.");
+    
     template<typename U = value_type, 
-             typename std::enable_if<!std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
+             typename std::enable_if<std::is_copy_constructible<U>::value && 
+                                     !std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
     void rehash_internal(size_type count) {
         hopscotch_hash tmp_map(count, m_hash, m_key_equal, get_allocator(), m_max_load_factor);
         
@@ -1347,7 +1352,7 @@ private:
  * 
  * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62.
  * 
- * The Key and the value T must be either move-constructible, copy-constuctible or both.
+ * The Key and the value T must be either nothrow move-constructible, copy-constuctible or both.
  * 
  * By default the map grows by a factor of 2. This has the advantage to allow us to do fast modulo because
  * the number of buckets is kept to a power of two. The growth factor can be changed with std::ratio 
@@ -1831,7 +1836,7 @@ inline void swap(hopscotch_map<Key, T, Hash, KeyEqual, Allocator, NeighborhoodSi
  * 
  * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62.
  * 
- * The Key must be either move-constructible, copy-constuctible or both.
+ * The Key must be either nothrow move-constructible, copy-constuctible or both.
  * 
  * By default the map grows by a factor of 2. This has the advantage to allow us to do fast modulo because
  * the number of buckets is kept to a power of two. The growth factor can be changed with std::ratio 
