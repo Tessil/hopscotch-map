@@ -73,8 +73,258 @@ struct has_is_transparent : std::false_type {
 template <typename T>
 struct has_is_transparent<T, typename make_void<typename T::is_transparent>::type> : std::true_type {
 };
+
+
+/*
+ * smallest_type_for_min_bits::type returns the smallest type that can fit MinBits.
+ */
+static const size_t SMALLEST_TYPE_MAX_BITS_SUPPORTED = 64;
+template<unsigned int MinBits, typename Enable = void>
+class smallest_type_for_min_bits {
+};
+
+template<unsigned int MinBits>
+class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 0) && (MinBits <= 8)>::type> {
+public:
+    using type = std::uint8_t;
+};
+
+template<unsigned int MinBits>
+class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 8) && (MinBits <= 16)>::type> {
+public:
+    using type = std::uint16_t;
+};
+
+template<unsigned int MinBits>
+class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 16) && (MinBits <= 32)>::type> {
+public:
+    using type = std::uint32_t;
+};
+
+template<unsigned int MinBits>
+class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 32) && (MinBits <= 64)>::type> {
+public:
+    using type = std::uint64_t;
+};
         
+
+
+/*
+ * Each bucket stores two elements:
+ * - An aligned storage to store a value_type object with placement-new
+ * - An unsigned integer of type neighborhood_bitmap used to tell us which buckets in the neighborhood of the 
+ *   current bucket contain a value with a hash belonging to the current bucket. 
+ * 
+ * For a bucket 'b' a bit 'i' (counting from 0 and from the least significant bit to the most significant) 
+ * set to 1 means that the bucket 'b+i' contains a value with a hash belonging to bucket 'b'.
+ * The bits used for that, start from the third least significant bit.
+ * 
+ * The least significant bit is set to 1 if there is a value in the bucket storage.
+ * The second least significant bit is set to 1 if there is an overflow. More than NeighborhoodSize values 
+ * give the same hash, all overflow values are stored in the m_overflow_elements list of the map.
+ */
+static const size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
+
+template<typename ValueType, unsigned int NeighborhoodSize>
+class hopscotch_bucket {
+private:
+    static const size_t MAX_NEIGHBORHOOD_SIZE = SMALLEST_TYPE_MAX_BITS_SUPPORTED - NB_RESERVED_BITS_IN_NEIGHBORHOOD; 
     
+    /*
+     * NeighborhoodSize need to be between 0 and MAX_NEIGHBORHOOD_SIZE.
+     */
+    static_assert(NeighborhoodSize > 0, "NeighborhoodSize should be > 0.");
+    static_assert(NeighborhoodSize <= MAX_NEIGHBORHOOD_SIZE, "NeighborhoodSize should be <= 62.");
+    
+public:
+    using value_type = ValueType;
+    using neighborhood_bitmap = 
+                    typename smallest_type_for_min_bits<NeighborhoodSize + NB_RESERVED_BITS_IN_NEIGHBORHOOD>::type;
+
+
+    hopscotch_bucket() noexcept : m_neighborhood_infos(0) {
+        tsl_assert(is_empty());
+    }
+    
+    hopscotch_bucket(const hopscotch_bucket& bucket) 
+        noexcept(std::is_nothrow_copy_constructible<value_type>::value) : m_neighborhood_infos(0) 
+    {
+        if(!bucket.is_empty()) {
+            ::new (static_cast<void*>(std::addressof(m_value))) value_type(bucket.get_value());
+        }
+        
+        m_neighborhood_infos = bucket.m_neighborhood_infos;
+    }
+    
+    hopscotch_bucket(hopscotch_bucket&& bucket) 
+        noexcept(std::is_nothrow_move_constructible<value_type>::value) : m_neighborhood_infos(0) 
+    {
+        if(!bucket.is_empty()) {
+            ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::move(bucket.get_value()));
+        }
+        
+        m_neighborhood_infos = bucket.m_neighborhood_infos;
+    }
+    
+    hopscotch_bucket& operator=(const hopscotch_bucket& bucket) 
+        noexcept(std::is_nothrow_copy_constructible<value_type>::value) 
+    {
+        if(this != &bucket) {
+            if(!is_empty()) {
+                destroy_value();
+                set_is_empty(true);
+            }
+            
+            if(!bucket.is_empty()) {
+                ::new (static_cast<void*>(std::addressof(m_value))) value_type(bucket.get_value());
+            }
+            
+            m_neighborhood_infos = bucket.m_neighborhood_infos;
+        }
+        
+        return *this;
+    }
+    
+    hopscotch_bucket& operator=(hopscotch_bucket&& bucket) 
+        noexcept(std::is_nothrow_move_constructible<value_type>::value) 
+    {
+        if(!is_empty()) {
+            destroy_value();
+            set_is_empty(true);
+        }
+        
+        if(!bucket.is_empty()) {
+            ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::move(bucket.get_value()));
+        }
+        
+        m_neighborhood_infos = bucket.m_neighborhood_infos;
+        
+        return *this;
+    }
+    
+    ~hopscotch_bucket() noexcept {
+        if(!is_empty()) {
+            destroy_value();
+        }
+        
+        m_neighborhood_infos = 0;
+    }
+    
+    neighborhood_bitmap get_neighborhood_infos() const noexcept {
+        return static_cast<neighborhood_bitmap>(m_neighborhood_infos >> NB_RESERVED_BITS_IN_NEIGHBORHOOD);
+    }
+    
+    void set_overflow(bool has_overflow) noexcept {
+        if(has_overflow) {
+            m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos | 2);
+        }
+        else {
+            m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos & ~2);
+        }
+    }
+    
+    bool has_overflow() const noexcept {
+        return (m_neighborhood_infos & 2) != 0;
+    }
+    
+    bool is_empty() const noexcept {
+        return (m_neighborhood_infos & 1) == 0;
+    }
+    
+    template<typename P>
+    void set_value(P&& value) {
+        if(!is_empty()) {
+            destroy_value();
+            ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::forward<P>(value));
+        }
+        else {
+            ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::forward<P>(value));
+            set_is_empty(false);
+        }
+    }
+    
+    void remove_value() noexcept {
+        if(!is_empty()) {
+            destroy_value();
+            set_is_empty(true);
+        }
+    }
+    
+    void toggle_neighbor_presence(std::size_t ineighbor) noexcept {
+        tsl_assert(ineighbor <= NeighborhoodSize);
+        m_neighborhood_infos = static_cast<neighborhood_bitmap>(
+                                    m_neighborhood_infos ^ (1ull << (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)));
+    }
+    
+    bool check_neighbor_presence(std::size_t ineighbor) const noexcept {
+        tsl_assert(ineighbor <= NeighborhoodSize);
+        if(((m_neighborhood_infos >> (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)) & 1) == 1) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    value_type& get_value() noexcept {
+        tsl_assert(!is_empty());
+        return *reinterpret_cast<value_type*>(std::addressof(m_value));
+    }
+    
+    const value_type& get_value() const noexcept {
+        tsl_assert(!is_empty());
+        return *reinterpret_cast<const value_type*>(std::addressof(m_value));
+    }
+    
+    void swap_value_into_empty_bucket(hopscotch_bucket& empty_bucket) {
+        tsl_assert(empty_bucket.is_empty());
+        if(!is_empty()) {
+            ::new (static_cast<void*>(std::addressof(empty_bucket.m_value))) value_type(std::move(get_value()));
+            empty_bucket.set_is_empty(false);
+            
+            destroy_value();
+            set_is_empty(true);
+        }
+    }
+    
+    void clear() noexcept {
+        if(!is_empty()) {
+            destroy_value();
+        }
+        
+        m_neighborhood_infos = 0;
+        tsl_assert(is_empty());
+    }
+    
+private:
+    void set_is_empty(bool is_empty) noexcept {
+        if(is_empty) {
+            m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos & ~1);
+        }
+        else {
+            m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos | 1);
+        }
+    }
+    
+    void destroy_value() noexcept {
+        try {
+            tsl_assert(!is_empty());
+            
+            get_value().~value_type();
+        }
+        catch(...) {
+            std::terminate();
+        }
+    }
+    
+private:
+    using storage = typename std::aligned_storage<sizeof(value_type), alignof(value_type)>::type;
+    
+    neighborhood_bitmap m_neighborhood_infos;
+    storage m_value;
+};
+
+
+
 /**
  * Common class used by hopscotch_map and hopscotch_set.
  * 
@@ -94,62 +344,11 @@ template<class ValueType,
          unsigned int NeighborhoodSize,
          class GrowthFactor>
 class hopscotch_hash {
-private:    
-    using Key = typename KeySelect::key_type;
-    
-private:
-    /*
-     * smallest_type_for_min_bits::type returns the smallest type that can fit MinBits.
-     */
-    static const size_t SMALLEST_TYPE_MAX_BITS_SUPPORTED = 64;
-    template<unsigned int MinBits, typename Enable = void>
-    class smallest_type_for_min_bits {
-    };
-
-    template<unsigned int MinBits>
-    class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 0) && (MinBits <= 8)>::type> {
-    public:
-        using type = std::uint8_t;
-    };
-
-    template<unsigned int MinBits>
-    class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 8) && (MinBits <= 16)>::type> {
-    public:
-        using type = std::uint16_t;
-    };
-
-    template<unsigned int MinBits>
-    class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 16) && (MinBits <= 32)>::type> {
-    public:
-        using type = std::uint32_t;
-    };
-
-    template<unsigned int MinBits>
-    class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 32) && (MinBits <= 64)>::type> {
-    public:
-        using type = std::uint64_t;
-    };
-    
-    
-private:
-    static const size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
-    static const size_t MAX_NEIGHBORHOOD_SIZE = SMALLEST_TYPE_MAX_BITS_SUPPORTED - NB_RESERVED_BITS_IN_NEIGHBORHOOD; 
-    
-    /*
-     * NeighborhoodSize need to be between 0 and MAX_NEIGHBORHOOD_SIZE.
-     */
-    static_assert(NeighborhoodSize > 0, "NeighborhoodSize should be > 0.");
-    static_assert(NeighborhoodSize <= MAX_NEIGHBORHOOD_SIZE, "NeighborhoodSize should be <= 62.");
-    
-    
-    using neighborhood_bitmap = 
-                    typename smallest_type_for_min_bits<NeighborhoodSize + NB_RESERVED_BITS_IN_NEIGHBORHOOD>::type;
-    
 public:
     template<bool is_const>
     class hopscotch_iterator;
     
-    using key_type = Key;
+    using key_type = typename KeySelect::key_type;
     using value_type = ValueType;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
@@ -164,202 +363,8 @@ public:
     using const_iterator = hopscotch_iterator<true>;
     
 private:
-    /*
-     * Each bucket stores two elements:
-     * - An aligned storage to store a value_type object with placement-new
-     * - An unsigned integer of type neighborhood_bitmap used to tell us which buckets in the neighborhood of the 
-     *   current bucket contain a value with a hash belonging to the current bucket. 
-     * 
-     * For a bucket 'b' a bit 'i' (counting from 0 and from the least significant bit to the most significant) 
-     * set to 1 means that the bucket 'b+i' contains a value with a hash belonging to bucket 'b'.
-     * The bits used for that, start from the third least significant bit.
-     * 
-     * The least significant bit is set to 1 if there is a value in the bucket storage.
-     * The second least significant bit is set to 1 if there is an overflow. More than NeighborhoodSize values 
-     * give the same hash, all overflow values are stored in the m_overflow_elements list of the map.
-     */
-    class hopscotch_bucket {
-    public:
-        hopscotch_bucket() noexcept : m_neighborhood_infos(0) {
-            tsl_assert(is_empty());
-        }
-        
-        hopscotch_bucket(const hopscotch_bucket& bucket) 
-            noexcept(std::is_nothrow_copy_constructible<value_type>::value) : m_neighborhood_infos(0) 
-        {
-            if(!bucket.is_empty()) {
-                ::new (static_cast<void*>(std::addressof(m_value))) value_type(bucket.get_value());
-            }
-            
-            m_neighborhood_infos = bucket.m_neighborhood_infos;
-        }
-        
-        hopscotch_bucket(hopscotch_bucket&& bucket) 
-            noexcept(std::is_nothrow_move_constructible<value_type>::value) : m_neighborhood_infos(0) 
-        {
-            if(!bucket.is_empty()) {
-                ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::move(bucket.get_value()));
-            }
-            
-            m_neighborhood_infos = bucket.m_neighborhood_infos;
-        }
-        
-        hopscotch_bucket& operator=(const hopscotch_bucket& bucket) 
-            noexcept(std::is_nothrow_copy_constructible<value_type>::value) 
-        {
-            if(this != &bucket) {
-                if(!is_empty()) {
-                    destroy_value();
-                    set_is_empty(true);
-                }
-                
-                if(!bucket.is_empty()) {
-                    ::new (static_cast<void*>(std::addressof(m_value))) value_type(bucket.get_value());
-                }
-                
-                m_neighborhood_infos = bucket.m_neighborhood_infos;
-            }
-            
-            return *this;
-        }
-        
-        hopscotch_bucket& operator=(hopscotch_bucket&& bucket) 
-            noexcept(std::is_nothrow_move_constructible<value_type>::value) 
-        {
-            if(!is_empty()) {
-                destroy_value();
-                set_is_empty(true);
-            }
-            
-            if(!bucket.is_empty()) {
-                ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::move(bucket.get_value()));
-            }
-            
-            m_neighborhood_infos = bucket.m_neighborhood_infos;
-            
-            return *this;
-        }
-        
-        ~hopscotch_bucket() noexcept {
-            if(!is_empty()) {
-                destroy_value();
-            }
-            
-            m_neighborhood_infos = 0;
-        }
-        
-        neighborhood_bitmap get_neighborhood_infos() const noexcept {
-            return static_cast<neighborhood_bitmap>(m_neighborhood_infos >> NB_RESERVED_BITS_IN_NEIGHBORHOOD);
-        }
-        
-        void set_overflow(bool has_overflow) noexcept {
-            if(has_overflow) {
-                m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos | 2);
-            }
-            else {
-                m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos & ~2);
-            }
-        }
-        
-        bool has_overflow() const noexcept {
-            return (m_neighborhood_infos & 2) != 0;
-        }
-        
-        bool is_empty() const noexcept {
-            return (m_neighborhood_infos & 1) == 0;
-        }
-        
-        template<typename P>
-        void set_value(P&& value) {
-            if(!is_empty()) {
-                destroy_value();
-                ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::forward<P>(value));
-            }
-            else {
-                ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::forward<P>(value));
-                set_is_empty(false);
-            }
-        }
-        
-        void remove_value() noexcept {
-            if(!is_empty()) {
-                destroy_value();
-                set_is_empty(true);
-            }
-        }
-        
-        void toggle_neighbor_presence(std::size_t ineighbor) noexcept {
-            tsl_assert(ineighbor <= NeighborhoodSize);
-            m_neighborhood_infos = static_cast<neighborhood_bitmap>(
-                                      m_neighborhood_infos ^ (1ull << (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)));
-        }
-        
-        bool check_neighbor_presence(std::size_t ineighbor) const noexcept {
-            tsl_assert(ineighbor <= NeighborhoodSize);
-            if(((m_neighborhood_infos >> (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)) & 1) == 1) {
-                return true;
-            }
-            
-            return false;
-        }
-        
-        value_type& get_value() noexcept {
-            tsl_assert(!is_empty());
-            return *reinterpret_cast<value_type*>(std::addressof(m_value));
-        }
-        
-        const value_type& get_value() const noexcept {
-            tsl_assert(!is_empty());
-            return *reinterpret_cast<const value_type*>(std::addressof(m_value));
-        }
-        
-        void swap_value_into_empty_bucket(hopscotch_bucket& empty_bucket) {
-            tsl_assert(empty_bucket.is_empty());
-            if(!is_empty()) {
-                ::new (static_cast<void*>(std::addressof(empty_bucket.m_value))) value_type(std::move(get_value()));
-                empty_bucket.set_is_empty(false);
-                
-                destroy_value();
-                set_is_empty(true);
-            }
-        }
-        
-        void clear() noexcept {
-            if(!is_empty()) {
-                destroy_value();
-            }
-            
-            m_neighborhood_infos = 0;
-            tsl_assert(is_empty());
-        }
-        
-    private:
-        void set_is_empty(bool is_empty) noexcept {
-            if(is_empty) {
-                m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos & ~1);
-            }
-            else {
-                m_neighborhood_infos = static_cast<neighborhood_bitmap>(m_neighborhood_infos | 1);
-            }
-        }
-        
-        void destroy_value() noexcept {
-            try {
-                tsl_assert(!is_empty());
-                
-                get_value().~value_type();
-            }
-            catch(...) {
-                std::terminate();
-            }
-        }
-        
-    private:
-        using storage = typename std::aligned_storage<sizeof(value_type), alignof(value_type)>::type;
-        
-        neighborhood_bitmap m_neighborhood_infos;
-        storage m_value;
-    };
+    using hopscotch_bucket = tsl::detail_hopscotch_hash::hopscotch_bucket<ValueType, NeighborhoodSize>;
+    using neighborhood_bitmap = typename hopscotch_bucket::neighborhood_bitmap;
     
     
     using buckets_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<hopscotch_bucket>;
