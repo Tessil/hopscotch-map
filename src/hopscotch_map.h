@@ -130,6 +130,12 @@ class hopscotch_bucket {
 private:
     static const size_t MAX_NEIGHBORHOOD_SIZE = SMALLEST_TYPE_MAX_BITS_SUPPORTED - NB_RESERVED_BITS_IN_NEIGHBORHOOD; 
     
+    /*
+     * NeighborhoodSize need to be between 0 and MAX_NEIGHBORHOOD_SIZE.
+     */
+    static_assert(NeighborhoodSize > 0, "NeighborhoodSize should be > 0.");
+    static_assert(NeighborhoodSize <= MAX_NEIGHBORHOOD_SIZE, "NeighborhoodSize should be <= 62.");
+    
 public:
     using value_type = ValueType;
     using neighborhood_bitmap = 
@@ -338,24 +344,11 @@ template<class ValueType,
          unsigned int NeighborhoodSize,
          class GrowthFactor>
 class hopscotch_hash {
-private:    
-    using Key = typename KeySelect::key_type;
-    
-    
-    /*
-     * NeighborhoodSize need to be between 0 and MAX_NEIGHBORHOOD_SIZE.
-     */
-    static_assert(NeighborhoodSize > 0, "NeighborhoodSize should be > 0.");
-    static_assert(NeighborhoodSize <= 62, "NeighborhoodSize should be <= 62.");
-    
-    using hopscotch_bucket = tsl::detail_hopscotch_hash::hopscotch_bucket<ValueType, NeighborhoodSize>;
-    using neighborhood_bitmap = typename hopscotch_bucket::neighborhood_bitmap;
-
 public:
     template<bool is_const>
     class hopscotch_iterator;
     
-    using key_type = Key;
+    using key_type = typename KeySelect::key_type;
     using value_type = ValueType;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
@@ -370,6 +363,10 @@ public:
     using const_iterator = hopscotch_iterator<true>;
     
 private:
+    using hopscotch_bucket = tsl::detail_hopscotch_hash::hopscotch_bucket<ValueType, NeighborhoodSize>;
+    using neighborhood_bitmap = typename hopscotch_bucket::neighborhood_bitmap;
+    
+    
     using buckets_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<hopscotch_bucket>;
     using overflow_elements_allocator = 
                                 typename std::allocator_traits<allocator_type>::template rebind_alloc<value_type>;  
