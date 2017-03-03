@@ -45,7 +45,7 @@ These differences also apply between `std::unordered_set` and `tsl::hopscotch_se
 ### Installation
 To use hopscotch-map, just include the header [src/hopscotch_map.h](src/hopscotch_map.h) to your project. It's a **header-only** library.
 
-The code should work with any C++11 standard-compliant compiler and has been tested with GCC 6.1, Clang 3.6 and Visual Studio 2015.
+The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.
 
 To run the tests you will need the Boost Test library and CMake. 
 
