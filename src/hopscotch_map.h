@@ -794,16 +794,16 @@ public:
     
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
-        m_load_threshold = static_cast<size_type>(bucket_count()*m_max_load_factor);
+        m_load_threshold = static_cast<size_type>(static_cast<float>(bucket_count())*m_max_load_factor);
     }
     
     void rehash(size_type count) {
-        count = std::max(count, static_cast<size_type>(std::ceil(size()/max_load_factor())));
+        count = std::max(count, static_cast<size_type>(std::ceil(static_cast<float>(size())/max_load_factor())));
         rehash_internal(count);
     }
     
     void reserve(size_type count) {
-        rehash(static_cast<size_type>(std::ceil(count/max_load_factor())));
+        rehash(static_cast<size_type>(std::ceil(static_cast<float>(count)/max_load_factor())));
     }
     
     
