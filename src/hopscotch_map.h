@@ -43,6 +43,11 @@
 #include <utility>
 #include <vector>
 
+#if ((__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
+#define TSL_GCC_OLDER_THAN_4_9
+#endif
+
+
 
 /*
  * Only activate tsl_assert if TSL_DEBUG is defined. 
@@ -662,11 +667,11 @@ public:
         }
         else {
             // Get a non-const iterator
-            auto it = m_overflow_elements.erase(pos.m_overflow_iterator, pos.m_overflow_iterator);
+            auto it = get_mutable_overflow_iterator(pos.m_overflow_iterator);
+            
             return iterator(m_buckets.end(), m_buckets.end(), it);
         }
     }
-    
     
     iterator erase(const_iterator first, const_iterator last) {
         if(first == last) {
@@ -964,9 +969,23 @@ private:
         return m_overflow_elements.end();
     }
     
+#ifdef TSL_GCC_OLDER_THAN_4_9
+    iterator_overflow get_mutable_overflow_iterator(const_iterator_overflow it) {
+        return std::next(m_overflow_elements.begin(), std::distance(m_overflow_elements.cbegin(), it));        
+    }
+#else            
+    iterator_overflow get_mutable_overflow_iterator(const_iterator_overflow it) {
+        return m_overflow_elements.erase(it, it);       
+    }
+#endif    
+
     // iterator is in overflow list
     iterator_overflow erase_from_overflow(const_iterator_overflow pos, std::size_t ibucket_for_hash) {
+#ifdef TSL_GCC_OLDER_THAN_4_9        
+        auto it_next = m_overflow_elements.erase(get_mutable_overflow_iterator(pos));
+#else
         auto it_next = m_overflow_elements.erase(pos);
+#endif        
         m_nb_elements--;
         
         // Check if we can remove the overflow flag
