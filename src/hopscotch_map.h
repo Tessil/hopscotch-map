@@ -1399,7 +1399,7 @@ private:
         neighborhood_bitmap neighborhood_infos = it_bucket->get_neighborhood_infos();
         while(neighborhood_infos != 0) {
             if((neighborhood_infos & 1) == 1) {
-                if(it_bucket->bucket_hash_equal(hash) && m_key_equal(KeySelect()(it_bucket->get_value()), key)) {
+                if((!StoreHash || it_bucket->bucket_hash_equal(hash)) && m_key_equal(KeySelect()(it_bucket->get_value()), key)) {
                     return it_bucket;
                 }
             }
