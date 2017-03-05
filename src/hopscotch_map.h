@@ -524,8 +524,10 @@ public:
                                             m_nb_elements(0),
                                             m_hash(hash), m_key_equal(equal)
     {
+        const size_type min_bucket_count = MIN_BUCKETS_SIZE;
+        
         bucket_count = USE_POWER_OF_TWO_MOD?round_up_to_power_of_two(bucket_count):bucket_count;
-        bucket_count = std::max(bucket_count, MIN_BUCKETS_SIZE);
+        bucket_count = std::max(bucket_count, min_bucket_count);
         
         if(bucket_count > max_bucket_count()) {
             throw std::length_error("The map exceeds its maxmimum size.");
