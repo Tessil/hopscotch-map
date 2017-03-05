@@ -1496,9 +1496,17 @@ private:
 /**
  * Implementation of a hash map using the hopscotch hashing algorithm.
  * 
- * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62.
- * 
  * The Key and the value T must be either nothrow move-constructible, copy-constuctible or both.
+ * 
+ * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62 if StoreHash is false.
+ * When StoreHash is true, 32-bits of the hash will be stored alongside the neighborhood limiting
+ * the NeighborhoodSize to <= 30. There is no memory usage difference between 
+ * 'NeighborhoodSize 62; StoreHash false' and 'NeighborhoodSize 30; StoreHash true'.
+ * 
+ * Storing the hash may improve performance on insert during the rehash process if the hash takes time
+ * to compute. It may also improve read performance if the KeyEqual function takes time (or incurs a cache-miss).
+ * If used with simple Hash and KeyEqual it may slow things down.
+ * 
  * 
  * By default the map grows by a factor of 2. This has the advantage to allow us to do fast modulo because
  * the number of buckets is kept to a power of two. The growth factor can be changed with std::ratio 
@@ -1508,9 +1516,10 @@ private:
  * If the destructors of Key or T throw an exception, behaviour of the class is undefined.
  * 
  * Iterators invalidation:
- *  - clear, operator=: always invalidate the iterators.
- *  - insert, operator[]: invalidate the iterators if there is a rehash, or if a displacement is 
- *    needed to resolve a collision (which mean that most of the time, insert will invalidate the iterators).
+ *  - clear, operator=, reserve, rehash: always invalidate the iterators.
+ *  - insert, emplace, emplace_hint, operator[]: if there is an effective insert, invalidate the iterators 
+ *    if a displacement is needed to resolve a collision (which mean that most of the time, 
+ *    insert will invalidate the iterators). Or if there is a rehash.
  *  - erase: iterator on the erased element is the only one which become invalid.
  */
 template<class Key, 
@@ -1944,21 +1953,30 @@ private:
 /**
  * Implementation of a hash set using the hopscotch hashing algorithm.
  * 
- * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62.
- * 
  * The Key must be either nothrow move-constructible, copy-constuctible or both.
  * 
- * By default the map grows by a factor of 2. This has the advantage to allow us to do fast modulo because
+ * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62 if StoreHash is false.
+ * When StoreHash is true, 32-bits of the hash will be stored alongside the neighborhood limiting
+ * the NeighborhoodSize to <= 30. There is no memory usage difference between 
+ * 'NeighborhoodSize 62; StoreHash false' and 'NeighborhoodSize 30; StoreHash true'.
+ * 
+ * Storing the hash may improve performance on insert during the rehash process if the hash takes time
+ * to compute. It may also improve read performance if the KeyEqual function takes time (or incurs a cache-miss).
+ * If used with simple Hash and KeyEqual it may slow things down.
+ * 
+ * 
+ * By default the set grows by a factor of 2. This has the advantage to allow us to do fast modulo because
  * the number of buckets is kept to a power of two. The growth factor can be changed with std::ratio 
  * (ex: std::ratio<3, 2> will give a growth factor of 1.5), but if the resulting growth factor
- * is not a power of two, the map will be slower as it can't use the power of two modulo optimization.
+ * is not a power of two, the set will be slower as it can't use the power of two modulo optimization.
  * 
  * If the destructor of Key throws an exception, behaviour of the class is undefined.
  * 
  * Iterators invalidation:
- *  - clear, operator=: always invalidate the iterators.
- *  - insert: invalidate the iterators if there is a rehash, or if a displacement is needed to resolve a 
- *    collision (which mean that most of the time, insert will invalidate the iterators).
+ *  - clear, operator=, reserve, rehash: always invalidate the iterators.
+ *  - insert, emplace, emplace_hint, operator[]: if there is an effective insert, invalidate the iterators 
+ *    if a displacement is needed to resolve a collision (which mean that most of the time, 
+ *    insert will invalidate the iterators). Or if there is a rehash.
  *  - erase: iterator on the erased element is the only one which become invalid.
  */
 template<class Key, 
