@@ -960,6 +960,13 @@ public:
         return m_key_equal;
     }
     
+    /*
+     * Other
+     */
+    size_type overflow_size() const noexcept {
+        return m_overflow_elements.size();
+    }
+    
 private:
     iterator get_mutable_iterator(const_iterator pos) {
         if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
@@ -1936,6 +1943,8 @@ public:
     /*
      * Other
      */
+    size_type overflow_size() const noexcept { return m_ht.size(); }
+    
     friend bool operator==(const hopscotch_map& lhs, const hopscotch_map& rhs) {
         if(lhs.size() != rhs.size()) {
             return false;
@@ -2287,6 +2296,8 @@ public:
     /*
      * Other
      */
+    size_type overflow_size() const noexcept { return m_ht.size(); }
+    
     friend bool operator==(const hopscotch_set& lhs, const hopscotch_set& rhs) {
         if(lhs.size() != rhs.size()) {
             return false;
