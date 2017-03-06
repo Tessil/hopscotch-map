@@ -41,14 +41,22 @@ $(function() {
 
 <h3><a id="index_b"></a>- b -</h3><ul>
 <li>begin()
-: <a class="el" href="classtsl_1_1detail_1_1hopscotch__hash.html#ac137b23665c678076f4ad0e1ce73b160">tsl::detail::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;</a>
-, <a class="el" href="classtsl_1_1hopscotch__map.html#aedbf039ed4295b41e57cc9923378e512">tsl::hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;</a>
-, <a class="el" href="classtsl_1_1hopscotch__set.html#accaddd931940b0cdc8a5a6e51447559f">tsl::hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;</a>
+: <a class="el" href="classtsl_1_1detail__hopscotch__hash_1_1hopscotch__hash.html#ad07787c172d1ba1e6fee371b22f3cd6f">tsl::detail_hopscotch_hash::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;</a>
+, <a class="el" href="classtsl_1_1hopscotch__map.html#a441ea957f3a7fe842867a289742c3d0f">tsl::hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;</a>
+, <a class="el" href="classtsl_1_1hopscotch__set.html#a7d203c9c7677a05cd6b7823c9d810e26">tsl::hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;</a>
 </li>
 <li>bucket_count()
-: <a class="el" href="classtsl_1_1detail_1_1hopscotch__hash.html#a6c8c184f5f7a082821f2833802f6b2db">tsl::detail::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;</a>
-, <a class="el" href="classtsl_1_1hopscotch__map.html#add0f2ac376411e4a519aed8f7d50e52b">tsl::hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;</a>
-, <a class="el" href="classtsl_1_1hopscotch__set.html#ae776dea93bc0e35ad0dce8db6f59975c">tsl::hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;</a>
+: <a class="el" href="classtsl_1_1detail__hopscotch__hash_1_1hopscotch__hash.html#a7108844b1ab3e209ad7f98842b3f3a95">tsl::detail_hopscotch_hash::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;</a>
+, <a class="el" href="classtsl_1_1hopscotch__map.html#aebd0daab184ba503b801be16d5077eb7">tsl::hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;</a>
+, <a class="el" href="classtsl_1_1hopscotch__set.html#a19b23e3ec5069f3ccd17fb0b7265d640">tsl::hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;</a>
+</li>
+<li>bucket_for_hash()
+: <a class="el" href="classtsl_1_1mod__growth__policy.html#a501834c6c1c5f86edf944821a3a8a267">tsl::mod_growth_policy&lt; GrowthFactor &gt;</a>
+, <a class="el" href="classtsl_1_1power__of__two__growth__policy.html#a190d46893bba29f0278fcdec39073826">tsl::power_of_two_growth_policy</a>
+</li>
+<li>bucket_hash_equal()
+: <a class="el" href="classtsl_1_1detail__hopscotch__hash_1_1hopscotch__bucket__hash.html#a0699dc90a0abc13eeed673756435778c">tsl::detail_hopscotch_hash::hopscotch_bucket_hash&lt; StoreHash &gt;</a>
+, <a class="el" href="classtsl_1_1detail__hopscotch__hash_1_1hopscotch__bucket__hash_3_01true_01_4.html#a2af8ab9757cd5ad2da43c53bc68f72c5">tsl::detail_hopscotch_hash::hopscotch_bucket_hash&lt; true &gt;</a>
 </li>
 </ul>
 </div><!-- contents -->

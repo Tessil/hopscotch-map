@@ -44,8 +44,7 @@ $(function() {
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#namespaces">Namespaces</a> &#124;
-<a href="#define-members">Macros</a> &#124;
-<a href="#func-members">Functions</a>  </div>
+<a href="#define-members">Macros</a>  </div>
   <div class="headertitle">
 <div class="title">hopscotch_map2.h File Reference</div>  </div>
 </div><!--header-->
@@ -63,6 +62,7 @@ $(function() {
 <code>#include &lt;memory&gt;</code><br />
 <code>#include &lt;ratio&gt;</code><br />
 <code>#include &lt;stdexcept&gt;</code><br />
+<code>#include &lt;tuple&gt;</code><br />
 <code>#include &lt;type_traits&gt;</code><br />
 <code>#include &lt;utility&gt;</code><br />
 <code>#include &lt;vector&gt;</code><br />
@@ -71,49 +71,36 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail_1_1hopscotch__hash.html">tsl::detail::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__hopscotch__hash_1_1hopscotch__bucket__hash.html">tsl::detail_hopscotch_hash::hopscotch_bucket_hash&lt; StoreHash &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail_1_1hopscotch__hash_1_1hopscotch__iterator.html">tsl::detail::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;::hopscotch_iterator&lt; is_const &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__hopscotch__hash_1_1hopscotch__bucket__hash_3_01true_01_4.html">tsl::detail_hopscotch_hash::hopscotch_bucket_hash&lt; true &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail_1_1hopscotch__hash_1_1hopscotch__iterator.html">tsl::detail::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;::hopscotch_iterator&lt; is_const &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__hopscotch__hash_1_1hopscotch__hash.html">tsl::detail_hopscotch_hash::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1hopscotch__map.html">tsl::hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__hopscotch__hash_1_1hopscotch__hash_1_1hopscotch__iterator.html">tsl::detail_hopscotch_hash::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;::hopscotch_iterator&lt; is_const &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1hopscotch__set.html">tsl::hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1detail__hopscotch__hash_1_1hopscotch__hash_1_1hopscotch__iterator.html">tsl::detail_hopscotch_hash::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;::hopscotch_iterator&lt; is_const &gt;</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1power__of__two__growth__policy.html">tsl::power_of_two_growth_policy</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1mod__growth__policy.html">tsl::mod_growth_policy&lt; GrowthFactor &gt;</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1hopscotch__map.html">tsl::hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1hopscotch__set.html">tsl::hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
 Namespaces</h2></td></tr>
 <tr class="memitem:namespacetsl"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacetsl.html">tsl</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:namespacetsl_1_1detail"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacetsl_1_1detail.html">tsl::detail</a></td></tr>
+<tr class="memitem:namespacetsl_1_1detail__hopscotch__hash"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacetsl_1_1detail__hopscotch__hash.html">tsl::detail_hopscotch_hash</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
 <tr class="memitem:a5a1bbd28ca09aa70ee0b574b8c8c9fe7"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="hopscotch__map2_8h.html#a5a1bbd28ca09aa70ee0b574b8c8c9fe7">tsl_assert</a>(expr)&#160;&#160;&#160;(static_cast&lt;void&gt;(0))</td></tr>
 <tr class="separator:a5a1bbd28ca09aa70ee0b574b8c8c9fe7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
-Functions</h2></td></tr>
-<tr class="memitem:aa8c9858b652f47bbc6c9f03a2709b49d"><td class="memTemplParams" colspan="2">template&lt;class Key , class T , class Hash , class KeyEqual , class Allocator , unsigned int NeighborhoodSize, class GrowthFactor &gt; </td></tr>
-<tr class="memitem:aa8c9858b652f47bbc6c9f03a2709b49d"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacetsl.html#aa8c9858b652f47bbc6c9f03a2709b49d">tsl::operator==</a> (const hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;lhs, const hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;rhs)</td></tr>
-<tr class="separator:aa8c9858b652f47bbc6c9f03a2709b49d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab28955cc086452aa8927bb8c75c46a10"><td class="memTemplParams" colspan="2">template&lt;class Key , class T , class Hash , class KeyEqual , class Allocator , unsigned int NeighborhoodSize, class GrowthFactor &gt; </td></tr>
-<tr class="memitem:ab28955cc086452aa8927bb8c75c46a10"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacetsl.html#ab28955cc086452aa8927bb8c75c46a10">tsl::operator!=</a> (const hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;lhs, const hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;rhs)</td></tr>
-<tr class="separator:ab28955cc086452aa8927bb8c75c46a10"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ada62ffd05c6c17f6992ed1ae3042e7a9"><td class="memTemplParams" colspan="2">template&lt;class Key , class T , class Hash , class KeyEqual , class Allocator , unsigned int NeighborhoodSize, class GrowthFactor &gt; </td></tr>
-<tr class="memitem:ada62ffd05c6c17f6992ed1ae3042e7a9"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacetsl.html#ada62ffd05c6c17f6992ed1ae3042e7a9">tsl::swap</a> (hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;lhs, hopscotch_map&lt; Key, T, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;rhs)</td></tr>
-<tr class="separator:ada62ffd05c6c17f6992ed1ae3042e7a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac625f88bcafd450a90f7304cd15fc7eb"><td class="memTemplParams" colspan="2">template&lt;class Key , class Hash , class KeyEqual , class Allocator , unsigned int NeighborhoodSize, class GrowthFactor &gt; </td></tr>
-<tr class="memitem:ac625f88bcafd450a90f7304cd15fc7eb"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacetsl.html#ac625f88bcafd450a90f7304cd15fc7eb">tsl::operator==</a> (const hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;lhs, const hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;rhs)</td></tr>
-<tr class="separator:ac625f88bcafd450a90f7304cd15fc7eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abac27d55786a0a03e3d390bc2ac515ae"><td class="memTemplParams" colspan="2">template&lt;class Key , class Hash , class KeyEqual , class Allocator , unsigned int NeighborhoodSize, class GrowthFactor &gt; </td></tr>
-<tr class="memitem:abac27d55786a0a03e3d390bc2ac515ae"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacetsl.html#abac27d55786a0a03e3d390bc2ac515ae">tsl::operator!=</a> (const hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;lhs, const hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;rhs)</td></tr>
-<tr class="separator:abac27d55786a0a03e3d390bc2ac515ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4dba732fa12d870b742afc45e84fc714"><td class="memTemplParams" colspan="2">template&lt;class Key , class Hash , class KeyEqual , class Allocator , unsigned int NeighborhoodSize, class GrowthFactor &gt; </td></tr>
-<tr class="memitem:a4dba732fa12d870b742afc45e84fc714"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacetsl.html#a4dba732fa12d870b742afc45e84fc714">tsl::swap</a> (hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;lhs, hopscotch_set&lt; Key, Hash, KeyEqual, Allocator, NeighborhoodSize, GrowthFactor &gt; &amp;rhs)</td></tr>
-<tr class="separator:a4dba732fa12d870b742afc45e84fc714"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a5a1bbd28ca09aa70ee0b574b8c8c9fe7"></a>
