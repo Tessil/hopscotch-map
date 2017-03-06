@@ -1492,10 +1492,12 @@ template<class GrowthFactor = std::ratio<3, 2>>
 class mod_growth_policy {
 public:
     mod_growth_policy(std::size_t& bucket_count_in_out) {
+        bucket_count_in_out = std::max(MIN_BUCKETS_SIZE, bucket_count_in_out);
         m_bucket_count = bucket_count_in_out;
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const {
+        tsl_assert(m_bucket_count != 0);
         return hash % m_bucket_count;
     }
     
@@ -1505,6 +1507,7 @@ public:
     }
     
 private:
+    static const std::size_t MIN_BUCKETS_SIZE = 2;
     static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
     static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Grow factor should be >= 1.1.");
     

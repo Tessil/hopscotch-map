@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(test_insert_or_assign) {
 
 
 BOOST_AUTO_TEST_CASE(test_insert_or_assign_hint) {
-    tsl::hopscotch_map<int64_t, move_only_test> map;
+    tsl::hopscotch_map<int64_t, move_only_test> map(0);
     
     auto it = map.insert_or_assign(map.find(10), 10, move_only_test(1));
     BOOST_CHECK_EQUAL(it->first, 10);
