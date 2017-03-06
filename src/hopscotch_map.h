@@ -345,7 +345,6 @@ private:
 };
 
 
-
 /**
  * Common class used by hopscotch_map and hopscotch_set.
  * 
@@ -363,8 +362,8 @@ template<class ValueType,
          class KeyEqual,
          class Allocator,
          unsigned int NeighborhoodSize,
-         class GrowthFactor,
-         bool StoreHash>
+         bool StoreHash,
+         class GrowthPolicy>
 class hopscotch_hash {
 public:
     template<bool is_const>
@@ -522,20 +521,15 @@ public:
                   float max_load_factor) :  m_buckets(alloc), 
                                             m_overflow_elements(alloc),
                                             m_nb_elements(0),
+                                            m_growth_policy(bucket_count),
                                             m_hash(hash), m_key_equal(equal)
     {
-        const size_type min_bucket_count = MIN_BUCKETS_SIZE;
-        
-        bucket_count = USE_POWER_OF_TWO_MOD?round_up_to_power_of_two(bucket_count):bucket_count;
-        bucket_count = std::max(bucket_count, min_bucket_count);
-        
         if(bucket_count > max_bucket_count()) {
             throw std::length_error("The map exceeds its maxmimum size.");
         }
         
         m_buckets.resize(bucket_count + NeighborhoodSize - 1);
         this->max_load_factor(max_load_factor);
-        m_mask = this->bucket_count() - 1;
     }
     
     hopscotch_hash(const hopscotch_hash& other) = default;
@@ -543,15 +537,13 @@ public:
     hopscotch_hash(hopscotch_hash&& other) : m_buckets(std::move(other.m_buckets)),
                                              m_overflow_elements(std::move(other.m_overflow_elements)),
                                              m_nb_elements(other.m_nb_elements),
-                                             m_mask(other.m_mask),
+                                             m_growth_policy(other.m_growth_policy),
                                              m_max_load_factor(other.m_max_load_factor),
                                              m_load_threshold(other.m_load_threshold),
                                              m_hash(std::move(other.m_hash)),
                                              m_key_equal(std::move(other.m_key_equal))
     {
         other.clear();
-        // Reset m_load_threshold
-        other.max_load_factor(other.m_max_load_factor);
     }
     
     hopscotch_hash& operator=(const hopscotch_hash& other) = default;
@@ -823,7 +815,7 @@ public:
         swap(m_buckets, other.m_buckets);
         swap(m_overflow_elements, other.m_overflow_elements);
         swap(m_nb_elements, other.m_nb_elements);
-        swap(m_mask, other.m_mask);
+        swap(m_growth_policy, other.m_growth_policy);
         swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_load_threshold, other.m_load_threshold);
         swap(m_hash, other.m_hash);
@@ -984,23 +976,7 @@ private:
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const {
-        if(USE_POWER_OF_TWO_MOD) {
-            return hash & m_mask;
-        }
-        else {
-            return hash % bucket_count();
-        }
-    }
-    
-    std::size_t bucket_for_hash(std::size_t hash, std::size_t nb_buckets) const {
-        tsl_assert(nb_buckets > 0);
-        if(USE_POWER_OF_TWO_MOD) {
-            tsl_assert(is_power_of_two(nb_buckets));
-            return hash & (nb_buckets - 1);
-        }
-        else {
-            return hash % nb_buckets;
-        }
+        return m_growth_policy.bucket_for_hash(hash);
     }
     
     static_assert(std::is_nothrow_move_constructible<value_type>::value || 
@@ -1181,7 +1157,7 @@ private:
     template<typename P>
     std::pair<iterator, bool> insert_internal(P&& value, std::size_t hash, std::size_t ibucket_for_hash) {
         if((m_nb_elements - m_overflow_elements.size() + 1) > m_load_threshold) {
-            rehash_internal(get_expand_size());
+            rehash_internal(m_growth_policy.next_bucket_count());
             ibucket_for_hash = bucket_for_hash(hash);
         }
         
@@ -1208,7 +1184,7 @@ private:
                                             std::prev(m_overflow_elements.end())), true);
         }
     
-        rehash_internal(get_expand_size());
+        rehash_internal(m_growth_policy.next_bucket_count());
         
         ibucket_for_hash = bucket_for_hash(hash);
         return insert_internal(std::forward<P>(value), hash, ibucket_for_hash);
@@ -1219,7 +1195,8 @@ private:
      * ibucket_neighborhood_check. In this case a rehash is needed instead of puting the value in overflow list.
      */
     bool will_neighborhood_change_on_rehash(size_t ibucket_neighborhood_check) const {
-        const size_type expand_size = get_expand_size();
+        std::size_t expand_bucket_count = m_growth_policy.next_bucket_count();
+        GrowthPolicy expand_growth_policy(expand_bucket_count);
         
         for(size_t ibucket = ibucket_neighborhood_check; 
             ibucket < m_buckets.size() && (ibucket - ibucket_neighborhood_check) < NeighborhoodSize; 
@@ -1228,7 +1205,7 @@ private:
             tsl_assert(!m_buckets[ibucket].is_empty());
             
             const size_t hash = m_hash(KeySelect()(m_buckets[ibucket].get_value()));
-            if(bucket_for_hash(hash) != bucket_for_hash(hash, expand_size)) {
+            if(bucket_for_hash(hash) != expand_growth_policy.bucket_for_hash(hash)) {
                 return true;
             }
         }
@@ -1427,55 +1404,19 @@ private:
                             });
     }
     
-    size_type get_expand_size() const {
-        return static_cast<size_type>(std::ceil(static_cast<double>(bucket_count()) * REHASH_SIZE_MULTIPLICATION_FACTOR));
-    }
-    
-    
-    // TODO could be faster
-    static std::size_t round_up_to_power_of_two(std::size_t value) {
-        std::size_t power = 1;
-        while(power < value) {
-            power <<= 1;
-        }
-        
-        return power;
-    }
-    
-    static constexpr bool is_power_of_two(std::size_t value) {
-        return value != 0 && (value & (value - 1)) == 0;
-    }
-    
 public:    
     static const size_type DEFAULT_INIT_BUCKETS_SIZE = 16;
     static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.95f;
     
 private:    
     static const std::size_t MAX_PROBES_FOR_EMPTY_BUCKET = 10*NeighborhoodSize;
-    static const size_type MIN_BUCKETS_SIZE = 2;
-    static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
-    static const bool USE_POWER_OF_TWO_MOD = is_power_of_two(GrowthFactor::num) && 
-                                             is_power_of_two(GrowthFactor::den) &&
-                                             static_cast<double>(
-                                                 static_cast<std::size_t>(
-                                                                REHASH_SIZE_MULTIPLICATION_FACTOR
-                                                 )
-                                             ) == REHASH_SIZE_MULTIPLICATION_FACTOR;
-
-    /*
-     * bucket_count() should be a power of 2. We can then use "hash & (bucket_count() - 1)" 
-     * to get the bucket for a hash if the GrowthFactor is right for that.
-     */
-    static_assert(is_power_of_two(DEFAULT_INIT_BUCKETS_SIZE), "DEFAULT_INIT_BUCKETS_SIZE should be a power of 2.");
-    static_assert(is_power_of_two(MIN_BUCKETS_SIZE), "MIN_BUCKETS_SIZE should be a power of 2.");
-    static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Grow factor should be >= 1.1.");
     
 private:    
     buckets_container_type m_buckets;
     overflow_container_type m_overflow_elements;
     
     size_type m_nb_elements;
-    std::size_t m_mask;
+    GrowthPolicy m_growth_policy;
     
     
     float m_max_load_factor;
@@ -1487,10 +1428,88 @@ private:
 
 } // end namespace detail_hopscotch_hash
 
+/**
+ * Grow the map by a factor of two keeping bucket_count to a power of two. It allows
+ * the map to use a mask operation instead of a modulo operation to map a hash to a bucket.
+ */
+class power_of_two_growth_policy {
+public:
+    /**
+     * Called on map creation. The number of buckets requested is passed by parameter.
+     * This number is a minimum, the policy may update this value with a higher value if needed.
+     */
+    power_of_two_growth_policy(std::size_t& bucket_count_in_out) {
+        const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
+        
+        bucket_count_in_out = std::max(min_bucket_count, bucket_count_in_out);
+        bucket_count_in_out = round_up_to_power_of_two(bucket_count_in_out);
+        m_mask = bucket_count_in_out-1;
+    }
+    
+    /**
+     * Return the bucket [0, bucket_count()) to which the hash belongs.
+     */
+    std::size_t bucket_for_hash(std::size_t hash) const {
+        return hash & m_mask;
+    }
+    
+    /**
+     * Return the bucket count to uses when the bucket array grows on rehash.
+     */
+    std::size_t next_bucket_count() const {
+        return (m_mask + 1) * 2;
+    }
+    
+private:    
+    // TODO could be faster
+    static std::size_t round_up_to_power_of_two(std::size_t value) {
+        if(is_power_of_two(value)) {
+            return value;
+        }
+        
+        std::size_t power = 1;
+        while(power < value) {
+            power <<= 1;
+        }
+        
+        return power;
+    }
+    
+    static constexpr bool is_power_of_two(std::size_t value) {
+        return value != 0 && (value & (value - 1)) == 0;
+    }    
+private:
+    static const std::size_t MIN_BUCKETS_SIZE = 2;
+    
+    std::size_t m_mask;
+};
 
-
-
-
+/**
+ * Grow the map by GrowthFactor::num/GrowthFactor::den and use a modulo to map a hash
+ * to a bucket. Slower but it can be usefull if you want a slower growth.
+ */
+template<class GrowthFactor = std::ratio<3, 2>>
+class mod_growth_policy {
+public:
+    mod_growth_policy(std::size_t& bucket_count_in_out) {
+        m_bucket_count = bucket_count_in_out;
+    }
+    
+    std::size_t bucket_for_hash(std::size_t hash) const {
+        return hash % m_bucket_count;
+    }
+    
+    std::size_t next_bucket_count() const {
+        return static_cast<std::size_t>(
+                    std::ceil(static_cast<double>(m_bucket_count) * REHASH_SIZE_MULTIPLICATION_FACTOR));
+    }
+    
+private:
+    static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
+    static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Grow factor should be >= 1.1.");
+    
+    std::size_t m_bucket_count;
+};
 
 
 /**
@@ -1507,11 +1526,10 @@ private:
  * to compute. It may also improve read performance if the KeyEqual function takes time (or incurs a cache-miss).
  * If used with simple Hash and KeyEqual it may slow things down.
  * 
- * 
- * By default the map grows by a factor of 2. This has the advantage to allow us to do fast modulo because
- * the number of buckets is kept to a power of two. The growth factor can be changed with std::ratio 
- * (ex: std::ratio<3, 2> will give a growth factor of 1.5), but if the resulting growth factor
- * is not a power of two, the map will be slower as it can't use the power of two modulo optimization.
+ * GrowthPolicy defines how the map grows and consequently how a hash value is mapped to a bucket. 
+ * By default the map uses tsl::power_of_two_growth_policy. This policy keeps the number of buckets 
+ * to a power of two and uses a mask to map the hash to a bucket instead of the slow modulo.
+ * You may define your own growth policy, check @tsl::power_of_two_growth_policy for the interface.
  * 
  * If the destructors of Key or T throw an exception, behaviour of the class is undefined.
  * 
@@ -1528,8 +1546,8 @@ template<class Key,
          class KeyEqual = std::equal_to<Key>,
          class Allocator = std::allocator<std::pair<Key, T>>,
          unsigned int NeighborhoodSize = 62,
-         class GrowthFactor = std::ratio<2, 1>,
-         bool StoreHash = false>
+         bool StoreHash = false,
+         class GrowthPolicy = tsl::power_of_two_growth_policy>
 class hopscotch_map {
 private:    
     class KeySelect {
@@ -1558,10 +1576,11 @@ private:
         }
     };
     
+    
     using ht = detail_hopscotch_hash::hopscotch_hash<std::pair<Key, T>, KeySelect, ValueSelect,
                                                      Hash, KeyEqual, 
                                                      Allocator, NeighborhoodSize, 
-                                                     GrowthFactor, StoreHash>;
+                                                     StoreHash, GrowthPolicy>;
     
 public:
     using key_type = typename ht::key_type;
@@ -1964,11 +1983,10 @@ private:
  * to compute. It may also improve read performance if the KeyEqual function takes time (or incurs a cache-miss).
  * If used with simple Hash and KeyEqual it may slow things down.
  * 
- * 
- * By default the set grows by a factor of 2. This has the advantage to allow us to do fast modulo because
- * the number of buckets is kept to a power of two. The growth factor can be changed with std::ratio 
- * (ex: std::ratio<3, 2> will give a growth factor of 1.5), but if the resulting growth factor
- * is not a power of two, the set will be slower as it can't use the power of two modulo optimization.
+ * GrowthPolicy defines how the set grows and consequently how a hash value is mapped to a bucket. 
+ * By default the set uses tsl::power_of_two_growth_policy. This policy keeps the number of buckets 
+ * to a power of two and uses a mask to set the hash to a bucket instead of the slow modulo.
+ * You may define your own growth policy, check @tsl::power_of_two_growth_policy for the interface.
  * 
  * If the destructor of Key throws an exception, behaviour of the class is undefined.
  * 
@@ -1984,8 +2002,8 @@ template<class Key,
          class KeyEqual = std::equal_to<Key>,
          class Allocator = std::allocator<Key>,
          unsigned int NeighborhoodSize = 62,
-         class GrowthFactor = std::ratio<2, 1>,
-         bool StoreHash = false>
+         bool StoreHash = false,
+         class GrowthPolicy = tsl::power_of_two_growth_policy>
 class hopscotch_set {
 private:    
     class KeySelect {
@@ -2001,10 +2019,11 @@ private:
         }
     };
     
+    
     using ht = detail_hopscotch_hash::hopscotch_hash<Key, KeySelect, void,
                                                      Hash, KeyEqual, 
                                                      Allocator, NeighborhoodSize, 
-                                                     GrowthFactor, StoreHash>;
+                                                     StoreHash, GrowthPolicy>;
             
 public:
     using key_type = typename ht::key_type;
