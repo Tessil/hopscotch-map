@@ -4,7 +4,7 @@
 #include <boost/mpl/list.hpp>
 
 #include "utils.h"
-#include "hopscotch_map.h"
+#include "hopscotch_set.h"
 
 
 using test_types = boost::mpl::list<tsl::hopscotch_set<int64_t>,
