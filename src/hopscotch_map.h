@@ -1943,7 +1943,7 @@ public:
     /*
      * Other
      */
-    size_type overflow_size() const noexcept { return m_ht.size(); }
+    size_type overflow_size() const noexcept { return m_ht.overflow_size(); }
     
     friend bool operator==(const hopscotch_map& lhs, const hopscotch_map& rhs) {
         if(lhs.size() != rhs.size()) {
@@ -2296,7 +2296,7 @@ public:
     /*
      * Other
      */
-    size_type overflow_size() const noexcept { return m_ht.size(); }
+    size_type overflow_size() const noexcept { return m_ht.overflow_size(); }
     
     friend bool operator==(const hopscotch_set& lhs, const hopscotch_set& rhs) {
         if(lhs.size() != rhs.size()) {
