@@ -48,7 +48,8 @@ namespace tsl {
  * and delete, even if the hash function maps all the elements to the same bucket. 
  * For insert, the amortized worst case is O(log n), but the worst case is O(n) in case of rehash.
  * 
- * This make the set resistant to DoS attacks.
+ * This makes the set resistant to DoS attacks (but doesn't preclude you to have a good hash function,
+ * as an element in the bucket array is faster to retrieve than in the tree).
  * 
  * @copydoc hopscotch_set
  */

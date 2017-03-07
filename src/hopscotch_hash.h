@@ -364,6 +364,9 @@ private:
  * 
  * ValueSelect should be a FunctionObject which take ValueType in parameter and return a reference to the value. 
  * ValueSelect should be void if there is no value (in set for example).
+ * 
+ * OverflowContainer will be used as containers for overflown elements. Usually it should be a list<ValueType>
+ * or a set<Key>/map<Key, T>.
  */
 template<class ValueType,
          class KeySelect,
