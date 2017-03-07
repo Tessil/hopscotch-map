@@ -50,7 +50,7 @@ namespace tsl {
  * 
  * This make the set resistant to DoS attacks.
  * 
- * @copydoc hopscotch_map
+ * @copydoc hopscotch_set
  */
 template<class Key, 
          class Hash = std::hash<Key>,
