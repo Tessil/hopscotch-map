@@ -5,12 +5,15 @@
 
 #include "utils.h"
 #include "hopscotch_set.h"
+#include "hopscotch_sc_set.h"
 
 
 using test_types = boost::mpl::list<tsl::hopscotch_set<int64_t>,
                                     tsl::hopscotch_set<self_reference_member_test>,
-                                    tsl::hopscotch_set<move_only_test>
-                                    >;
+                                    tsl::hopscotch_set<move_only_test>,
+                                    tsl::hopscotch_sc_set<int64_t, mod_hash<9>>,
+                                    tsl::hopscotch_sc_set<self_reference_member_test, mod_hash<9>>,
+                                    tsl::hopscotch_sc_set<move_only_test, mod_hash<9>>>;
                                     
                               
                                     

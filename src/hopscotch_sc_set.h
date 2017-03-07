@@ -21,59 +21,46 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef TSL_HOPSCOTCH_SET_H
-#define TSL_HOPSCOTCH_SET_H
+#ifndef TSL_HOPSCOTCH_SC_SET_H
+#define TSL_HOPSCOTCH_SC_SET_H 
 
 
 #include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <initializer_list>
-#include <list>
 #include <memory>
+#include <set>
 #include <type_traits>
 #include <utility>
 #include "hopscotch_hash.h"
 
 
 namespace tsl {
-
+    
+    
 /**
- * Implementation of a hash set using the hopscotch hashing algorithm.
+ * Similar to tsl::hopscotch_set but instead of using a list for overflowing elements it uses
+ * a binary search tree. It thus needs an additional template parameter Compare. Compare should
+ * be arithmetically coherent with KeyEqual.
  * 
- * The Key must be either nothrow move-constructible, copy-constuctible or both.
+ * The binary search tree allows the set to have a wost-case scenario of O(log n) for search 
+ * and delete, even if the hash function maps all the elements to the same bucket. 
+ * For insert, the amortized worst case is O(log n), but the worst case is O(n) in case of rehash.
  * 
- * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62 if StoreHash is false.
- * When StoreHash is true, 32-bits of the hash will be stored alongside the neighborhood limiting
- * the NeighborhoodSize to <= 30. There is no memory usage difference between 
- * 'NeighborhoodSize 62; StoreHash false' and 'NeighborhoodSize 30; StoreHash true'.
+ * This make the set resistant to DoS attacks.
  * 
- * Storing the hash may improve performance on insert during the rehash process if the hash takes time
- * to compute. It may also improve read performance if the KeyEqual function takes time (or incurs a cache-miss).
- * If used with simple Hash and KeyEqual it may slow things down.
- * 
- * GrowthPolicy defines how the set grows and consequently how a hash value is mapped to a bucket. 
- * By default the set uses tsl::power_of_two_growth_policy. This policy keeps the number of buckets 
- * to a power of two and uses a mask to set the hash to a bucket instead of the slow modulo.
- * You may define your own growth policy, check tsl::power_of_two_growth_policy for the interface.
- * 
- * If the destructor of Key throws an exception, behaviour of the class is undefined.
- * 
- * Iterators invalidation:
- *  - clear, operator=, reserve, rehash: always invalidate the iterators.
- *  - insert, emplace, emplace_hint, operator[]: if there is an effective insert, invalidate the iterators 
- *    if a displacement is needed to resolve a collision (which mean that most of the time, 
- *    insert will invalidate the iterators). Or if there is a rehash.
- *  - erase: iterator on the erased element is the only one which become invalid.
+ * @copydoc hopscotch_map
  */
 template<class Key, 
          class Hash = std::hash<Key>,
          class KeyEqual = std::equal_to<Key>,
+         class Compare = std::less<Key>,
          class Allocator = std::allocator<Key>,
          unsigned int NeighborhoodSize = 62,
          bool StoreHash = false,
          class GrowthPolicy = tsl::power_of_two_growth_policy>
-class hopscotch_set {
+class hopscotch_sc_set {
 private:    
     template<typename U>
     using has_is_transparent = tsl::detail_hopscotch_hash::has_is_transparent<U>;
@@ -92,8 +79,8 @@ private:
     };
     
     
-    using overflow_container_type = std::list<Key, Allocator>;
-    using ht = detail_hopscotch_hash::hopscotch_hash<Key, KeySelect, void,
+    using overflow_container_type = std::set<Key, Compare, Allocator>;
+    using ht = tsl::detail_hopscotch_hash::hopscotch_hash<Key, KeySelect, void,
                                                      Hash, KeyEqual, 
                                                      Allocator, NeighborhoodSize, 
                                                      StoreHash, GrowthPolicy,
@@ -118,10 +105,10 @@ public:
     /*
      * Constructors
      */
-    hopscotch_set() : hopscotch_set(ht::DEFAULT_INIT_BUCKETS_SIZE) {
+    hopscotch_sc_set() : hopscotch_sc_set(ht::DEFAULT_INIT_BUCKETS_SIZE) {
     }
     
-    explicit hopscotch_set(size_type bucket_count, 
+    explicit hopscotch_sc_set(size_type bucket_count, 
                         const Hash& hash = Hash(),
                         const KeyEqual& equal = KeyEqual(),
                         const Allocator& alloc = Allocator()) : 
@@ -129,71 +116,71 @@ public:
     {
     }
     
-    hopscotch_set(size_type bucket_count,
-                  const Allocator& alloc) : hopscotch_set(bucket_count, Hash(), KeyEqual(), alloc)
+    hopscotch_sc_set(size_type bucket_count,
+                  const Allocator& alloc) : hopscotch_sc_set(bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
     
-    hopscotch_set(size_type bucket_count,
+    hopscotch_sc_set(size_type bucket_count,
                   const Hash& hash,
-                  const Allocator& alloc) : hopscotch_set(bucket_count, hash, KeyEqual(), alloc)
+                  const Allocator& alloc) : hopscotch_sc_set(bucket_count, hash, KeyEqual(), alloc)
     {
     }
     
-    explicit hopscotch_set(const Allocator& alloc) : hopscotch_set(ht::DEFAULT_INIT_BUCKETS_SIZE, alloc) {
+    explicit hopscotch_sc_set(const Allocator& alloc) : hopscotch_sc_set(ht::DEFAULT_INIT_BUCKETS_SIZE, alloc) {
     }
     
     template<class InputIt>
-    hopscotch_set(InputIt first, InputIt last,
+    hopscotch_sc_set(InputIt first, InputIt last,
                 size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
                 const Hash& hash = Hash(),
                 const KeyEqual& equal = KeyEqual(),
-                const Allocator& alloc = Allocator()) : hopscotch_set(bucket_count, hash, equal, alloc)
+                const Allocator& alloc = Allocator()) : hopscotch_sc_set(bucket_count, hash, equal, alloc)
     {
         insert(first, last);
     }
     
     template<class InputIt>
-    hopscotch_set(InputIt first, InputIt last,
+    hopscotch_sc_set(InputIt first, InputIt last,
                 size_type bucket_count,
-                const Allocator& alloc) : hopscotch_set(first, last, bucket_count, Hash(), KeyEqual(), alloc)
+                const Allocator& alloc) : hopscotch_sc_set(first, last, bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
     
     template<class InputIt>
-    hopscotch_set(InputIt first, InputIt last,
+    hopscotch_sc_set(InputIt first, InputIt last,
                 size_type bucket_count,
                 const Hash& hash,
-                const Allocator& alloc) : hopscotch_set(first, last, bucket_count, hash, KeyEqual(), alloc)
+                const Allocator& alloc) : hopscotch_sc_set(first, last, bucket_count, hash, KeyEqual(), alloc)
     {
     }
 
-    hopscotch_set(std::initializer_list<value_type> init,
+    hopscotch_sc_set(std::initializer_list<value_type> init,
                     size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
                     const Hash& hash = Hash(),
                     const KeyEqual& equal = KeyEqual(),
                     const Allocator& alloc = Allocator()) : 
-                    hopscotch_set(init.begin(), init.end(), bucket_count, hash, equal, alloc)
+                    hopscotch_sc_set(init.begin(), init.end(), bucket_count, hash, equal, alloc)
     {
     }
 
-    hopscotch_set(std::initializer_list<value_type> init,
+    hopscotch_sc_set(std::initializer_list<value_type> init,
                     size_type bucket_count,
                     const Allocator& alloc) : 
-                    hopscotch_set(init.begin(), init.end(), bucket_count, Hash(), KeyEqual(), alloc)
+                    hopscotch_sc_set(init.begin(), init.end(), bucket_count, Hash(), KeyEqual(), alloc)
     {
     }
 
-    hopscotch_set(std::initializer_list<value_type> init,
+    hopscotch_sc_set(std::initializer_list<value_type> init,
                     size_type bucket_count,
                     const Hash& hash,
                     const Allocator& alloc) : 
-                    hopscotch_set(init.begin(), init.end(), bucket_count, hash, KeyEqual(), alloc)
+                    hopscotch_sc_set(init.begin(), init.end(), bucket_count, hash, KeyEqual(), alloc)
     {
     }
 
     
-    hopscotch_set& operator=(std::initializer_list<value_type> ilist) {
+    hopscotch_sc_set& operator=(std::initializer_list<value_type> ilist) {
         m_ht.clear();
         
         m_ht.reserve(ilist.size());
@@ -270,15 +257,17 @@ public:
     size_type erase(const key_type& key) { return m_ht.erase(key); }
     
     /**
-     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent 
+     * and Compare::is_transparent exist. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     size_type erase(const K& key) { return m_ht.erase(key); }
     
     
     
-    void swap(hopscotch_set& other) { other.m_ht.swap(m_ht); }
+    void swap(hopscotch_sc_set& other) { other.m_ht.swap(m_ht); }
     
     /*
      * Lookup
@@ -286,10 +275,12 @@ public:
     size_type count(const Key& key) const { return m_ht.count(key); }
     
     /**
-     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent 
+     * and Compare::is_transparent exist. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     size_type count(const K& key) const { return m_ht.count(key); }
     
     
@@ -299,16 +290,19 @@ public:
     const_iterator find(const Key& key) const { return m_ht.find(key); }
     
     /**
-     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent 
+     * and Compare::is_transparent exist. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     iterator find(const K& key) { return m_ht.find(key); }
     
     /**
      * @copydoc find(const K& key)
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     const_iterator find(const K& key) const { return m_ht.find(key); }
     
     
@@ -317,16 +311,19 @@ public:
     std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
     
     /**
-     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
+     * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent 
+     * and Compare::is_transparent exist. 
      * If so, K must be hashable and comparable to Key.
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     std::pair<iterator, iterator> equal_range(const K& key) { return m_ht.equal_range(key); }
     
     /**
      * @copydoc equal_range(const K& key)
      */
-    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
     
 
@@ -360,7 +357,7 @@ public:
      */
     size_type overflow_size() const noexcept { return m_ht.overflow_size(); }
     
-    friend bool operator==(const hopscotch_set& lhs, const hopscotch_set& rhs) {
+    friend bool operator==(const hopscotch_sc_set& lhs, const hopscotch_sc_set& rhs) {
         if(lhs.size() != rhs.size()) {
             return false;
         }
@@ -375,18 +372,20 @@ public:
         return true;
     }
 
-    friend bool operator!=(const hopscotch_set& lhs, const hopscotch_set& rhs) {
+    friend bool operator!=(const hopscotch_sc_set& lhs, const hopscotch_sc_set& rhs) {
         return !operator==(lhs, rhs);
     }
 
-    friend void swap(hopscotch_set& lhs, hopscotch_set& rhs) {
+    friend void swap(hopscotch_sc_set& lhs, hopscotch_sc_set& rhs) {
         lhs.swap(rhs);
     }
     
 private:
     ht m_ht;    
 };
+  
 
 } // end namespace tsl
 
-#endif
+
+#endif 

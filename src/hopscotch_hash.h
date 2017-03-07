@@ -34,7 +34,6 @@
 #include <functional>
 #include <initializer_list>
 #include <iterator>
-#include <list>
 #include <memory>
 #include <ratio>
 #include <stdexcept>
@@ -42,7 +41,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
 
 #if (defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
 #define TSL_NO_LIST_ERASE_CONST_ITERATOR
@@ -80,6 +78,17 @@ struct has_is_transparent : std::false_type {
 template<typename T>
 struct has_is_transparent<T, typename make_void<typename T::is_transparent>::type> : std::true_type {
 };
+
+template<typename T, typename = void>
+struct has_key_compare : std::false_type {
+};
+
+template<typename T>
+struct has_key_compare<T, typename make_void<typename T::key_compare>::type> : std::true_type {
+};
+
+
+
 
 
 /*
@@ -364,7 +373,8 @@ template<class ValueType,
          class Allocator,
          unsigned int NeighborhoodSize,
          bool StoreHash,
-         class GrowthPolicy>
+         class GrowthPolicy,
+         class OverflowContainer>
 class hopscotch_hash {
 public:
     template<bool is_const>
@@ -391,9 +401,7 @@ private:
     using buckets_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<hopscotch_bucket>;
     using buckets_container_type = std::vector<hopscotch_bucket, buckets_allocator>;  
     
-    using overflow_elements_allocator = 
-                                typename std::allocator_traits<allocator_type>::template rebind_alloc<value_type>;
-    using overflow_container_type = std::list<value_type, overflow_elements_allocator>;
+    using overflow_container_type = OverflowContainer;
     
     using iterator_buckets = typename buckets_container_type::iterator; 
     using const_iterator_buckets = typename buckets_container_type::const_iterator;
@@ -515,6 +523,7 @@ public:
 
     
 public:
+    template<class OC = OverflowContainer, typename std::enable_if<!has_key_compare<OC>::value>::type* = nullptr>
     hopscotch_hash(size_type bucket_count, 
                   const Hash& hash,
                   const KeyEqual& equal,
@@ -522,6 +531,27 @@ public:
                   float max_load_factor) :  m_buckets(alloc), 
                                             m_overflow_elements(alloc),
                                             m_nb_elements(0),
+                                            m_growth_policy(bucket_count),
+                                            m_hash(hash), m_key_equal(equal)
+    {
+        if(bucket_count > max_bucket_count()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        m_buckets.resize(bucket_count + NeighborhoodSize - 1);
+        this->max_load_factor(max_load_factor);
+    }
+    
+    template<class OC = OverflowContainer, typename std::enable_if<has_key_compare<OC>::value>::type* = nullptr>
+    hopscotch_hash(size_type bucket_count, 
+                  const Hash& hash,
+                  const KeyEqual& equal,
+                  const Allocator& alloc,
+                  float max_load_factor,
+                  const typename OC::key_compare& comp = typename OC::key_compare()) :  
+                                            m_buckets(alloc), 
+                                            m_overflow_elements(comp, alloc),
+                                            m_nb_elements(0), 
                                             m_growth_policy(bucket_count),
                                             m_hash(hash), m_key_equal(equal)
     {
@@ -1182,14 +1212,13 @@ private:
             while(swap_empty_bucket_closer(ibucket_empty));
         }
             
-        // A rehash will not change the neighborhood, put the value in overflow list
-        if(!will_neighborhood_change_on_rehash(ibucket_for_hash)) {
-            m_overflow_elements.push_back(std::forward<P>(value));
+        // Load factor is too low or a rehash will not change the neighborhood, put the value in overflow list
+        if(load_factor() < MIN_LOAD_FACTOR_FOR_REHASH || !will_neighborhood_change_on_rehash(ibucket_for_hash)) {
+            auto it_insert = m_overflow_elements.insert(m_overflow_elements.end(), std::forward<P>(value));
             m_buckets[ibucket_for_hash].set_overflow(true);
             m_nb_elements++;
             
-            return std::make_pair(iterator(m_buckets.end(), m_buckets.end(), 
-                                            std::prev(m_overflow_elements.end())), true);
+            return std::make_pair(iterator(m_buckets.end(), m_buckets.end(), it_insert), true);
         }
     
         rehash_internal(m_growth_policy.next_bucket_count());
@@ -1396,7 +1425,11 @@ private:
         return m_buckets.end();
     }
     
-    template<typename K>
+
+    // TODO Use a better way to check if we should use 
+    // std::find_if(m_overflow_elements.begin(), m_overflow_elements.end(), ...) or
+    // m_overflow_elements.find(...)
+    template<class K, class U = OverflowContainer, typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
     iterator_overflow find_in_overflow(const K& key) {
         return std::find_if(m_overflow_elements.begin(), m_overflow_elements.end(), 
                             [&](const value_type& value) { 
@@ -1404,12 +1437,22 @@ private:
                             });
     }
     
-    template<typename K>
+    template<class K, class U = OverflowContainer, typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
     const_iterator_overflow find_in_overflow(const K& key) const {
         return std::find_if(m_overflow_elements.cbegin(), m_overflow_elements.cend(), 
                             [&](const value_type& value) { 
                                 return m_key_equal(key, KeySelect()(value)); 
                             });
+    }
+    
+    template<class K, class U = OverflowContainer, typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
+    iterator_overflow find_in_overflow(const K& key) {
+        return m_overflow_elements.find(key);
+    }
+    
+    template<class K, class U = OverflowContainer, typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
+    const_iterator_overflow find_in_overflow(const K& key) const {
+        return m_overflow_elements.find(key);
     }
     
 public:    
@@ -1418,6 +1461,7 @@ public:
     
 private:    
     static const std::size_t MAX_PROBES_FOR_EMPTY_BUCKET = 10*NeighborhoodSize;
+    static constexpr float MIN_LOAD_FACTOR_FOR_REHASH = 0.3f;
     
 private:    
     buckets_container_type m_buckets;
@@ -1521,7 +1565,6 @@ private:
     
     std::size_t m_bucket_count;
 };
-
 
 } // end namespace tsl
 

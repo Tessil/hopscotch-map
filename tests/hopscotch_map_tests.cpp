@@ -5,6 +5,7 @@
 
 #include "utils.h"
 #include "hopscotch_map.h"
+#include "hopscotch_sc_map.h"
 
 
 using test_types = boost::mpl::list<tsl::hopscotch_map<int64_t, int64_t>, 
@@ -26,11 +27,11 @@ using test_types = boost::mpl::list<tsl::hopscotch_map<int64_t, int64_t>,
                                     tsl::hopscotch_map<self_reference_member_test, self_reference_member_test>,
                                     tsl::hopscotch_map<self_reference_member_test, self_reference_member_test, 
                                         mod_hash<9>, std::equal_to<self_reference_member_test>, 
-                                        std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6>>;
+                                        std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6>,
+                                    tsl::hopscotch_sc_map<int64_t, int64_t, mod_hash<9>>>;
                                     
                               
-                                    
-
+                     
                                         
 /**
  * insert
@@ -93,6 +94,8 @@ BOOST_AUTO_TEST_CASE(test_insert_overflow_rehash_nothrow_move_construbtible) {
         BOOST_CHECK(inserted);
         
     }
+    
+    BOOST_CHECK(map.overflow_size() > 0);
     BOOST_CHECK_EQUAL(map.size(), nb_values/mod);
     
     for(size_t i = 0; i < nb_values; i++) {
@@ -148,6 +151,7 @@ BOOST_AUTO_TEST_CASE(test_insert_virtual_table) {
         BOOST_CHECK_EQUAL(it->second, 2);
     }
     
+    BOOST_CHECK(map.overflow_size() > 0);
     BOOST_CHECK_EQUAL(map.size(), nb_values*2);
     
     

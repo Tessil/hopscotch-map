@@ -102,6 +102,21 @@ public:
         return !(lhs == rhs); 
     }
     
+    friend bool operator<(const move_only_test& lhs, const move_only_test& rhs) {
+        if(lhs.m_value == nullptr && rhs.m_value == nullptr) {
+            return false;
+        }
+        else if(lhs.m_value == nullptr) {
+            return true;
+        }
+        else if(rhs.m_value == nullptr) {
+            return false;
+        }
+        else {
+            return *lhs.m_value < *rhs.m_value; 
+        }
+    }
+    
     int64_t value() const {
         return *m_value;
     }
