@@ -548,12 +548,11 @@ public:
                   const KeyEqual& equal,
                   const Allocator& alloc,
                   float max_load_factor,
-                  const typename OC::key_compare& comp = typename OC::key_compare()) :  
-                                            m_buckets(alloc), 
-                                            m_overflow_elements(comp, alloc),
-                                            m_nb_elements(0), 
-                                            m_growth_policy(bucket_count),
-                                            m_hash(hash), m_key_equal(equal)
+                  const typename OC::key_compare& comp) : m_buckets(alloc), 
+                                                          m_overflow_elements(comp, alloc),
+                                                          m_nb_elements(0), 
+                                                          m_growth_policy(bucket_count),
+                                                          m_hash(hash), m_key_equal(equal)
     {
         if(bucket_count > max_bucket_count()) {
             throw std::length_error("The map exceeds its maxmimum size.");
@@ -998,6 +997,11 @@ public:
         return m_overflow_elements.size();
     }
     
+    template<class U = OverflowContainer, typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
+    typename U::key_compare key_comp() const {
+        return m_overflow_elements.key_comp();
+    }
+    
 private:
     iterator get_mutable_iterator(const_iterator pos) {
         if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
@@ -1024,7 +1028,7 @@ private:
     template<typename U = value_type, 
              typename std::enable_if<std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
     void rehash_internal(size_type count) {
-        hopscotch_hash tmp_map(count, m_hash, m_key_equal, get_allocator(), m_max_load_factor);
+        hopscotch_hash tmp_map = new_hopscotch_hash(count);
         
         for(hopscotch_bucket& bucket : m_buckets) {
             if(bucket.is_empty()) {
@@ -1050,14 +1054,13 @@ private:
         }
         
         tmp_map.swap(*this);
-    } 
-    
+    }
     
     template<typename U = value_type, 
              typename std::enable_if<std::is_copy_constructible<U>::value && 
                                      !std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
     void rehash_internal(size_type count) {
-        hopscotch_hash tmp_map(count, m_hash, m_key_equal, get_allocator(), m_max_load_factor);
+        hopscotch_hash tmp_map = new_hopscotch_hash(count);
                 
         for(const hopscotch_bucket& bucket : m_buckets) {
             if(bucket.is_empty()) {
@@ -1453,6 +1456,16 @@ private:
     template<class K, class U = OverflowContainer, typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
     const_iterator_overflow find_in_overflow(const K& key) const {
         return m_overflow_elements.find(key);
+    }
+    
+    template<class U = OverflowContainer, typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
+    hopscotch_hash new_hopscotch_hash(size_type bucket_count) {
+        return hopscotch_hash(bucket_count, m_hash, m_key_equal, get_allocator(), m_max_load_factor);
+    }
+    
+    template<class U = OverflowContainer, typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
+    hopscotch_hash new_hopscotch_hash(size_type bucket_count) {
+        return hopscotch_hash(bucket_count, m_hash, m_key_equal, get_allocator(), m_max_load_factor, key_comp());
     }
     
 public:    

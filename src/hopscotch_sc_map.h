@@ -110,6 +110,7 @@ public:
     using difference_type = typename ht::difference_type;
     using hasher = typename ht::hasher;
     using key_equal = typename ht::key_equal;
+    using key_compare = Compare;
     using allocator_type = typename ht::allocator_type;
     using reference = typename ht::reference;
     using const_reference = typename ht::const_reference;
@@ -128,8 +129,9 @@ public:
     explicit hopscotch_sc_map(size_type bucket_count, 
                         const Hash& hash = Hash(),
                         const KeyEqual& equal = KeyEqual(),
-                        const Allocator& alloc = Allocator()) : 
-                        m_ht(bucket_count, hash, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR)
+                        const Allocator& alloc = Allocator(),
+                        const Compare& comp = Compare()) : 
+                        m_ht(bucket_count, hash, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR, comp)
     {
     }
     
@@ -462,6 +464,7 @@ public:
      */
     hasher hash_function() const { return m_ht.hash_function(); }
     key_equal key_eq() const { return m_ht.key_eq(); }
+    key_compare key_comp() const { return m_ht.key_comp(); }
     
     /*
      * Other
