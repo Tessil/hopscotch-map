@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HMap, test_types) {
 BOOST_AUTO_TEST_CASE(test_insert_overflow_rehash_nothrow_move_construbtible) {
     // insert x/mod values, insert x values, check values
     
-    static const size_t mod = 100;
+    static const size_t mod = 50;
     using HMap = tsl::hopscotch_map<int64_t, move_only_test, mod_hash<mod>, std::equal_to<int64_t>, 
                                std::allocator<std::pair<int64_t, move_only_test>>, 6>;
     static_assert(std::is_nothrow_move_constructible<HMap::value_type>::value, "");
