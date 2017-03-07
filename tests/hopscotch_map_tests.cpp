@@ -8,30 +8,36 @@
 #include "hopscotch_sc_map.h"
 
 
-using test_types = boost::mpl::list<tsl::hopscotch_map<int64_t, int64_t>, 
-                                    tsl::hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
-                                        std::allocator<std::pair<int64_t, int64_t>>, 6>, 
-                                    // Test with hash having a lot of collisions
-                                    tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>>,
-                                    tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 
-                                        std::allocator<std::pair<int64_t, int64_t>>, 6>, 
-                                    tsl::hopscotch_map<std::string, std::string>,
-                                    tsl::hopscotch_map<std::string, std::string, mod_hash<9>>,
-                                    tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
-                                        std::allocator<std::pair<std::string, std::string>>, 6>,
-                                    tsl::hopscotch_map<int64_t, std::string>,
-                                    tsl::hopscotch_map<int64_t, move_only_test>,
-                                    tsl::hopscotch_map<move_only_test, int64_t>,
-                                    tsl::hopscotch_map<int64_t, move_only_test, mod_hash<9>, std::equal_to<int64_t>, 
-                                        std::allocator<std::pair<int64_t, move_only_test>>, 6>,
-                                    tsl::hopscotch_map<self_reference_member_test, self_reference_member_test>,
-                                    tsl::hopscotch_map<self_reference_member_test, self_reference_member_test, 
-                                        mod_hash<9>, std::equal_to<self_reference_member_test>, 
-                                        std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6>,
-                                    tsl::hopscotch_sc_map<int64_t, int64_t, mod_hash<9>>>;
+using test_types = boost::mpl::list<
+                        tsl::hopscotch_map<int64_t, int64_t>, 
+                        tsl::hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
+                            std::allocator<std::pair<int64_t, int64_t>>, 6>, 
+                        // Test with hash having a lot of collisions
+                        tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>>,
+                        tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 
+                            std::allocator<std::pair<int64_t, int64_t>>, 6>, 
+                        tsl::hopscotch_map<std::string, std::string>,
+                        tsl::hopscotch_map<std::string, std::string, mod_hash<9>>,
+                        tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
+                            std::allocator<std::pair<std::string, std::string>>, 6>,
+                        tsl::hopscotch_map<int64_t, move_only_test>,
+                        tsl::hopscotch_map<move_only_test, int64_t>,
+                        tsl::hopscotch_map<move_only_test, move_only_test, mod_hash<9>, std::equal_to<move_only_test>, 
+                            std::allocator<std::pair<move_only_test, move_only_test>>, 6>,
+                        tsl::hopscotch_map<self_reference_member_test, self_reference_member_test>,
+                        tsl::hopscotch_map<self_reference_member_test, self_reference_member_test, 
+                            mod_hash<9>, std::equal_to<self_reference_member_test>, 
+                            std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6>,
+                        // Store hash
+                        tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
+                            std::allocator<std::pair<std::string, std::string>>, 6, true>,
+                        tsl::hopscotch_map<self_reference_member_test, self_reference_member_test, 
+                            mod_hash<9>, std::equal_to<self_reference_member_test>, 
+                            std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6, true>,
+                        // hopscotch_sc_map
+                        tsl::hopscotch_sc_map<int64_t, int64_t, mod_hash<9>>>;
                                     
                               
-                     
                                         
 /**
  * insert
@@ -72,21 +78,23 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HMap, test_types) {
 
 
 // Get nothrow_move_construbtible elements into the overflow list before rehash.
-BOOST_AUTO_TEST_CASE(test_insert_overflow_rehash_nothrow_move_construbtible) {
+static const unsigned int overflow_mod = 50;
+using test_overflow_rehash_types = boost::mpl::list<
+                    tsl::hopscotch_map<int64_t, move_only_test, mod_hash<overflow_mod>, std::equal_to<int64_t>, 
+                            std::allocator<std::pair<int64_t, move_only_test>>, 6>,
+                    tsl::hopscotch_sc_map<int64_t, move_only_test, mod_hash<overflow_mod>, std::equal_to<int64_t>, 
+                            std::less<int64_t>, std::allocator<std::pair<int64_t, move_only_test>>, 6>>;                   
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_overflow_rehash_nothrow_move_construbtible, HMap, test_overflow_rehash_types) {    
     // insert x/mod values, insert x values, check values
-    
-    static const size_t mod = 50;
-    using HMap = tsl::hopscotch_map<int64_t, move_only_test, mod_hash<mod>, std::equal_to<int64_t>, 
-                               std::allocator<std::pair<int64_t, move_only_test>>, 6>;
-    static_assert(std::is_nothrow_move_constructible<HMap::value_type>::value, "");
+    static_assert(std::is_nothrow_move_constructible<typename HMap::value_type>::value, "");
     
     HMap map;
-    HMap::iterator it;
+    typename HMap::iterator it;
     bool inserted;
     
     
     const size_t nb_values = 5000;
-    for(size_t i = 1; i < nb_values; i+= mod) {
+    for(size_t i = 1; i < nb_values; i+= overflow_mod) {
         std::tie(it, inserted) = map.insert({i, move_only_test(i+1)});
         
         BOOST_CHECK_EQUAL(it->first, i);
@@ -96,14 +104,14 @@ BOOST_AUTO_TEST_CASE(test_insert_overflow_rehash_nothrow_move_construbtible) {
     }
     
     BOOST_CHECK(map.overflow_size() > 0);
-    BOOST_CHECK_EQUAL(map.size(), nb_values/mod);
+    BOOST_CHECK_EQUAL(map.size(), nb_values/overflow_mod);
     
     for(size_t i = 0; i < nb_values; i++) {
         std::tie(it, inserted) = map.insert({i, move_only_test(i+1)});
         
         BOOST_CHECK_EQUAL(it->first, i);
         BOOST_CHECK_EQUAL(it->second, move_only_test(i+1));
-        BOOST_CHECK((i%mod==1)?!inserted:inserted);
+        BOOST_CHECK((i%overflow_mod==1)?!inserted:inserted);
     }
     BOOST_CHECK_EQUAL(map.size(), nb_values);
     
