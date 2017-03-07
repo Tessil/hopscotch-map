@@ -1,9 +1,9 @@
 [![Build Status](https://travis-ci.org/Tessil/hopscotch-map.svg?branch=master)](https://travis-ci.org/Tessil/hopscotch-map) [![Build status](https://ci.appveyor.com/api/projects/status/e97rjkcn3qwrhpvf/branch/master?svg=true)](https://ci.appveyor.com/project/Tessil/hopscotch-map/branch/master)
 
 ## A C++ implementation of a fast hash map using hopscotch hashing
-The hopscotch-map library is a C++ implementation of a single-thread hash map and hash set using hopscotch hashing. It offers good performances if all the elements of the key used by the equal function are contiguous in memory (no pointers to other parts of the memory that may cause a cache-miss) thanks to its good cache locality. The number of memory allocations are also small, they only happen on rehash or if there is an overflow (see [implementation details](https://tessil.github.io/2016/08/29/hopscotch-hashing.html)), allowing hopscotch-map to do fast inserts. It may be a good alternative to `std::unordered_map` in some cases and is mainly a concurrent to `google::dense_hash_map`, it trades off some memory space (if the key-value pair is big, otherwise it has the advantage compare to `std::unordered_map`) to have a fast hash table.
+The hopscotch-map library is a C++ implementation of a single-thread hash map and hash set using hopscotch hashing. It offers good performances if all the elements of the key used by the equal function are contiguous in memory (no pointers to other parts of the memory that may cause a cache-miss) and if not, it provides a way to store the hash for faster comparison (see the [StoreHash](https://tessil.github.io/hopscotch-map/doc/html/classtsl_1_1hopscotch__map.html#details) template parameter). The number of memory allocations are also small, they only happen on rehash or if there is an overflow (see [implementation details](https://tessil.github.io/2016/08/29/hopscotch-hashing.html)), allowing hopscotch-map to do fast inserts. It may be a good alternative to `std::unordered_map` in some cases and is mainly a concurrent to `google::dense_hash_map`, it trades off some memory space (if the key-value pair is big, otherwise it has the advantage compared to `std::unordered_map`) to have a fast hash table.
 
-The library provides two classes: `tsl::hopscotch_map` and `tsl::hopscotch_set`.
+The library provides four classes: `tsl::hopscotch_map`, `tsl::hopscotch_set`, `tsl::hopscotch_sc_map` and `tsl::hopscotch_sc_set` (the two last classes have an additional requirement for the key, must be `LessThanComparable`, but provide a better upper bound, see [details](https://github.com/Tessil/hopscotch-map#deny-of-service-dos-attack) in example).
 
 An overview of hopscotch hashing and some implementation details may be found [here](https://tessil.github.io/2016/08/29/hopscotch-hashing.html).
 
@@ -15,13 +15,15 @@ A **benchmark** of `tsl::hopscotch_map` against other hash maps may be found [th
 - Support for move-only and non-default constructible key/value.
 - Support for heterogeneous lookups (e.g. if you have a map that uses `std::unique_ptr<int>` as key, you could use an `int*` or a `std::uintptr_t` for example as key parameter for `find`, see [example](https://github.com/Tessil/hopscotch-map#heterogeneous-lookup)).
 - No need to reserve any sentinel value from key.
+- Possibility to store the hash value on insert for faster rehash and lookup if the hash or the key equal functions are expensive to compute (see the [StoreHash](https://tessil.github.io/hopscotch-map/doc/html/classtsl_1_1hopscotch__map.html#details) template parameter).
+- The `tsl::hopscotch_sc_map` and `tsl::hopscotch_sc_set` provide a worst-case of O(log n) on lookup and delete making these classes resistant to hash table Deny of Service (DoS) attacks (see [details](https://github.com/Tessil/hopscotch-map#deny-of-service-dos-attack) in example).
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
 
 ### Differences compare to `std::unordered_map`
 `tsl::hopscotch_map` tries to have an interface similar to `std::unordered_map`, but some differences exist:
-- Iterator invalidation on insert doesn't behave in the same way (see [API](https://tessil.github.io/hopscotch-map/doc/html/classhopscotch__map.html#details) for details).
+- Iterator invalidation on insert doesn't behave in the same way (see [API](https://tessil.github.io/hopscotch-map/doc/html/classtsl_1_1hopscotch__map.html#details) for details).
 - References and pointers to keys or values in the map are invalidated in the same way as iterators to these keys-values.
-- The size of the bucket array in the map grows by a factor of 2, the size will always be a power of 2, which may be a too steep growth rate for some purposes. The growth factor is modifiable (see the GrowthFactor template parameter) but it may reduce the speed of the hash map if it is not a power of two.
+- The size of the bucket array in the map grows by a factor of 2, the size will always be a power of 2, which may be a too steep growth rate for some purposes. The growth policy is modifiable (see the GrowthPolicy template parameter) but it may reduce the speed of the hash map if it is not a power of two.
 - For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>` making the value `T` not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
 ```c++
 tsl::hopscotch_map<int, int> map = {{1, 1}, {2, 1}, {3, 1}};
@@ -31,9 +33,11 @@ for(auto it = map.begin(); it != map.end(); ++it) {
 }
 ```
 - No support for some bucket related methods (like bucket_size, bucket, ...).
-- No support for move-only types with a move constructor that may throw an exception (with open adressing, it's not possible to keep the strong exception guarantee on rehash if the move constructor may throw).
+- No support for move-only types with a move constructor that may throw an exception (with open addressing, it's not possible to keep the strong exception guarantee on rehash if the move constructor may throw).
 
 These differences also apply between `std::unordered_set` and `tsl::hopscotch_set`.
+
+Thread-safety and exceptions guarantees are the same as `std::unordered_map/set`.
 
 ### Differences compare to `google::dense_hash_map`
 `tsl::hopscotch_map` has comparable performances to `google::dense_hash_map` (see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html)), but come with some advantages:
@@ -92,17 +96,27 @@ int main() {
     }
     
     
-    // Use a map with a different neighborhood size
-    const std::size_t neighborhood_size = 30;
+    
+    
+    /*
+     * Calculating the hash and comparing two std::string may be slow. 
+     * We can store the hash of each std::string in the hash map to make 
+     * the inserts and lookups faster by setting StoreHash to true.
+     */ 
     tsl::hopscotch_map<std::string, int, std::hash<std::string>, 
                        std::equal_to<std::string>,
                        std::allocator<std::pair<std::string, int>>,
-                       neighborhood_size> map2 = {{"a", 1}, {"b", 2}};
+                       30, true> map2;
+                       
+    map2["a"] = 1;
+    map2["b"] = 2;
     
     // {a, 1} {b, 2}
     for(const auto& key_value : map2) {
         std::cout << "{" << key_value.first << ", " << key_value.second << "}" << std::endl;
     }
+    
+    
     
     
     tsl::hopscotch_set<int> set;
@@ -202,6 +216,69 @@ int main() {
 
     // 2004
     std::cout << map2.at(4) << std::endl;
+} 
+```
+
+#### Deny of Service (DoS) attack
+In addition to `tsl::hopscotch_map` and `tsl::hopscotch_set` the library provides two more "secure" options: `tsl::hopscotch_sc_map` and `tsl::hopscotch_sc_set`. 
+
+These two additions have a worst-case runtime of O(log n) for lookups and deletions and an amortized worst case of O(log n) for insertions (amortized due to the possibility of rehash which would be in O(n)). Even if the hash function maps all the elements to the same bucket, the O(log n) would still hold.
+
+This provides a security against hash table Deny of Service attacks. 
+
+To achieve this, the "secure" versions use a binary search tree for the overflown elements (see [implementation details](https://tessil.github.io/2016/08/29/hopscotch-hashing.html)) and thus need the elements to be `LessThanComparable`. An additional `Compare` template parameter is needed.
+
+```c++
+#include <chrono>
+#include <cstdint>
+#include <iostream>
+#include "hopscotch_map.h"
+#include "hopscotch_sc_map.h"
+
+/*
+ * Poor hash function which always returns 1 to simulate
+ * a Deny of Service attack.
+ */
+struct dos_attack_simulation_hash {
+    std::size_t operator()(int id) const {
+        return 1;
+    }
+};
+
+int main() {
+    /*
+     * Slow due to the hash function, insertions are done in O(n).
+     */
+    tsl::hopscotch_map<int, int, dos_attack_simulation_hash> map;
+    
+    auto start = std::chrono::high_resolution_clock::now();
+    for(int i=0; i < 10000; i++) {
+        map.insert({i, 0});
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    
+    // 110 ms
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
+    std::cout << duration.count() << " ms" << std::endl;
+    
+    
+    
+    
+    /*
+     * Faster. Even with the poor hash function, insertions end-up to
+     * be O(log n) in average (and O(n) when a rehash occurs).
+     */
+    tsl::hopscotch_sc_map<int, int, dos_attack_simulation_hash> map_secure;
+    
+    start = std::chrono::high_resolution_clock::now();
+    for(int i=0; i < 10000; i++) {
+        map_secure.insert({i, 0});
+    }
+    end = std::chrono::high_resolution_clock::now();
+    
+    // 2 ms
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
+    std::cout << duration.count() << " ms" << std::endl;
 } 
 ```
 
