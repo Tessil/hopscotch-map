@@ -61,6 +61,93 @@
 
 namespace tsl {
 
+/**
+ * Grow the map by a factor of two keeping bucket_count to a power of two. It allows
+ * the map to use a mask operation instead of a modulo operation to map a hash to a bucket.
+ */
+class power_of_two_growth_policy {
+public:
+    /**
+     * Called on map creation. The number of buckets requested is passed by parameter.
+     * This number is a minimum, the policy may update this value with a higher value if needed.
+     */
+    power_of_two_growth_policy(std::size_t& bucket_count_in_out) {
+        const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
+        
+        bucket_count_in_out = std::max(min_bucket_count, bucket_count_in_out);
+        bucket_count_in_out = round_up_to_power_of_two(bucket_count_in_out);
+        m_mask = bucket_count_in_out-1;
+    }
+    
+    /**
+     * Return the bucket [0, bucket_count()) to which the hash belongs.
+     */
+    std::size_t bucket_for_hash(std::size_t hash) const {
+        return hash & m_mask;
+    }
+    
+    /**
+     * Return the bucket count to uses when the bucket array grows on rehash.
+     */
+    std::size_t next_bucket_count() const {
+        return (m_mask + 1) * 2;
+    }
+    
+private:    
+    // TODO could be faster
+    static std::size_t round_up_to_power_of_two(std::size_t value) {
+        if(is_power_of_two(value)) {
+            return value;
+        }
+        
+        std::size_t power = 1;
+        while(power < value) {
+            power <<= 1;
+        }
+        
+        return power;
+    }
+    
+    static constexpr bool is_power_of_two(std::size_t value) {
+        return value != 0 && (value & (value - 1)) == 0;
+    }    
+private:
+    static const std::size_t MIN_BUCKETS_SIZE = 2;
+    
+    std::size_t m_mask;
+};
+
+/**
+ * Grow the map by GrowthFactor::num/GrowthFactor::den and use a modulo to map a hash
+ * to a bucket. Slower but it can be usefull if you want a slower growth.
+ */
+template<class GrowthFactor = std::ratio<3, 2>>
+class mod_growth_policy {
+public:
+    mod_growth_policy(std::size_t& bucket_count_in_out) {
+        bucket_count_in_out = std::max(MIN_BUCKETS_SIZE, bucket_count_in_out);
+        m_bucket_count = bucket_count_in_out;
+    }
+    
+    std::size_t bucket_for_hash(std::size_t hash) const {
+        tsl_assert(m_bucket_count != 0);
+        return hash % m_bucket_count;
+    }
+    
+    std::size_t next_bucket_count() const {
+        return static_cast<std::size_t>(
+                    std::ceil(static_cast<double>(m_bucket_count) * REHASH_SIZE_MULTIPLICATION_FACTOR));
+    }
+    
+private:
+    static const std::size_t MIN_BUCKETS_SIZE = 2;
+    static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
+    static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Grow factor should be >= 1.1.");
+    
+    std::size_t m_bucket_count;
+};
+
+
 namespace detail_hopscotch_hash {
     
     
@@ -424,6 +511,9 @@ template<class ValueType,
          class GrowthPolicy,
          class OverflowContainer>
 class hopscotch_hash {
+    static_assert(!StoreHash || std::is_same<GrowthPolicy, tsl::power_of_two_growth_policy>::value, 
+                  "StoreHash can only be used with the tsl::power_of_two_growth_policy GrowthPolicy.");
+    
 public:
     template<bool is_const>
     class hopscotch_iterator;
@@ -1541,91 +1631,6 @@ private:
 
 } // end namespace detail_hopscotch_hash
 
-/**
- * Grow the map by a factor of two keeping bucket_count to a power of two. It allows
- * the map to use a mask operation instead of a modulo operation to map a hash to a bucket.
- */
-class power_of_two_growth_policy {
-public:
-    /**
-     * Called on map creation. The number of buckets requested is passed by parameter.
-     * This number is a minimum, the policy may update this value with a higher value if needed.
-     */
-    power_of_two_growth_policy(std::size_t& bucket_count_in_out) {
-        const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
-        
-        bucket_count_in_out = std::max(min_bucket_count, bucket_count_in_out);
-        bucket_count_in_out = round_up_to_power_of_two(bucket_count_in_out);
-        m_mask = bucket_count_in_out-1;
-    }
-    
-    /**
-     * Return the bucket [0, bucket_count()) to which the hash belongs.
-     */
-    std::size_t bucket_for_hash(std::size_t hash) const {
-        return hash & m_mask;
-    }
-    
-    /**
-     * Return the bucket count to uses when the bucket array grows on rehash.
-     */
-    std::size_t next_bucket_count() const {
-        return (m_mask + 1) * 2;
-    }
-    
-private:    
-    // TODO could be faster
-    static std::size_t round_up_to_power_of_two(std::size_t value) {
-        if(is_power_of_two(value)) {
-            return value;
-        }
-        
-        std::size_t power = 1;
-        while(power < value) {
-            power <<= 1;
-        }
-        
-        return power;
-    }
-    
-    static constexpr bool is_power_of_two(std::size_t value) {
-        return value != 0 && (value & (value - 1)) == 0;
-    }    
-private:
-    static const std::size_t MIN_BUCKETS_SIZE = 2;
-    
-    std::size_t m_mask;
-};
-
-/**
- * Grow the map by GrowthFactor::num/GrowthFactor::den and use a modulo to map a hash
- * to a bucket. Slower but it can be usefull if you want a slower growth.
- */
-template<class GrowthFactor = std::ratio<3, 2>>
-class mod_growth_policy {
-public:
-    mod_growth_policy(std::size_t& bucket_count_in_out) {
-        bucket_count_in_out = std::max(MIN_BUCKETS_SIZE, bucket_count_in_out);
-        m_bucket_count = bucket_count_in_out;
-    }
-    
-    std::size_t bucket_for_hash(std::size_t hash) const {
-        tsl_assert(m_bucket_count != 0);
-        return hash % m_bucket_count;
-    }
-    
-    std::size_t next_bucket_count() const {
-        return static_cast<std::size_t>(
-                    std::ceil(static_cast<double>(m_bucket_count) * REHASH_SIZE_MULTIPLICATION_FACTOR));
-    }
-    
-private:
-    static const std::size_t MIN_BUCKETS_SIZE = 2;
-    static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
-    static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Grow factor should be >= 1.1.");
-    
-    std::size_t m_bucket_count;
-};
 
 } // end namespace tsl
 

@@ -52,6 +52,8 @@ namespace tsl {
  * to compute. It may also improve read performance if the KeyEqual function takes time (or incurs a cache-miss).
  * If used with simple Hash and KeyEqual it may slow things down.
  * 
+ * StoreHash can only be set if the GrowthPolicy is set to tsl::power_of_two_growth_policy.
+ * 
  * GrowthPolicy defines how the set grows and consequently how a hash value is mapped to a bucket. 
  * By default the set uses tsl::power_of_two_growth_policy. This policy keeps the number of buckets 
  * to a power of two and uses a mask to set the hash to a bucket instead of the slow modulo.
