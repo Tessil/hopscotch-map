@@ -510,9 +510,8 @@ BOOST_AUTO_TEST_CASE(test_copy) {
     HMap map_copy = map;
     BOOST_CHECK(map == map_copy);
     
-    
     for(int64_t i=0; i < nb_keys; i++) {
-        auto it = map.find(i);
+        auto it = map_copy.find(i);
         
         BOOST_CHECK_EQUAL(it->first, i);
         BOOST_CHECK_EQUAL(it->second, i*2);
