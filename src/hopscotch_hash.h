@@ -702,14 +702,20 @@ public:
     
     hopscotch_hash(const hopscotch_hash& other) = default;
     
-    hopscotch_hash(hopscotch_hash&& other) : m_buckets(std::move(other.m_buckets)),
-                                             m_overflow_elements(std::move(other.m_overflow_elements)),
-                                             m_nb_elements(other.m_nb_elements),
-                                             m_growth_policy(other.m_growth_policy),
-                                             m_max_load_factor(other.m_max_load_factor),
-                                             m_load_threshold(other.m_load_threshold),
-                                             m_hash(std::move(other.m_hash)),
-                                             m_key_equal(std::move(other.m_key_equal))
+    hopscotch_hash(hopscotch_hash&& other) noexcept(
+                                            std::is_nothrow_move_constructible<buckets_container_type>::value &&
+                                            std::is_nothrow_move_constructible<overflow_container_type>::value &&
+                                            std::is_nothrow_move_constructible<Hash>::value &&
+                                            std::is_nothrow_move_constructible<KeyEqual>::value
+                                          )
+                                          : m_buckets(std::move(other.m_buckets)),
+                                            m_overflow_elements(std::move(other.m_overflow_elements)),
+                                            m_nb_elements(other.m_nb_elements),
+                                            m_growth_policy(other.m_growth_policy),
+                                            m_max_load_factor(other.m_max_load_factor),
+                                            m_load_threshold(other.m_load_threshold),
+                                            m_hash(std::move(other.m_hash)),
+                                            m_key_equal(std::move(other.m_key_equal))
     {
         other.clear();
     }
