@@ -488,13 +488,13 @@ private:
 
 
 /**
- * Internal common class used by hopscotch_map and hopscotch_set.
+ * Internal common class used by hopscotch_(sc)_map and hopscotch_(sc)_set.
  * 
  * ValueType is what will be stored by hopscotch_hash (usually std::pair<Key, T> for map and Key for set).
  * 
- * KeySelect should be a FunctionObject which take ValueType in parameter and return a reference to the key.
+ * KeySelect should be a FunctionObject which takes a ValueType in parameter and returns a reference to the key.
  * 
- * ValueSelect should be a FunctionObject which take ValueType in parameter and return a reference to the value. 
+ * ValueSelect should be a FunctionObject which takes a ValueType in parameter and returns a reference to the value.
  * ValueSelect should be void if there is no value (in set for example).
  * 
  * OverflowContainer will be used as containers for overflown elements. Usually it should be a list<ValueType>
