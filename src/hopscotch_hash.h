@@ -125,7 +125,9 @@ template<class GrowthFactor = std::ratio<3, 2>>
 class mod_growth_policy {
 public:
     mod_growth_policy(std::size_t& bucket_count_in_out) {
-        bucket_count_in_out = std::max(MIN_BUCKETS_SIZE, bucket_count_in_out);
+        const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
+        
+        bucket_count_in_out = std::max(min_bucket_count, bucket_count_in_out);
         m_bucket_count = bucket_count_in_out;
     }
     
