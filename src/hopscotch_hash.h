@@ -43,7 +43,7 @@
 #include <vector>
 
 #if (defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
-#define TSL_NO_LIST_ERASE_CONST_ITERATOR
+#define TSL_NO_RANGE_ERASE_WITH_CONST_ITERATOR
 #endif
 
 
@@ -68,15 +68,15 @@ namespace tsl {
 class power_of_two_growth_policy {
 public:
     /**
-     * Called on map creation. The number of buckets requested is passed by parameter.
+     * Called on map creation and rehash. The number of buckets requested is passed by parameter.
      * This number is a minimum, the policy may update this value with a higher value if needed.
      */
-    power_of_two_growth_policy(std::size_t& bucket_count_in_out) {
+    power_of_two_growth_policy(std::size_t& min_bucket_count_in_out) {
         const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
         
-        bucket_count_in_out = std::max(min_bucket_count, bucket_count_in_out);
-        bucket_count_in_out = round_up_to_power_of_two(bucket_count_in_out);
-        m_mask = bucket_count_in_out-1;
+        min_bucket_count_in_out = std::max(min_bucket_count, min_bucket_count_in_out);
+        min_bucket_count_in_out = round_up_to_power_of_two(min_bucket_count_in_out);
+        m_mask = min_bucket_count_in_out - 1;
     }
     
     /**
@@ -124,11 +124,11 @@ private:
 template<class GrowthFactor = std::ratio<3, 2>>
 class mod_growth_policy {
 public:
-    mod_growth_policy(std::size_t& bucket_count_in_out) {
+    mod_growth_policy(std::size_t& min_bucket_count_in_out) {
         const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
         
-        bucket_count_in_out = std::max(min_bucket_count, bucket_count_in_out);
-        m_bucket_count = bucket_count_in_out;
+        min_bucket_count_in_out = std::max(min_bucket_count, min_bucket_count_in_out);
+        m_bucket_count = min_bucket_count_in_out;
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const {
@@ -343,26 +343,26 @@ public:
             m_neighborhood_infos = bucket.m_neighborhood_infos;
         }
          
-         return *this;
-     }
+        return *this;
+    }
      
-     hopscotch_bucket& operator=(hopscotch_bucket&& bucket) 
+    hopscotch_bucket& operator=(hopscotch_bucket&& bucket) 
          noexcept(std::is_nothrow_move_constructible<value_type>::value) 
-     {
-         if(!is_empty()) {
-             destroy_value();
-             set_is_empty(true);
-         }
-         
-         if(!bucket.is_empty()) {
-             ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::move(bucket.get_value()));
-             this->copy_hash(bucket);
-         }
-         
-         m_neighborhood_infos = bucket.m_neighborhood_infos;
-         
-         return *this;
-     }    
+    {
+        if(!is_empty()) {
+            destroy_value();
+            set_is_empty(true);
+        }
+
+        if(!bucket.is_empty()) {
+            ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::move(bucket.get_value()));
+            this->copy_hash(bucket);
+        }
+
+        m_neighborhood_infos = bucket.m_neighborhood_infos;
+
+        return *this;
+    }    
      
     ~hopscotch_bucket() noexcept {
         if(!is_empty()) {
@@ -1174,7 +1174,7 @@ private:
     template<typename U = value_type, 
              typename std::enable_if<std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
     void rehash_internal(size_type count) {
-        hopscotch_hash tmp_map = new_hopscotch_hash(count);
+        hopscotch_hash new_map = new_hopscotch_hash(count);
         
         for(hopscotch_bucket& bucket : m_buckets) {
             if(bucket.is_empty()) {
@@ -1182,31 +1182,22 @@ private:
             }
             
             const std::size_t hash = StoreHash?bucket.truncated_bucket_hash():
-                                               tmp_map.m_hash(KeySelect()(bucket.get_value()));
-            const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(hash);
+                                               new_map.m_hash(KeySelect()(bucket.get_value()));
+            const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
             
-            tmp_map.insert_internal(std::move(bucket.get_value()), hash, ibucket_for_hash);
+            new_map.insert_internal(std::move(bucket.get_value()), hash, ibucket_for_hash);
         }
         
-        tsl_assert(tmp_map.m_overflow_elements.empty());
-        if(!m_overflow_elements.empty()) {
-            tmp_map.m_overflow_elements.swap(m_overflow_elements);
-            tmp_map.m_nb_elements += tmp_map.m_overflow_elements.size();
-            
-            for(const value_type& value : tmp_map.m_overflow_elements) {
-                const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(KeySelect()(value)));
-                tmp_map.m_buckets[ibucket_for_hash].set_overflow(true);
-            }
-        }
+        move_overflow_elements_into(new_map);
         
-        tmp_map.swap(*this);
+        new_map.swap(*this);
     }
     
     template<typename U = value_type, 
              typename std::enable_if<std::is_copy_constructible<U>::value && 
                                      !std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
     void rehash_internal(size_type count) {
-        hopscotch_hash tmp_map = new_hopscotch_hash(count);
+        hopscotch_hash new_map = new_hopscotch_hash(count);
                 
         for(const hopscotch_bucket& bucket : m_buckets) {
             if(bucket.is_empty()) {
@@ -1214,26 +1205,29 @@ private:
             }
             
             const std::size_t hash = StoreHash?bucket.truncated_bucket_hash():
-                                               tmp_map.m_hash(KeySelect()(bucket.get_value()));
-            const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(hash);
+                                               new_map.m_hash(KeySelect()(bucket.get_value()));
+            const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
             
-            tmp_map.insert_internal(bucket.get_value(), hash, ibucket_for_hash);
+            new_map.insert_internal(bucket.get_value(), hash, ibucket_for_hash);
         }
         
-        tsl_assert(tmp_map.m_overflow_elements.empty());
-        if(!m_overflow_elements.empty()) {
-            tmp_map.m_overflow_elements.swap(m_overflow_elements);
-            tmp_map.m_nb_elements += tmp_map.m_overflow_elements.size();
-            
-            for(const value_type& value : tmp_map.m_overflow_elements) {
-                const std::size_t ibucket_for_hash = tmp_map.bucket_for_hash(tmp_map.m_hash(KeySelect()(value)));
-                tmp_map.m_buckets[ibucket_for_hash].set_overflow(true);
-            }
-        }
+        move_overflow_elements_into(new_map);
 
-        tmp_map.swap(*this);
+        new_map.swap(*this);
     }  
     
+    void move_overflow_elements_into(hopscotch_hash& new_map) noexcept {
+        tsl_assert(new_map.m_overflow_elements.empty());
+        if(!m_overflow_elements.empty()) {
+            new_map.m_overflow_elements.swap(m_overflow_elements);
+            new_map.m_nb_elements += new_map.m_overflow_elements.size();
+            
+            for(const value_type& value : new_map.m_overflow_elements) {
+                const std::size_t ibucket_for_hash = new_map.bucket_for_hash(new_map.m_hash(KeySelect()(value)));
+                new_map.m_buckets[ibucket_for_hash].set_overflow(true);
+            }
+        }
+    }
     /*
      * Find in m_overflow_elements an element for which the bucket it initially belongs to, 
      * equals original_bucket_for_hash.
@@ -1253,7 +1247,7 @@ private:
         return m_overflow_elements.end();
     }
     
-#ifdef TSL_NO_LIST_ERASE_CONST_ITERATOR
+#ifdef TSL_NO_RANGE_ERASE_WITH_CONST_ITERATOR
     iterator_overflow get_mutable_overflow_iterator(const_iterator_overflow it) {
         return std::next(m_overflow_elements.begin(), std::distance(m_overflow_elements.cbegin(), it));        
     }
@@ -1265,7 +1259,7 @@ private:
 
     // iterator is in overflow list
     iterator_overflow erase_from_overflow(const_iterator_overflow pos, std::size_t ibucket_for_hash) {
-#ifdef TSL_NO_LIST_ERASE_CONST_ITERATOR        
+#ifdef TSL_NO_RANGE_ERASE_WITH_CONST_ITERATOR        
         auto it_next = m_overflow_elements.erase(get_mutable_overflow_iterator(pos));
 #else
         auto it_next = m_overflow_elements.erase(pos);
@@ -1564,6 +1558,9 @@ private:
         neighborhood_bitmap neighborhood_infos = it_bucket->get_neighborhood_infos();
         while(neighborhood_infos != 0) {
             if((neighborhood_infos & 1) == 1) {
+                // Check StoreHash before calling bucket_hash_equal. Functionally it doesn't change anythin. 
+                // If StoreHash is false, bucket_hash_equal is a no-op. Avoiding the call is there to help 
+                // GCC optimizes `hash` parameter away, it seems to not be able to do without this hint.
                 if((!StoreHash || it_bucket->bucket_hash_equal(hash)) && m_key_equal(KeySelect()(it_bucket->get_value()), key)) {
                     return it_bucket;
                 }

@@ -9,9 +9,7 @@
 
 
 using test_types = boost::mpl::list<
-                        tsl::hopscotch_map<int64_t, int64_t>, 
-                        tsl::hopscotch_map<int64_t, int64_t, std::hash<int64_t>, std::equal_to<int64_t>, 
-                            std::allocator<std::pair<int64_t, int64_t>>, 6>, 
+                        tsl::hopscotch_map<int64_t, int64_t>,
                         // Test with hash having a lot of collisions
                         tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>>,
                         tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 
@@ -29,8 +27,8 @@ using test_types = boost::mpl::list<
                             mod_hash<9>, std::equal_to<self_reference_member_test>, 
                             std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6>,
                         // Store hash
-                        tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
-                            std::allocator<std::pair<std::string, std::string>>, 6, true>,
+                        tsl::hopscotch_map<std::string, std::string, std::hash<std::string>, std::equal_to<std::string>, 
+                            std::allocator<std::pair<std::string, std::string>>, 30, true>,
                         tsl::hopscotch_map<self_reference_member_test, self_reference_member_test, 
                             mod_hash<9>, std::equal_to<self_reference_member_test>, 
                             std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6, true>,
