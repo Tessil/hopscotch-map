@@ -1555,6 +1555,8 @@ private:
     
     template<class K>
     const_iterator_buckets find_in_buckets(const K& key, std::size_t hash, const_iterator_buckets it_bucket) const {      
+        (void) hash; // Avoid warning of unused variable when StoreHash is false;
+
         // TODO Try to optimize the function. 
         // I tried to use ffs and  __builtin_ffs functions but I could not reduce the time the function
         // takes with -march=native
