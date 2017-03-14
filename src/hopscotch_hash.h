@@ -26,6 +26,7 @@
 
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
@@ -147,6 +148,70 @@ private:
     static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Grow factor should be >= 1.1.");
     
     std::size_t m_bucket_count;
+};
+
+
+
+namespace detail_hopscotch_hash {
+
+static constexpr const std::array<std::size_t, 38> PRIMES = {{
+    17ul, 29ul, 37ul, 53ul, 67ul, 79ul, 97ul, 131ul, 193ul, 257ul, 389ul, 521ul, 769ul, 1031ul, 1543ul, 2053ul, 
+    3079ul, 6151ul, 12289ul, 24593ul, 49157ul, 98317ul, 196613ul, 393241ul, 786433ul, 1572869ul, 3145739ul, 
+    6291469ul, 12582917ul, 25165843ul, 50331653ul, 100663319ul, 201326611ul, 402653189ul, 805306457ul, 
+    1610612741ul, 3221225473ul, 4294967291ul
+}};
+
+template<unsigned int IPrime>
+static std::size_t mod(std::size_t hash) { return hash % PRIMES[IPrime]; }
+
+// MOD_PRIME[iprime](hash) returns hash % PRIMES[iprime]. This table allows for faster modulo as the
+// compiler can optimize the modulo code better with a constant known at the compilation.
+static constexpr const std::array<std::size_t(*)(std::size_t), 38> MOD_PRIME = {{ 
+    &mod<0>, &mod<1>, &mod<2>, &mod<3>, &mod<4>, &mod<5>, &mod<6>, &mod<7>, &mod<8>, &mod<9>, &mod<10>, 
+    &mod<11>, &mod<12>, &mod<13>, &mod<14>, &mod<15>, &mod<16>, &mod<17>, &mod<18>, &mod<19>, &mod<20>, 
+    &mod<21>, &mod<22>, &mod<23>, &mod<24>, &mod<25>, &mod<26>, &mod<27>, &mod<28>, &mod<29>, &mod<30>, 
+    &mod<31>, &mod<32>, &mod<33>, &mod<34>, &mod<35>, &mod<36>, &mod<37> 
+}};
+
+}
+
+/**
+ * Grow the map by using prime numbers as size. Slower than tsl::power_of_two_growth_policy in general 
+ * but will probably distribute the values around better in the buckets with a poor hash function.
+ */
+class prime_growth_policy {
+public:
+    prime_growth_policy(std::size_t& min_bucket_count_in_out) {
+        auto it_prime = std::lower_bound(tsl::detail_hopscotch_hash::PRIMES.begin(), 
+                                         tsl::detail_hopscotch_hash::PRIMES.end(), min_bucket_count_in_out);
+        if(it_prime == tsl::detail_hopscotch_hash::PRIMES.end()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        m_iprime = std::distance(tsl::detail_hopscotch_hash::PRIMES.begin(), it_prime);
+        min_bucket_count_in_out = *it_prime;
+    }
+    
+    std::size_t bucket_for_hash(std::size_t hash) const {
+        return bucket_for_hash_iprime(hash, m_iprime);
+    }
+    
+    std::size_t next_bucket_count() const {
+        if(m_iprime + 1 >= tsl::detail_hopscotch_hash::PRIMES.size()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        return tsl::detail_hopscotch_hash::PRIMES[m_iprime + 1];
+    }   
+    
+private:  
+    std::size_t bucket_for_hash_iprime(std::size_t hash, unsigned int iprime) const {
+        tsl_assert(iprime < tsl::detail_hopscotch_hash::MOD_PRIME.size());
+        return tsl::detail_hopscotch_hash::MOD_PRIME[iprime](hash);
+    }
+    
+private:
+    unsigned int m_iprime;
 };
 
 
@@ -326,43 +391,8 @@ public:
         m_neighborhood_infos = bucket.m_neighborhood_infos;
     }
      
-    hopscotch_bucket& operator=(const hopscotch_bucket& bucket) 
-        noexcept(std::is_nothrow_copy_constructible<value_type>::value) 
-    {
-        if(this != &bucket) {
-            if(!is_empty()) {
-                destroy_value();
-                set_is_empty(true);
-            }
-            
-            if(!bucket.is_empty()) {
-                ::new (static_cast<void*>(std::addressof(m_value))) value_type(bucket.get_value());
-                this->copy_hash(bucket);
-            }
-            
-            m_neighborhood_infos = bucket.m_neighborhood_infos;
-        }
-         
-        return *this;
-    }
-     
-    hopscotch_bucket& operator=(hopscotch_bucket&& bucket) 
-         noexcept(std::is_nothrow_move_constructible<value_type>::value) 
-    {
-        if(!is_empty()) {
-            destroy_value();
-            set_is_empty(true);
-        }
-
-        if(!bucket.is_empty()) {
-            ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::move(bucket.get_value()));
-            this->copy_hash(bucket);
-        }
-
-        m_neighborhood_infos = bucket.m_neighborhood_infos;
-
-        return *this;
-    }    
+    hopscotch_bucket& operator=(const hopscotch_bucket& bucket) = delete;
+    hopscotch_bucket& operator=(hopscotch_bucket&& bucket) = delete;
      
     ~hopscotch_bucket() noexcept {
         if(!is_empty()) {
@@ -1625,7 +1655,7 @@ public:
     
 private:    
     static const std::size_t MAX_PROBES_FOR_EMPTY_BUCKET = 10*NeighborhoodSize;
-    static constexpr float MIN_LOAD_FACTOR_FOR_REHASH = 0.3f;
+    static constexpr float MIN_LOAD_FACTOR_FOR_REHASH = has_key_compare<OverflowContainer>::value?0.3f:0.15f;
     
 private:    
     buckets_container_type m_buckets;

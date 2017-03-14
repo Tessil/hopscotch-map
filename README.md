@@ -46,6 +46,18 @@ Thread-safety and exceptions guarantees are the same as `std::unordered_map/set`
 - The key and the value of the map don't need a copy constructor/operator, move-only types are supported.
 - It uses less memory for its speed as it can sustain a load factor of 0.95 (which is the default value in the library compare to the 0.5 of `google::dense_hash_map`) while keeping good performances.
 
+### Growth policy
+
+By default `tsl::hopscotch_map/set` uses `tsl::power_of_two_growth_policy` as `GrowthPolicy`. This policy keeps the size of the map to a power of two by doubling the size of the map when a rehash is required. It allows the map to avoid the usage of the slow modulo operation, instead of <code>hash % 2<sup>n</sup></code>, it uses <code>hash & (2<sup>n</sup> - 1)</code>.
+
+This may cause a lot of collisions with a poor hash function as the modulo just masks the most significant bits.
+
+If you encounter poor performances, check `overflow_size()`. If it's not 0, you may have a lot of collisions due to a common pattern in the least significant bits. Either change the hash function for something more uniform or use `tsl::prime_growth_policy` which keeps the size of the map to a prime size.
+
+You can also use `tsl::mod_growth_policy` if you want a more configurable growth rate or you could even define your own policy (see [API](https://tessil.github.io/hopscotch-map/doc/html/classtsl_1_1hopscotch__map.html#details)).
+
+A bad distribution may lead to a runtime complexity of O(n) for lookups. Unfortunately it's sometimes difficult to guard yourself against it (e.g. DoS attack on the hash map). If needed, check `tsl::hopscotch_sc_map/set` which offer a worst-case scenario of O(log n) on lookups, see [details](https://github.com/Tessil/hopscotch-map#deny-of-service-dos-attack) in example.
+
 ### Installation
 To use hopscotch-map, just add the [src/](src/) directory to your include path. It's a **header-only** library.
 
