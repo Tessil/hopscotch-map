@@ -34,11 +34,14 @@ using test_types = boost::mpl::list<
                             std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6, true>,
                         // hopscotch_sc_map
                         tsl::hopscotch_sc_map<int64_t, int64_t, mod_hash<9>>,
+                        // with tsl::prime_growth_policy
+                        tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
+                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::prime_growth_policy>,
                         // with tsl::mod_growth_policy
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
-                            std::allocator<std::pair<std::string, std::string>>, 6, false, tsl::mod_growth_policy<>>,
+                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::mod_growth_policy<>>,
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
-                            std::allocator<std::pair<std::string, std::string>>, 6, false, tsl::mod_growth_policy<std::ratio<4, 3>>>
+                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::mod_growth_policy<std::ratio<4, 3>>>
                         >;
                                     
                               
