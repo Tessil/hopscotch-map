@@ -1188,7 +1188,16 @@ private:
             new_map.insert_internal(std::move(bucket.get_value()), hash, ibucket_for_hash);
         }
         
-        move_overflow_elements_into(new_map);
+        tsl_assert(new_map.m_overflow_elements.empty());
+        if(!m_overflow_elements.empty()) {
+            new_map.m_overflow_elements.swap(m_overflow_elements);
+            new_map.m_nb_elements += new_map.m_overflow_elements.size();
+            
+            for(const value_type& value : new_map.m_overflow_elements) {
+                const std::size_t ibucket_for_hash = new_map.bucket_for_hash(new_map.m_hash(KeySelect()(value)));
+                new_map.m_buckets[ibucket_for_hash].set_overflow(true);
+            }
+        }
         
         new_map.swap(*this);
     }
@@ -1211,12 +1220,6 @@ private:
             new_map.insert_internal(bucket.get_value(), hash, ibucket_for_hash);
         }
         
-        move_overflow_elements_into(new_map);
-
-        new_map.swap(*this);
-    }  
-    
-    void move_overflow_elements_into(hopscotch_hash& new_map) noexcept {
         tsl_assert(new_map.m_overflow_elements.empty());
         if(!m_overflow_elements.empty()) {
             new_map.m_overflow_elements.swap(m_overflow_elements);
@@ -1227,7 +1230,10 @@ private:
                 new_map.m_buckets[ibucket_for_hash].set_overflow(true);
             }
         }
-    }
+
+        new_map.swap(*this);
+    }  
+    
     /*
      * Find in m_overflow_elements an element for which the bucket it initially belongs to, 
      * equals original_bucket_for_hash.
