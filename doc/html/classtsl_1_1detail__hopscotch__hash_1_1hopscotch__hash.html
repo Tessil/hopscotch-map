@@ -243,10 +243,10 @@ Static Public Attributes</h2></td></tr>
 <div class="textblock"><h3>template&lt;class ValueType, class KeySelect, class ValueSelect, class Hash, class KeyEqual, class Allocator, unsigned int NeighborhoodSize, bool StoreHash, class GrowthPolicy, class OverflowContainer&gt;<br />
 class tsl::detail_hopscotch_hash::hopscotch_hash&lt; ValueType, KeySelect, ValueSelect, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy, OverflowContainer &gt;</h3>
 
-<p>Internal common class used by <a class="el" href="classtsl_1_1hopscotch__map.html">hopscotch_map</a> and <a class="el" href="classtsl_1_1hopscotch__set.html">hopscotch_set</a>.</p>
+<p>Internal common class used by hopscotch_(sc)_map and hopscotch_(sc)_set.</p>
 <p>ValueType is what will be stored by <a class="el" href="classtsl_1_1detail__hopscotch__hash_1_1hopscotch__hash.html">hopscotch_hash</a> (usually std::pair&lt;Key, T&gt; for map and Key for set).</p>
-<p>KeySelect should be a FunctionObject which take ValueType in parameter and return a reference to the key.</p>
-<p>ValueSelect should be a FunctionObject which take ValueType in parameter and return a reference to the value. ValueSelect should be void if there is no value (in set for example).</p>
+<p>KeySelect should be a FunctionObject which takes a ValueType in parameter and returns a reference to the key.</p>
+<p>ValueSelect should be a FunctionObject which takes a ValueType in parameter and returns a reference to the value. ValueSelect should be void if there is no value (in set for example).</p>
 <p>OverflowContainer will be used as containers for overflown elements. Usually it should be a list&lt;ValueType&gt; or a set&lt;Key&gt;/map&lt;Key, T&gt;. </p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="a8af583783f638a3faac62c52b876aa67"></a>

@@ -53,8 +53,8 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a04a1f6d4941de52f2fc61e9c89f15aea"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1power__of__two__growth__policy.html#a04a1f6d4941de52f2fc61e9c89f15aea">power_of_two_growth_policy</a> (std::size_t &amp;bucket_count_in_out)</td></tr>
-<tr class="separator:a04a1f6d4941de52f2fc61e9c89f15aea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a355d1b3af1c06b575f1275480fa87f6a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1power__of__two__growth__policy.html#a355d1b3af1c06b575f1275480fa87f6a">power_of_two_growth_policy</a> (std::size_t &amp;min_bucket_count_in_out)</td></tr>
+<tr class="separator:a355d1b3af1c06b575f1275480fa87f6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a190d46893bba29f0278fcdec39073826"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1power__of__two__growth__policy.html#a190d46893bba29f0278fcdec39073826">bucket_for_hash</a> (std::size_t hash) const</td></tr>
 <tr class="separator:a190d46893bba29f0278fcdec39073826"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6910169dbf364c44a1b18b80c91eb4e8"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1power__of__two__growth__policy.html#a6910169dbf364c44a1b18b80c91eb4e8">next_bucket_count</a> () const</td></tr>
@@ -63,8 +63,8 @@ Public Member Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Grow the map by a factor of two keeping bucket_count to a power of two. It allows the map to use a mask operation instead of a modulo operation to map a hash to a bucket. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a04a1f6d4941de52f2fc61e9c89f15aea"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a04a1f6d4941de52f2fc61e9c89f15aea">&#9670;&nbsp;</a></span>power_of_two_growth_policy()</h2>
+<a id="a355d1b3af1c06b575f1275480fa87f6a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a355d1b3af1c06b575f1275480fa87f6a">&#9670;&nbsp;</a></span>power_of_two_growth_policy()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -76,7 +76,7 @@ Public Member Functions</h2></td></tr>
           <td class="memname">tsl::power_of_two_growth_policy::power_of_two_growth_policy </td>
           <td>(</td>
           <td class="paramtype">std::size_t &amp;&#160;</td>
-          <td class="paramname"><em>bucket_count_in_out</em></td><td>)</td>
+          <td class="paramname"><em>min_bucket_count_in_out</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -86,7 +86,7 @@ Public Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Called on map creation. The number of buckets requested is passed by parameter. This number is a minimum, the policy may update this value with a higher value if needed. </p>
+<p>Called on map creation and rehash. The number of buckets requested is passed by parameter. This number is a minimum, the policy may update this value with a higher value if needed. </p>
 
 </div>
 </div>

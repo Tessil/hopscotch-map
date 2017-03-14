@@ -53,8 +53,8 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a92eda4b6f089744704c957310f84a73c"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1mod__growth__policy.html#a92eda4b6f089744704c957310f84a73c">mod_growth_policy</a> (std::size_t &amp;bucket_count_in_out)</td></tr>
-<tr class="separator:a92eda4b6f089744704c957310f84a73c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a88e36c0ef1cffd0b78045dfc482cda58"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1mod__growth__policy.html#a88e36c0ef1cffd0b78045dfc482cda58">mod_growth_policy</a> (std::size_t &amp;min_bucket_count_in_out)</td></tr>
+<tr class="separator:a88e36c0ef1cffd0b78045dfc482cda58"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a501834c6c1c5f86edf944821a3a8a267"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1mod__growth__policy.html#a501834c6c1c5f86edf944821a3a8a267">bucket_for_hash</a> (std::size_t hash) const</td></tr>
 <tr class="separator:a501834c6c1c5f86edf944821a3a8a267"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afc82f1891e368d866b0af5731b075314"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1mod__growth__policy.html#afc82f1891e368d866b0af5731b075314">next_bucket_count</a> () const</td></tr>
@@ -66,8 +66,8 @@ class tsl::mod_growth_policy&lt; GrowthFactor &gt;</h3>
 
 <p>Grow the map by GrowthFactor::num/GrowthFactor::den and use a modulo to map a hash to a bucket. Slower but it can be usefull if you want a slower growth. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a92eda4b6f089744704c957310f84a73c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a92eda4b6f089744704c957310f84a73c">&#9670;&nbsp;</a></span>mod_growth_policy()</h2>
+<a id="a88e36c0ef1cffd0b78045dfc482cda58"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a88e36c0ef1cffd0b78045dfc482cda58">&#9670;&nbsp;</a></span>mod_growth_policy()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -81,7 +81,7 @@ template&lt;class GrowthFactor  = std::ratio&lt;3, 2&gt;&gt; </div>
           <td class="memname"><a class="el" href="classtsl_1_1mod__growth__policy.html">tsl::mod_growth_policy</a>&lt; GrowthFactor &gt;::<a class="el" href="classtsl_1_1mod__growth__policy.html">mod_growth_policy</a> </td>
           <td>(</td>
           <td class="paramtype">std::size_t &amp;&#160;</td>
-          <td class="paramname"><em>bucket_count_in_out</em></td><td>)</td>
+          <td class="paramname"><em>min_bucket_count_in_out</em></td><td>)</td>
           <td></td>
         </tr>
       </table>

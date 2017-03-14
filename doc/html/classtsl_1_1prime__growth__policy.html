@@ -49,22 +49,22 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p><code>#include &lt;<a class="el" href="prime__growth__policy_8h_source.html">prime_growth_policy.h</a>&gt;</code></p>
+<p><code>#include &lt;<a class="el" href="hopscotch__hash_8h_source.html">hopscotch_hash.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a6ae3b0ffdfbc1685d1fb02be2de2282b"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1prime__growth__policy.html#a6ae3b0ffdfbc1685d1fb02be2de2282b">prime_growth_policy</a> (std::size_t &amp;bucket_count_in_out)</td></tr>
-<tr class="separator:a6ae3b0ffdfbc1685d1fb02be2de2282b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa62961887181152369e9c910e3762da3"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1prime__growth__policy.html#aa62961887181152369e9c910e3762da3">prime_growth_policy</a> (std::size_t &amp;min_bucket_count_in_out)</td></tr>
+<tr class="separator:aa62961887181152369e9c910e3762da3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7e150045794f2b206236b2e457deaff2"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1prime__growth__policy.html#a7e150045794f2b206236b2e457deaff2">bucket_for_hash</a> (std::size_t hash) const</td></tr>
 <tr class="separator:a7e150045794f2b206236b2e457deaff2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a05eaf2212cd3fc369a25aaa19bbd170d"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1prime__growth__policy.html#a05eaf2212cd3fc369a25aaa19bbd170d">bucket_for_hash_with_next_bucket_count</a> (std::size_t hash) const</td></tr>
-<tr class="separator:a05eaf2212cd3fc369a25aaa19bbd170d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a578ed888a7a2ed57d7e4c59750fb1430"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classtsl_1_1prime__growth__policy.html#a578ed888a7a2ed57d7e4c59750fb1430">next_bucket_count</a> () const</td></tr>
 <tr class="separator:a578ed888a7a2ed57d7e4c59750fb1430"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a6ae3b0ffdfbc1685d1fb02be2de2282b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6ae3b0ffdfbc1685d1fb02be2de2282b">&#9670;&nbsp;</a></span>prime_growth_policy()</h2>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Grow the map by using prime numbers as size. Slower than <a class="el" href="classtsl_1_1power__of__two__growth__policy.html">tsl::power_of_two_growth_policy</a> in general but will probably distribute the values around better in the buckets with a poor hash function. </p>
+</div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a id="aa62961887181152369e9c910e3762da3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa62961887181152369e9c910e3762da3">&#9670;&nbsp;</a></span>prime_growth_policy()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -76,7 +76,7 @@ Public Member Functions</h2></td></tr>
           <td class="memname">tsl::prime_growth_policy::prime_growth_policy </td>
           <td>(</td>
           <td class="paramtype">std::size_t &amp;&#160;</td>
-          <td class="paramname"><em>bucket_count_in_out</em></td><td>)</td>
+          <td class="paramname"><em>min_bucket_count_in_out</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -101,32 +101,6 @@ Public Member Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">std::size_t tsl::prime_growth_policy::bucket_for_hash </td>
-          <td>(</td>
-          <td class="paramtype">std::size_t&#160;</td>
-          <td class="paramname"><em>hash</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a05eaf2212cd3fc369a25aaa19bbd170d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a05eaf2212cd3fc369a25aaa19bbd170d">&#9670;&nbsp;</a></span>bucket_for_hash_with_next_bucket_count()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::size_t tsl::prime_growth_policy::bucket_for_hash_with_next_bucket_count </td>
           <td>(</td>
           <td class="paramtype">std::size_t&#160;</td>
           <td class="paramname"><em>hash</em></td><td>)</td>
@@ -168,7 +142,7 @@ Public Member Functions</h2></td></tr>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>src/<a class="el" href="prime__growth__policy_8h_source.html">prime_growth_policy.h</a></li>
+<li>src/<a class="el" href="hopscotch__hash_8h_source.html">hopscotch_hash.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
