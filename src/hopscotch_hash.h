@@ -1649,7 +1649,7 @@ public:
     
 private:    
     static const std::size_t MAX_PROBES_FOR_EMPTY_BUCKET = 10*NeighborhoodSize;
-    static constexpr float MIN_LOAD_FACTOR_FOR_REHASH = has_key_compare<OverflowContainer>::value?0.3f:0.1f;
+    static constexpr float MIN_LOAD_FACTOR_FOR_REHASH = has_key_compare<OverflowContainer>::value?0.3f:0.15f;
     
 private:    
     buckets_container_type m_buckets;
