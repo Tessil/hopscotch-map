@@ -279,7 +279,7 @@ Friends</h2></td></tr>
 class tsl::hopscotch_sc_map&lt; Key, T, Hash, KeyEqual, Compare, Allocator, NeighborhoodSize, StoreHash, GrowthPolicy &gt;</h3>
 
 <p>Similar to <a class="el" href="classtsl_1_1hopscotch__map.html">tsl::hopscotch_map</a> but instead of using a list for overflowing elements it uses a binary search tree. It thus needs an additional template parameter Compare. Compare should be arithmetically coherent with KeyEqual.</p>
-<p>The binary search tree allows the map to have a wost-case scenario of O(log n) for search and delete, even if the hash function maps all the elements to the same bucket. For insert, the amortized worst case is O(log n), but the worst case is O(n) in case of rehash.</p>
+<p>The binary search tree allows the map to have a worst-case scenario of O(log n) for search and delete, even if the hash function maps all the elements to the same bucket. For insert, the amortized worst case is O(log n), but the worst case is O(n) in case of rehash.</p>
 <p>This makes the map resistant to DoS attacks (but doesn't preclude you to have a good hash function, as an element in the bucket array is faster to retrieve than in the tree).</p>
 <p>Implementation of a hash map using the hopscotch hashing algorithm.</p>
 <p>The Key and the value T must be either nothrow move-constructible, copy-constuctible or both.</p>
