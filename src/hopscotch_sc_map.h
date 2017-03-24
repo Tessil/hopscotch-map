@@ -44,7 +44,7 @@ namespace tsl {
  * a binary search tree. It thus needs an additional template parameter Compare. Compare should
  * be arithmetically coherent with KeyEqual.
  * 
- * The binary search tree allows the map to have a wost-case scenario of O(log n) for search 
+ * The binary search tree allows the map to have a worst-case scenario of O(log n) for search 
  * and delete, even if the hash function maps all the elements to the same bucket. 
  * For insert, the amortized worst case is O(log n), but the worst case is O(n) in case of rehash.
  * 
