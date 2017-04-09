@@ -403,7 +403,9 @@ public:
     
     
     iterator find(const Key& key) { return m_ht.find(key); }
+    iterator find(const Key& key, std::size_t hash) { return m_ht.find(key, hash); }
     const_iterator find(const Key& key) const { return m_ht.find(key); }
+    const_iterator find(const Key& key, std::size_t hash) const { return m_ht.find(key, hash); }
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent 
@@ -419,7 +421,21 @@ public:
      */
     template<class K, class KE = KeyEqual, class CP = Compare, 
              typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
+    iterator find(const K& key, std::size_t hash) { return m_ht.find(key, hash); }
+    
+    /**
+     * @copydoc find(const K& key)
+     */
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     const_iterator find(const K& key) const { return m_ht.find(key); }
+    
+    /**
+     * @copydoc find(const K& key)
+     */
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
+    const_iterator find(const K& key, std::size_t hash) const { return m_ht.find(key, hash); }
     
     
     

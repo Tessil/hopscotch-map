@@ -1088,9 +1088,19 @@ public:
     }
     
     template<class K>
+    iterator find(const K& key, std::size_t hash) {
+        return find_internal(key, hash, m_buckets.begin() + bucket_for_hash(hash));
+    }
+    
+    template<class K>
     const_iterator find(const K& key) const {
         const std::size_t hash = m_hash(key);
         
+        return find_internal(key, hash, m_buckets.begin() + bucket_for_hash(hash));
+    }
+    
+    template<class K>
+    const_iterator find(const K& key, std::size_t hash) const {
         return find_internal(key, hash, m_buckets.begin() + bucket_for_hash(hash));
     }
     
