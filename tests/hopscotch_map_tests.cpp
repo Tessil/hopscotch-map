@@ -45,7 +45,7 @@ using test_types = boost::mpl::list<
                         >;
                                     
                               
-                                        
+
 /**
  * insert
  */                                      
@@ -507,22 +507,19 @@ BOOST_AUTO_TEST_CASE(test_copy) {
     using HMap = tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 
                                     std::allocator<std::pair<int64_t, int64_t>>, 6, true>;
     
-    const int64_t nb_keys = 1000;
     
     HMap map;
+    const int64_t nb_keys = 1000;
     for(int64_t i=0; i < nb_keys; i++) {
         map.insert({i, i*2});
     }
     
     HMap map_copy = map;
-    BOOST_CHECK(map == map_copy);
+    HMap map_copy2;
+    map_copy2 = map;
     
-    for(int64_t i=0; i < nb_keys; i++) {
-        auto it = map_copy.find(i);
-        
-        BOOST_CHECK_EQUAL(it->first, i);
-        BOOST_CHECK_EQUAL(it->second, i*2);
-    }
+    BOOST_CHECK(map == map_copy);
+    BOOST_CHECK(map == map_copy2);
 }
 
 
