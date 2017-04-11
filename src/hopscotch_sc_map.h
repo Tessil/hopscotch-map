@@ -364,7 +364,9 @@ public:
      * Lookup
      */
     T& at(const Key& key) { return m_ht.at(key); }
+    T& at(const Key& key, std::size_t hash) { return m_ht.at(key, hash); }
     const T& at(const Key& key) const { return m_ht.at(key); }
+    const T& at(const Key& key, std::size_t hash) const { return m_ht.at(key, hash); }
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent 
@@ -377,10 +379,24 @@ public:
     
     /**
      * @copydoc at(const K& key)
+     */    
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
+    T& at(const K& key, std::size_t hash) { return m_ht.at(key, hash); }
+    
+    /**
+     * @copydoc at(const K& key)
      */
     template<class K, class KE = KeyEqual, class CP = Compare, 
              typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     const T& at(const K& key) const { return m_ht.at(key); }
+    
+    /**
+     * @copydoc at(const K& key)
+     */    
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
+    const T& at(const K& key, std::size_t hash) const { return m_ht.at(key, hash); }
     
     
     
@@ -390,6 +406,7 @@ public:
     
     
     size_type count(const Key& key) const { return m_ht.count(key); }
+    size_type count(const Key& key, std::size_t hash) const { return m_ht.count(key, hash); }
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent 
@@ -400,10 +417,19 @@ public:
              typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     size_type count(const K& key) const { return m_ht.count(key); }
     
+    /**
+     * @copydoc count(const K& key)
+     */     
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
+    size_type count(const K& key, std::size_t hash) const { return m_ht.count(key, hash); }
+    
     
     
     iterator find(const Key& key) { return m_ht.find(key); }
+    iterator find(const Key& key, std::size_t hash) { return m_ht.find(key, hash); }
     const_iterator find(const Key& key) const { return m_ht.find(key); }
+    const_iterator find(const Key& key, std::size_t hash) const { return m_ht.find(key, hash); }
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent 
@@ -419,12 +445,33 @@ public:
      */
     template<class K, class KE = KeyEqual, class CP = Compare, 
              typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
+    iterator find(const K& key, std::size_t hash) { return m_ht.find(key, hash); }
+    
+    /**
+     * @copydoc find(const K& key)
+     */
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     const_iterator find(const K& key) const { return m_ht.find(key); }
+    
+    /**
+     * @copydoc find(const K& key)
+     */
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
+    const_iterator find(const K& key, std::size_t hash) const { return m_ht.find(key, hash); }
     
     
     
     std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
+    std::pair<iterator, iterator> equal_range(const Key& key, std::size_t hash) { 
+        return m_ht.equal_range(key, hash); 
+    }
+    
     std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
+    std::pair<const_iterator, const_iterator> equal_range(const Key& key, std::size_t hash) const { 
+        return m_ht.equal_range(key, hash); 
+    }
 
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent 
@@ -437,10 +484,30 @@ public:
     
     /**
      * @copydoc equal_range(const K& key)
+     */    
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
+    std::pair<iterator, iterator> equal_range(const K& key, std::size_t hash) { 
+        return m_ht.equal_range(key, hash); 
+    }
+    
+    /**
+     * @copydoc equal_range(const K& key)
      */
     template<class K, class KE = KeyEqual, class CP = Compare, 
              typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
+    
+    /**
+     * @copydoc equal_range(const K& key)
+     */    
+    template<class K, class KE = KeyEqual, class CP = Compare, 
+             typename std::enable_if<has_is_transparent<KE>::value && has_is_transparent<CP>::value>::type* = nullptr> 
+    std::pair<const_iterator, const_iterator> equal_range(const K& key, std::size_t hash) const { 
+        return m_ht.equal_range(key, hash); 
+    }
+    
+    
     
     /*
      * Bucket interface 
