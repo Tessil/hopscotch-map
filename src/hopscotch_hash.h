@@ -188,7 +188,7 @@ public:
             throw std::length_error("The map exceeds its maxmimum size.");
         }
         
-        m_iprime = std::distance(tsl::detail_hopscotch_hash::PRIMES.begin(), it_prime);
+        m_iprime = static_cast<unsigned int>(std::distance(tsl::detail_hopscotch_hash::PRIMES.begin(), it_prime));
         min_bucket_count_in_out = *it_prime;
     }
     
@@ -1208,7 +1208,7 @@ public:
      *  Hash policy 
      */
     float load_factor() const {
-        return (1.0f*m_nb_elements)/bucket_count();
+        return float(m_nb_elements)/float(bucket_count());
     }
     
     float max_load_factor() const {
