@@ -654,3 +654,36 @@ BOOST_AUTO_TEST_CASE(test_heterogeneous_lookups) {
     
     BOOST_CHECK_EQUAL(map.size(), 1);
 }
+
+
+
+/**
+ * Various operations on empty map
+ */
+BOOST_AUTO_TEST_CASE(test_empty_map) {
+    tsl::hopscotch_map<std::string, int> map(0);
+    
+    BOOST_CHECK_EQUAL(map.size(), 0);
+    BOOST_CHECK(map.empty());
+    
+    BOOST_CHECK(map.begin() == map.end());
+    BOOST_CHECK(map.begin() == map.cend());
+    BOOST_CHECK(map.cbegin() == map.cend());
+    
+    BOOST_CHECK(map.find("") == map.end());
+    BOOST_CHECK(map.find("test") == map.end());
+    
+    BOOST_CHECK_EQUAL(map.count(""), 0);
+    BOOST_CHECK_EQUAL(map.count("test"), 0);
+    
+    BOOST_CHECK_THROW(map.at(""), std::out_of_range);
+    BOOST_CHECK_THROW(map.at("test"), std::out_of_range);
+    
+    auto range = map.equal_range("test");
+    BOOST_CHECK(range.first == range.second);
+    
+    BOOST_CHECK_EQUAL(map.erase("test"), 0);
+    BOOST_CHECK(map.erase(map.begin(), map.end()) == map.end());
+    
+    BOOST_CHECK_EQUAL(map["new value"], int{});
+}

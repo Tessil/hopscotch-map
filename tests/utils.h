@@ -182,7 +182,7 @@ namespace std {
             return std::hash<int64_t>()(val->value());
         }
     };
-};
+}
 
 
 class utils {
