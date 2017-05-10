@@ -1121,12 +1121,7 @@ public:
     
     template<class K>
     size_type count(const K& key, std::size_t hash) const {
-        if(find_value_internal(key, hash, m_buckets.begin() + bucket_for_hash(hash)) == nullptr) {
-            return 0;
-        }
-        else {
-            return 1;
-        }
+        return count_internal(key, hash, m_buckets.cbegin() + bucket_for_hash(hash));
     }
     
     
@@ -1620,6 +1615,19 @@ private:
         }
         
         return nullptr;
+    }
+    
+    template<class K>
+    size_type count_internal(const K& key, std::size_t hash, const_iterator_buckets it_bucket) const {
+        if(find_in_buckets(key, hash, it_bucket) != m_buckets.cend()) {
+            return 1;
+        }
+        else if(it_bucket->has_overflow() && find_in_overflow(key) != m_overflow_elements.cend()) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
     }
     
     template<class K>
