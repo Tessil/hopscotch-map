@@ -132,6 +132,7 @@ public:
     using const_iterator = typename ht::const_iterator;
     
     
+    
     /*
      * Constructors
      */
@@ -248,6 +249,7 @@ public:
     
     
     
+    
     std::pair<iterator, bool> insert(const value_type& value) { 
         return m_ht.insert(value); 
     }
@@ -287,6 +289,7 @@ public:
 
     
     
+    
     template<class M>
     std::pair<iterator, bool> insert_or_assign(const key_type& k, M&& obj) { 
         return m_ht.insert_or_assign(k, std::forward<M>(obj)); 
@@ -308,6 +311,8 @@ public:
     }
     
     
+    
+    
     /**
      * Due to the way elements are stored, emplace will need to move or copy the key-value once.
      * The method is equivalent to insert(value_type(std::forward<Args>(args)...));
@@ -319,6 +324,9 @@ public:
         return m_ht.emplace(std::forward<Args>(args)...); 
     }
     
+    
+    
+    
     /**
      * Due to the way elements are stored, emplace_hint will need to move or copy the key-value once.
      * The method is equivalent to insert(hint, value_type(std::forward<Args>(args)...));
@@ -329,6 +337,9 @@ public:
     iterator emplace_hint(const_iterator hint, Args&&... args) {
         return m_ht.emplace_hint(hint, std::forward<Args>(args)...);
     }
+    
+    
+    
     
     template<class... Args>
     std::pair<iterator, bool> try_emplace(const key_type& k, Args&&... args) { 
@@ -350,6 +361,7 @@ public:
         return m_ht.try_emplace(hint, std::move(k), std::forward<Args>(args)...);
     }
     
+    
 
     
     iterator erase(iterator pos) { return m_ht.erase(pos); }
@@ -366,15 +378,28 @@ public:
     
     
     
+    
     void swap(hopscotch_map& other) { other.m_ht.swap(m_ht); }
     
     /*
      * Lookup
      */
     T& at(const Key& key) { return m_ht.at(key); }
-    T& at(const Key& key, std::size_t hash) { return m_ht.at(key, hash); }
+    
+    /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    T& at(const Key& key, std::size_t precalculated_hash) { return m_ht.at(key, precalculated_hash); }
+    
+    
     const T& at(const Key& key) const { return m_ht.at(key); }
-    const T& at(const Key& key, std::size_t hash) const { return m_ht.at(key, hash); }
+    
+    /**
+     * @copydoc at(const Key& key, std::size_t precalculated_hash)
+     */
+    const T& at(const Key& key, std::size_t precalculated_hash) const { return m_ht.at(key, precalculated_hash); }
+    
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
@@ -385,9 +410,13 @@ public:
 
     /**
      * @copydoc at(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
      */    
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
-    T& at(const K& key, std::size_t hash) { return m_ht.at(key, hash); }
+    T& at(const K& key, std::size_t precalculated_hash) { return m_ht.at(key, precalculated_hash); }
+    
     
     /**
      * @copydoc at(const K& key)
@@ -396,10 +425,11 @@ public:
     const T& at(const K& key) const { return m_ht.at(key); }
     
     /**
-     * @copydoc at(const K& key)
+     * @copydoc at(const K& key, std::size_t precalculated_hash)
      */    
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
-    const T& at(const K& key, std::size_t hash) const { return m_ht.at(key, hash); }
+    const T& at(const K& key, std::size_t precalculated_hash) const { return m_ht.at(key, precalculated_hash); }
+    
     
     
     
@@ -408,8 +438,14 @@ public:
     
     
     
+    
     size_type count(const Key& key) const { return m_ht.count(key); }
-    size_type count(const Key& key, std::size_t hash) const { return m_ht.count(key, hash); }
+    
+    /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    size_type count(const Key& key, std::size_t precalculated_hash) const { return m_ht.count(key, precalculated_hash); }
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
@@ -419,17 +455,31 @@ public:
     size_type count(const K& key) const { return m_ht.count(key); }
     
     /**
-     * @copydoc count(const K& key)
+     * @copydoc count(const K& key) const
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
      */     
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
-    size_type count(const K& key, std::size_t hash) const { return m_ht.count(key, hash); }
+    size_type count(const K& key, std::size_t precalculated_hash) const { return m_ht.count(key, precalculated_hash); }
+    
     
     
     
     iterator find(const Key& key) { return m_ht.find(key); }
-    iterator find(const Key& key, std::size_t hash) { return m_ht.find(key, hash); }
+    
+    /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    iterator find(const Key& key, std::size_t precalculated_hash) { return m_ht.find(key, precalculated_hash); }
+    
     const_iterator find(const Key& key) const { return m_ht.find(key); }
-    const_iterator find(const Key& key, std::size_t hash) const { return m_ht.find(key, hash); }
+    
+    /**
+     * @copydoc find(const Key& key, std::size_t precalculated_hash)
+     */
+    const_iterator find(const Key& key, std::size_t precalculated_hash) const { return m_ht.find(key, precalculated_hash); }
     
     /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
@@ -440,9 +490,12 @@ public:
     
     /**
      * @copydoc find(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
-    iterator find(const K& key, std::size_t hash) { return m_ht.find(key, hash); }
+    iterator find(const K& key, std::size_t precalculated_hash) { return m_ht.find(key, precalculated_hash); }
     
     /**
      * @copydoc find(const K& key)
@@ -452,20 +505,33 @@ public:
     
     /**
      * @copydoc find(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
-    const_iterator find(const K& key, std::size_t hash) const { return m_ht.find(key, hash); }
+    const_iterator find(const K& key, std::size_t precalculated_hash) const { return m_ht.find(key, precalculated_hash); }
+    
     
     
     
     std::pair<iterator, iterator> equal_range(const Key& key) { return m_ht.equal_range(key); }
-    std::pair<iterator, iterator> equal_range(const Key& key, std::size_t hash) { 
-        return m_ht.equal_range(key, hash); 
+    
+    /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     */
+    std::pair<iterator, iterator> equal_range(const Key& key, std::size_t precalculated_hash) { 
+        return m_ht.equal_range(key, precalculated_hash); 
     }
     
     std::pair<const_iterator, const_iterator> equal_range(const Key& key) const { return m_ht.equal_range(key); }
-    std::pair<const_iterator, const_iterator> equal_range(const Key& key, std::size_t hash) const { 
-        return m_ht.equal_range(key, hash); 
+    
+    /**
+     * @copydoc equal_range(const Key& key, std::size_t precalculated_hash)
+     */
+    std::pair<const_iterator, const_iterator> equal_range(const Key& key, std::size_t precalculated_hash) const { 
+        return m_ht.equal_range(key, precalculated_hash); 
     }
 
     /**
@@ -478,10 +544,13 @@ public:
     
     /**
      * @copydoc equal_range(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
-    std::pair<iterator, iterator> equal_range(const K& key, std::size_t hash) { 
-        return m_ht.equal_range(key, hash); 
+    std::pair<iterator, iterator> equal_range(const K& key, std::size_t precalculated_hash) { 
+        return m_ht.equal_range(key, precalculated_hash); 
     }
     
     /**
@@ -491,12 +560,13 @@ public:
     std::pair<const_iterator, const_iterator> equal_range(const K& key) const { return m_ht.equal_range(key); }
     
     /**
-     * @copydoc equal_range(const K& key)
+     * @copydoc equal_range(const K& key, std::size_t precalculated_hash)
      */    
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
-    std::pair<const_iterator, const_iterator> equal_range(const K& key, std::size_t hash) const { 
-        return m_ht.equal_range(key, hash); 
+    std::pair<const_iterator, const_iterator> equal_range(const K& key, std::size_t precalculated_hash) const { 
+        return m_ht.equal_range(key, precalculated_hash); 
     }
+    
     
     
     
