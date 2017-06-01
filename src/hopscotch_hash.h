@@ -577,7 +577,7 @@ template<class ValueType,
          bool StoreHash,
          class GrowthPolicy,
          class OverflowContainer>
-class hopscotch_hash {
+class hopscotch_hash : private Hash, KeyEqual, GrowthPolicy {
     static_assert(!StoreHash || std::is_same<GrowthPolicy, tsl::power_of_two_growth_policy>::value, 
                   "StoreHash can only be used with the tsl::power_of_two_growth_policy GrowthPolicy.");
     
@@ -732,11 +732,12 @@ public:
                   const Hash& hash,
                   const KeyEqual& equal,
                   const Allocator& alloc,
-                  float max_load_factor) :  m_buckets(alloc), 
+                  float max_load_factor) :  Hash(hash),
+                                            KeyEqual(equal),
+                                            GrowthPolicy(bucket_count),
+                                            m_buckets(alloc), 
                                             m_overflow_elements(alloc),
-                                            m_nb_elements(0),
-                                            m_growth_policy(bucket_count),
-                                            m_hash(hash), m_key_equal(equal)
+                                            m_nb_elements(0)
     {
         if(bucket_count > max_bucket_count()) {
             throw std::length_error("The map exceeds its maxmimum size.");
@@ -752,11 +753,12 @@ public:
                   const KeyEqual& equal,
                   const Allocator& alloc,
                   float max_load_factor,
-                  const typename OC::key_compare& comp) : m_buckets(alloc), 
+                  const typename OC::key_compare& comp) : Hash(hash),
+                                                          KeyEqual(equal),
+                                                          GrowthPolicy(bucket_count),
+                                                          m_buckets(alloc), 
                                                           m_overflow_elements(comp, alloc),
-                                                          m_nb_elements(0), 
-                                                          m_growth_policy(bucket_count),
-                                                          m_hash(hash), m_key_equal(equal)
+                                                          m_nb_elements(0)
     {
         if(bucket_count > max_bucket_count()) {
             throw std::length_error("The map exceeds its maxmimum size.");
@@ -772,16 +774,17 @@ public:
                                             std::is_nothrow_move_constructible<buckets_container_type>::value &&
                                             std::is_nothrow_move_constructible<overflow_container_type>::value &&
                                             std::is_nothrow_move_constructible<Hash>::value &&
-                                            std::is_nothrow_move_constructible<KeyEqual>::value
+                                            std::is_nothrow_move_constructible<KeyEqual>::value &&
+                                            std::is_nothrow_move_constructible<GrowthPolicy>::value
                                           )
-                                          : m_buckets(std::move(other.m_buckets)),
+                                          : Hash(std::move(static_cast<Hash&>(other))),
+                                            KeyEqual(std::move(static_cast<KeyEqual&>(other))),
+                                            GrowthPolicy(std::move(static_cast<GrowthPolicy&>(other))),
+                                            m_buckets(std::move(other.m_buckets)),
                                             m_overflow_elements(std::move(other.m_overflow_elements)),
                                             m_nb_elements(other.m_nb_elements),
-                                            m_growth_policy(other.m_growth_policy),
                                             m_max_load_factor(other.m_max_load_factor),
-                                            m_load_threshold(other.m_load_threshold),
-                                            m_hash(std::move(other.m_hash)),
-                                            m_key_equal(std::move(other.m_key_equal))
+                                            m_load_threshold(other.m_load_threshold)
     {
         other.clear();
     }
@@ -871,7 +874,7 @@ public:
     
     
     iterator insert(const_iterator hint, const value_type& value) { 
-        if(hint != cend() && m_key_equal(KeySelect()(*hint), KeySelect()(value))) { 
+        if(hint != cend() && compare_keys(KeySelect()(*hint), KeySelect()(value))) { 
             return get_mutable_iterator(hint); 
         }
         
@@ -881,7 +884,7 @@ public:
     template<class P, typename std::enable_if<std::is_constructible<value_type, P&&>::value>::type* = nullptr>
     iterator insert(const_iterator hint, P&& value) {
         value_type val(std::forward<P>(value));
-        if(hint != cend() && m_key_equal(KeySelect()(*hint), KeySelect()(val))) { 
+        if(hint != cend() && compare_keys(KeySelect()(*hint), KeySelect()(val))) { 
             return get_mutable_iterator(hint); 
         }
         
@@ -889,7 +892,7 @@ public:
     }
     
     iterator insert(const_iterator hint, value_type&& value) { 
-        if(hint != cend() && m_key_equal(KeySelect()(*hint), KeySelect()(value))) { 
+        if(hint != cend() && compare_keys(KeySelect()(*hint), KeySelect()(value))) { 
             return get_mutable_iterator(hint); 
         }
         
@@ -929,7 +932,7 @@ public:
     
     template<class M>
     iterator insert_or_assign(const_iterator hint, const key_type& k, M&& obj) {
-        if(hint != cend() && m_key_equal(KeySelect()(*hint), k)) { 
+        if(hint != cend() && compare_keys(KeySelect()(*hint), k)) { 
             auto it = get_mutable_iterator(hint); 
             it.value() = std::forward<M>(obj);
             
@@ -941,7 +944,7 @@ public:
     
     template<class M>
     iterator insert_or_assign(const_iterator hint, key_type&& k, M&& obj) {
-        if(hint != cend() && m_key_equal(KeySelect()(*hint), k)) {
+        if(hint != cend() && compare_keys(KeySelect()(*hint), k)) {
             auto it = get_mutable_iterator(hint); 
             it.value() = std::forward<M>(obj);
             
@@ -974,7 +977,7 @@ public:
     
     template<class... Args>
     iterator try_emplace(const_iterator hint, const key_type& k, Args&&... args) { 
-        if(hint != cend() && m_key_equal(KeySelect()(*hint), k)) { 
+        if(hint != cend() && compare_keys(KeySelect()(*hint), k)) { 
             return get_mutable_iterator(hint); 
         }
         
@@ -983,7 +986,7 @@ public:
     
     template<class... Args>
     iterator try_emplace(const_iterator hint, key_type&& k, Args&&... args) {
-        if(hint != cend() && m_key_equal(KeySelect()(*hint), k)) { 
+        if(hint != cend() && compare_keys(KeySelect()(*hint), k)) { 
             return get_mutable_iterator(hint); 
         }
         
@@ -997,7 +1000,7 @@ public:
     }
     
     iterator erase(const_iterator pos) {
-        const std::size_t ibucket_for_hash = bucket_for_hash(m_hash(pos.key()));
+        const std::size_t ibucket_for_hash = bucket_for_hash(hash_key(pos.key()));
         
         if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
             auto it_bucket = m_buckets.begin() + std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
@@ -1027,7 +1030,7 @@ public:
     
     template<class K>
     size_type erase(const K& key) {
-        const std::size_t hash = m_hash(key);
+        const std::size_t hash = hash_key(key);
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
         auto it_find = find_in_buckets(key, hash, m_buckets.begin() + ibucket_for_hash);
@@ -1052,14 +1055,14 @@ public:
     void swap(hopscotch_hash& other) {
         using std::swap;
         
+        swap(static_cast<Hash&>(*this), static_cast<Hash&>(other));
+        swap(static_cast<KeyEqual&>(*this), static_cast<KeyEqual&>(other));
+        swap(static_cast<GrowthPolicy&>(*this), static_cast<GrowthPolicy&>(other));
         swap(m_buckets, other.m_buckets);
         swap(m_overflow_elements, other.m_overflow_elements);
         swap(m_nb_elements, other.m_nb_elements);
-        swap(m_growth_policy, other.m_growth_policy);
         swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_load_threshold, other.m_load_threshold);
-        swap(m_hash, other.m_hash);
-        swap(m_key_equal, other.m_key_equal);
     }
     
     
@@ -1068,7 +1071,7 @@ public:
      */
     template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
     typename U::value_type& at(const K& key) {
-        return at(key, m_hash(key));
+        return at(key, hash_key(key));
     }
     
     template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
@@ -1079,7 +1082,7 @@ public:
     
     template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
     const typename U::value_type& at(const K& key) const {
-        return at(key, m_hash(key));
+        return at(key, hash_key(key));
     }
     
     template<class K, class U = ValueSelect, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
@@ -1100,7 +1103,7 @@ public:
     typename U::value_type& operator[](K&& key) {
         using T = typename U::value_type;
         
-        const std::size_t hash = m_hash(key);
+        const std::size_t hash = hash_key(key);
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
         T* value = find_value_internal(key, hash, m_buckets.begin() + ibucket_for_hash);
@@ -1115,7 +1118,7 @@ public:
     
     template<class K>
     size_type count(const K& key) const {
-        return count(key, m_hash(key));
+        return count(key, hash_key(key));
     }
     
     template<class K>
@@ -1126,7 +1129,7 @@ public:
     
     template<class K>
     iterator find(const K& key) {
-        const std::size_t hash = m_hash(key);
+        const std::size_t hash = hash_key(key);
         
         return find_internal(key, hash, m_buckets.begin() + bucket_for_hash(hash));
     }
@@ -1139,7 +1142,7 @@ public:
     
     template<class K>
     const_iterator find(const K& key) const {
-        const std::size_t hash = m_hash(key);
+        const std::size_t hash = hash_key(key);
         
         return find_internal(key, hash, m_buckets.begin() + bucket_for_hash(hash));
     }
@@ -1228,11 +1231,11 @@ public:
      * Observers
      */
     hasher hash_function() const {
-        return m_hash;
+        return static_cast<Hash>(*this);
     }
     
     key_equal key_eq() const {
-        return m_key_equal;
+        return static_cast<KeyEqual>(*this);
     }
     
     /*
@@ -1248,6 +1251,16 @@ public:
     }
     
 private:
+    template<class K>
+    std::size_t hash_key(const K& key) const {
+        return Hash::operator()(key);
+    }
+    
+    template<class K1, class K2>
+    bool compare_keys(const K1& key1, const K2& key2) const {
+        return KeyEqual::operator()(key1, key2);
+    }
+    
     iterator get_mutable_iterator(const_iterator pos) {
         if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
             // Get a non-const iterator
@@ -1263,7 +1276,7 @@ private:
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const {
-        return m_growth_policy.bucket_for_hash(hash);
+        return GrowthPolicy::bucket_for_hash(hash);
     }
     
     static_assert(std::is_nothrow_move_constructible<value_type>::value || 
@@ -1281,7 +1294,7 @@ private:
             }
             
             const std::size_t hash = StoreHash?bucket.truncated_bucket_hash():
-                                               new_map.m_hash(KeySelect()(bucket.get_value()));
+                                               new_map.hash_key(KeySelect()(bucket.get_value()));
             const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
             
             new_map.insert_internal(std::move(bucket.get_value()), hash, ibucket_for_hash);
@@ -1293,7 +1306,7 @@ private:
             new_map.m_nb_elements += new_map.m_overflow_elements.size();
             
             for(const value_type& value : new_map.m_overflow_elements) {
-                const std::size_t ibucket_for_hash = new_map.bucket_for_hash(new_map.m_hash(KeySelect()(value)));
+                const std::size_t ibucket_for_hash = new_map.bucket_for_hash(new_map.hash_key(KeySelect()(value)));
                 new_map.m_buckets[ibucket_for_hash].set_overflow(true);
             }
         }
@@ -1313,7 +1326,7 @@ private:
             }
             
             const std::size_t hash = StoreHash?bucket.truncated_bucket_hash():
-                                               new_map.m_hash(KeySelect()(bucket.get_value()));
+                                               new_map.hash_key(KeySelect()(bucket.get_value()));
             const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
             
             new_map.insert_internal(bucket.get_value(), hash, ibucket_for_hash);
@@ -1325,7 +1338,7 @@ private:
             new_map.m_nb_elements += new_map.m_overflow_elements.size();
             
             for(const value_type& value : new_map.m_overflow_elements) {
-                const std::size_t ibucket_for_hash = new_map.bucket_for_hash(new_map.m_hash(KeySelect()(value)));
+                const std::size_t ibucket_for_hash = new_map.bucket_for_hash(new_map.hash_key(KeySelect()(value)));
                 new_map.m_buckets[ibucket_for_hash].set_overflow(true);
             }
         }
@@ -1343,7 +1356,7 @@ private:
                                                    std::size_t original_bucket_for_hash) 
     {
         for(auto it = search_start; it != m_overflow_elements.end(); ++it) {
-            const std::size_t bucket_for_overflow_hash = bucket_for_hash(m_hash(KeySelect()(*it)));
+            const std::size_t bucket_for_overflow_hash = bucket_for_hash(hash_key(KeySelect()(*it)));
             if(bucket_for_overflow_hash == original_bucket_for_hash) {
                 return it;
             }
@@ -1393,7 +1406,7 @@ private:
     
     template<class K, class M>
     std::pair<iterator, bool> insert_or_assign_internal(K&& key, M&& obj) {
-        const std::size_t hash = m_hash(key);
+        const std::size_t hash = hash_key(key);
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
         // Check if already presents
@@ -1409,7 +1422,7 @@ private:
     
     template<typename P, class... Args>
     std::pair<iterator, bool> try_emplace_internal(P&& key, Args&&... args_value) {
-        const std::size_t hash = m_hash(key);
+        const std::size_t hash = hash_key(key);
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
         // Check if already presents
@@ -1427,7 +1440,7 @@ private:
     
     template<typename P>
     std::pair<iterator, bool> insert_internal(P&& value) {
-        const std::size_t hash = m_hash(KeySelect()(value));
+        const std::size_t hash = hash_key(KeySelect()(value));
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
         // Check if already presents
@@ -1443,7 +1456,7 @@ private:
     template<typename P>
     std::pair<iterator, bool> insert_internal(P&& value, std::size_t hash, std::size_t ibucket_for_hash) {
         if((m_nb_elements - m_overflow_elements.size() + 1) > m_load_threshold) {
-            rehash_internal(m_growth_policy.next_bucket_count());
+            rehash_internal(GrowthPolicy::next_bucket_count());
             ibucket_for_hash = bucket_for_hash(hash);
         }
         
@@ -1469,7 +1482,7 @@ private:
             return std::make_pair(iterator(m_buckets.end(), m_buckets.end(), it_insert), true);
         }
     
-        rehash_internal(m_growth_policy.next_bucket_count());
+        rehash_internal(GrowthPolicy::next_bucket_count());
         
         ibucket_for_hash = bucket_for_hash(hash);
         return insert_internal(std::forward<P>(value), hash, ibucket_for_hash);
@@ -1480,7 +1493,7 @@ private:
      * ibucket_neighborhood_check. In this case a rehash is needed instead of puting the value in overflow list.
      */
     bool will_neighborhood_change_on_rehash(size_t ibucket_neighborhood_check) const {
-        std::size_t expand_bucket_count = m_growth_policy.next_bucket_count();
+        std::size_t expand_bucket_count = GrowthPolicy::next_bucket_count();
         GrowthPolicy expand_growth_policy(expand_bucket_count);
         
         for(size_t ibucket = ibucket_neighborhood_check; 
@@ -1489,7 +1502,7 @@ private:
         {
             tsl_assert(!m_buckets[ibucket].is_empty());
             
-            const size_t hash = m_hash(KeySelect()(m_buckets[ibucket].get_value()));
+            const size_t hash = hash_key(KeySelect()(m_buckets[ibucket].get_value()));
             if(bucket_for_hash(hash) != expand_growth_policy.bucket_for_hash(hash)) {
                 return true;
             }
@@ -1679,7 +1692,7 @@ private:
                 // Check StoreHash before calling bucket_hash_equal. Functionally it doesn't change anythin. 
                 // If StoreHash is false, bucket_hash_equal is a no-op. Avoiding the call is there to help 
                 // GCC optimizes `hash` parameter away, it seems to not be able to do without this hint.
-                if((!StoreHash || it_bucket->bucket_hash_equal(hash)) && m_key_equal(KeySelect()(it_bucket->get_value()), key)) {
+                if((!StoreHash || it_bucket->bucket_hash_equal(hash)) && compare_keys(KeySelect()(it_bucket->get_value()), key)) {
                     return it_bucket;
                 }
             }
@@ -1699,7 +1712,7 @@ private:
     iterator_overflow find_in_overflow(const K& key) {
         return std::find_if(m_overflow_elements.begin(), m_overflow_elements.end(), 
                             [&](const value_type& value) { 
-                                return m_key_equal(key, KeySelect()(value)); 
+                                return compare_keys(key, KeySelect()(value)); 
                             });
     }
     
@@ -1707,7 +1720,7 @@ private:
     const_iterator_overflow find_in_overflow(const K& key) const {
         return std::find_if(m_overflow_elements.cbegin(), m_overflow_elements.cend(), 
                             [&](const value_type& value) { 
-                                return m_key_equal(key, KeySelect()(value)); 
+                                return compare_keys(key, KeySelect()(value)); 
                             });
     }
     
@@ -1723,12 +1736,14 @@ private:
     
     template<class U = OverflowContainer, typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
     hopscotch_hash new_hopscotch_hash(size_type bucket_count) {
-        return hopscotch_hash(bucket_count, m_hash, m_key_equal, get_allocator(), m_max_load_factor);
+        return hopscotch_hash(bucket_count, static_cast<Hash&>(*this), static_cast<KeyEqual&>(*this), 
+                              get_allocator(), m_max_load_factor);
     }
     
     template<class U = OverflowContainer, typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
     hopscotch_hash new_hopscotch_hash(size_type bucket_count) {
-        return hopscotch_hash(bucket_count, m_hash, m_key_equal, get_allocator(), m_max_load_factor, key_comp());
+        return hopscotch_hash(bucket_count, static_cast<Hash&>(*this), static_cast<KeyEqual&>(*this), 
+                              get_allocator(), m_max_load_factor, m_overflow_elements.key_comp());
     }
     
 public:    
@@ -1744,14 +1759,9 @@ private:
     overflow_container_type m_overflow_elements;
     
     size_type m_nb_elements;
-    GrowthPolicy m_growth_policy;
-    
     
     float m_max_load_factor;
     size_type m_load_threshold;
-    
-    hasher m_hash;
-    key_equal m_key_equal;
 };
 
 } // end namespace detail_hopscotch_hash
