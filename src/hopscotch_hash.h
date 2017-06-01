@@ -1737,7 +1737,7 @@ public:
     static constexpr float DEFAULT_MAX_LOAD_FACTOR = 0.95f;
     
 private:    
-    static const std::size_t MAX_PROBES_FOR_EMPTY_BUCKET = 10*NeighborhoodSize;
+    static const std::size_t MAX_PROBES_FOR_EMPTY_BUCKET = 12*NeighborhoodSize;
     static constexpr float MIN_LOAD_FACTOR_FOR_REHASH = has_key_compare<OverflowContainer>::value?0.3f:0.15f;
     
 private:    
