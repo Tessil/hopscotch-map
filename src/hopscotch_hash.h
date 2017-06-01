@@ -712,7 +712,6 @@ public:
         
         friend bool operator==(const hopscotch_iterator& lhs, const hopscotch_iterator& rhs) { 
             return lhs.m_buckets_iterator == rhs.m_buckets_iterator && 
-                   lhs.m_buckets_end_iterator == rhs.m_buckets_end_iterator &&
                    lhs.m_overflow_iterator == rhs.m_overflow_iterator; 
         }
         
