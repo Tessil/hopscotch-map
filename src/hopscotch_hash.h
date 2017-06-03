@@ -54,10 +54,12 @@
  * This way we avoid the performance hit when NDEBUG is not defined with assert as tsl_assert is used a lot
  * (people usually compile with "-O3" and not "-O3 -DNDEBUG").
  */
-#ifdef TSL_DEBUG
-#define tsl_assert(expr) assert(expr)
-#else
-#define tsl_assert(expr) (static_cast<void>(0))
+#ifndef tsl_assert
+    #ifdef TSL_DEBUG
+    #define tsl_assert(expr) assert(expr)
+    #else
+    #define tsl_assert(expr) (static_cast<void>(0))
+    #endif
 #endif
 
 namespace tsl {
