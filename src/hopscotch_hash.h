@@ -296,7 +296,7 @@ public:
  * The second least significant bit is set to 1 if there is an overflow. More than NeighborhoodSize values 
  * give the same hash, all overflow values are stored in the m_overflow_elements list of the map.
  */
-static const size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
+static const std::size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
 
 
 template<bool StoreHash>
