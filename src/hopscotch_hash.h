@@ -1290,6 +1290,17 @@ private:
     void rehash_internal(size_type count) {
         hopscotch_hash new_map = new_hopscotch_hash(count);
         
+        if(!m_overflow_elements.empty()) {
+            new_map.m_overflow_elements.swap(m_overflow_elements);
+            new_map.m_nb_elements += new_map.m_overflow_elements.size();
+            
+            for(const value_type& value : new_map.m_overflow_elements) {
+                const std::size_t ibucket_for_hash = new_map.bucket_for_hash(new_map.hash_key(KeySelect()(value)));
+                new_map.m_buckets[ibucket_for_hash].set_overflow(true);
+            }
+        }
+        
+        // TODO check that no element is inserted in the overflow list, adding an element may throw an exception
         for(hopscotch_bucket& bucket : m_buckets) {
             if(bucket.is_empty()) {
                 continue;
@@ -1302,17 +1313,6 @@ private:
             new_map.insert_internal(std::move(bucket.get_value()), hash, ibucket_for_hash);
         }
         
-        tsl_assert(new_map.m_overflow_elements.empty());
-        if(!m_overflow_elements.empty()) {
-            new_map.m_overflow_elements.swap(m_overflow_elements);
-            new_map.m_nb_elements += new_map.m_overflow_elements.size();
-            
-            for(const value_type& value : new_map.m_overflow_elements) {
-                const std::size_t ibucket_for_hash = new_map.bucket_for_hash(new_map.hash_key(KeySelect()(value)));
-                new_map.m_buckets[ibucket_for_hash].set_overflow(true);
-            }
-        }
-        
         new_map.swap(*this);
     }
     
@@ -1322,19 +1322,6 @@ private:
     void rehash_internal(size_type count) {
         hopscotch_hash new_map = new_hopscotch_hash(count);
                 
-        for(const hopscotch_bucket& bucket : m_buckets) {
-            if(bucket.is_empty()) {
-                continue;
-            }
-            
-            const std::size_t hash = StoreHash?bucket.truncated_bucket_hash():
-                                               new_map.hash_key(KeySelect()(bucket.get_value()));
-            const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
-            
-            new_map.insert_internal(bucket.get_value(), hash, ibucket_for_hash);
-        }
-        
-        tsl_assert(new_map.m_overflow_elements.empty());
         if(!m_overflow_elements.empty()) {
             new_map.m_overflow_elements.swap(m_overflow_elements);
             new_map.m_nb_elements += new_map.m_overflow_elements.size();
@@ -1343,6 +1330,24 @@ private:
                 const std::size_t ibucket_for_hash = new_map.bucket_for_hash(new_map.hash_key(KeySelect()(value)));
                 new_map.m_buckets[ibucket_for_hash].set_overflow(true);
             }
+        }
+        
+        try {
+            for(const hopscotch_bucket& bucket : m_buckets) {
+                if(bucket.is_empty()) {
+                    continue;
+                }
+                
+                const std::size_t hash = StoreHash?bucket.truncated_bucket_hash():
+                                                new_map.hash_key(KeySelect()(bucket.get_value()));
+                const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
+                
+                new_map.insert_internal(bucket.get_value(), hash, ibucket_for_hash);
+            }
+        }
+        catch(...) {
+            new_map.m_overflow_elements.swap(m_overflow_elements);
+            throw;
         }
 
         new_map.swap(*this);
