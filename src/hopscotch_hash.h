@@ -1311,12 +1311,6 @@ private:
                                                 hash_key(KeySelect()(it_bucket->get_value()));
                 const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
                 
-                static std::size_t i = 0;
-                i++;
-                if(i == 100000) {
-                    throw std::runtime_error("");
-                }
-                
                 new_map.insert_internal(std::move(it_bucket->get_value()), hash, ibucket_for_hash);
                 
                 
