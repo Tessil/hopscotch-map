@@ -426,6 +426,11 @@ BOOST_AUTO_TEST_CASE(test_clear) {
     map.clear();
     BOOST_CHECK_EQUAL(map.size(), 0);
     BOOST_CHECK_EQUAL(std::distance(map.begin(), map.end()), 0);
+    
+    map.insert({5, -5});
+    map.insert({{1, -1}, {2, -1}, {4, -4}, {3, -3}});
+    
+    BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>({{5, -5}, {1, -1}, {2, -1}, {4, -4}, {3, -3}})));
 }
 
 

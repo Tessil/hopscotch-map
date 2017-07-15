@@ -580,7 +580,7 @@ template<class ValueType,
          bool StoreHash,
          class GrowthPolicy,
          class OverflowContainer>
-class hopscotch_hash : private Hash, KeyEqual, GrowthPolicy {
+class hopscotch_hash: private Hash, private KeyEqual, private GrowthPolicy {
     static_assert(!StoreHash || std::is_same<GrowthPolicy, tsl::power_of_two_growth_policy>::value, 
                   "StoreHash can only be used with the tsl::power_of_two_growth_policy GrowthPolicy.");
     
