@@ -258,25 +258,25 @@ class smallest_type_for_min_bits {
 template<unsigned int MinBits>
 class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 0) && (MinBits <= 8)>::type> {
 public:
-    using type = std::uint8_t;
+    using type = std::uint_least8_t;
 };
 
 template<unsigned int MinBits>
 class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 8) && (MinBits <= 16)>::type> {
 public:
-    using type = std::uint16_t;
+    using type = std::uint_least16_t;
 };
 
 template<unsigned int MinBits>
 class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 16) && (MinBits <= 32)>::type> {
 public:
-    using type = std::uint32_t;
+    using type = std::uint_least32_t;
 };
 
 template<unsigned int MinBits>
 class smallest_type_for_min_bits<MinBits, typename std::enable_if<(MinBits > 32) && (MinBits <= 64)>::type> {
 public:
-    using type = std::uint64_t;
+    using type = std::uint_least64_t;
 };
         
 
@@ -324,10 +324,11 @@ protected:
 template<>
 class hopscotch_bucket_hash<true> {
 public:
-    using hash_type = std::uint32_t;
+    using hash_type = std::uint_least32_t;
+    static_assert(sizeof(hash_type) <= sizeof(std::size_t), "");
     
     bool bucket_hash_equal(std::size_t hash) const {
-        return m_hash == static_cast<std::uint32_t>(hash);
+        return m_hash == static_cast<hash_type>(hash);
     }
     
     std::size_t truncated_bucket_hash() const {
@@ -340,7 +341,7 @@ protected:
     }
     
     void set_hash(std::size_t hash) {
-        m_hash = static_cast<std::uint32_t>(hash);
+        m_hash = static_cast<hash_type>(hash);
     }
     
 private:    
