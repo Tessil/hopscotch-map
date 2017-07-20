@@ -279,11 +279,30 @@ public:
     size_type erase(const key_type& key) { return m_ht.erase(key); }
     
     /**
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup to the value if you already have the hash.
+     */    
+    size_type erase(const key_type& key, std::size_t precalculated_hash) { 
+        return m_ht.erase(key, precalculated_hash); 
+    }
+    
+    /**
      * This overload only participates in the overload resolution if the typedef KeyEqual::is_transparent exists. 
      * If so, K must be hashable and comparable to Key.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     size_type erase(const K& key) { return m_ht.erase(key); }
+    
+    /**
+     * @copydoc erase(const K& key)
+     * 
+     * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
+     * as hash_function()(key). Usefull to speed-up the lookup to the value if you already have the hash.
+     */    
+    template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
+    size_type erase(const K& key, std::size_t precalculated_hash) { 
+        return m_ht.erase(key, precalculated_hash); 
+    }
     
     
     

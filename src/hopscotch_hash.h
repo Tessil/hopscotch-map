@@ -1030,10 +1030,13 @@ public:
         return to_delete;
     }
     
-    
     template<class K>
     size_type erase(const K& key) {
-        const std::size_t hash = hash_key(key);
+        return erase(key, hash_key(key));
+    }
+    
+    template<class K>
+    size_type erase(const K& key, std::size_t hash) {
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
         auto it_find = find_in_buckets(key, hash, m_buckets.begin() + ibucket_for_hash);
