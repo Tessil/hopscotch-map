@@ -10,6 +10,8 @@ An overview of hopscotch hashing and some implementation details may be found [h
 
 A **benchmark** of `tsl::hopscotch_map` against other hash maps may be found [there](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html).
 
+**Note**: By default the library uses a power of two for the size of its buckets array to take advantage of the [fast modulo](https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues). For good performance, it requires the hash table to have a well-distributed hash function. If you encounter performance issues check the [GrowthPolicy](https://github.com/Tessil/hopscotch-map#growth-policy) section to change the default behaviour or change your hash function.
+
 ### Key features
 - Header-only library, just include [src/](src/) to your include path and you are ready to go.
 - Fast hash table, see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html) for some numbers.
