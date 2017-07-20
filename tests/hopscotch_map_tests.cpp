@@ -705,3 +705,64 @@ BOOST_AUTO_TEST_CASE(test_empty_map) {
     
     BOOST_CHECK_EQUAL(map["new value"], int{});
 }
+
+/**
+ * Test precalculated hash
+ */
+BOOST_AUTO_TEST_CASE(test_precalculated_hash) {
+    tsl::hopscotch_map<int, int, std::hash<int>> map = {{1, -1}, {2, -2}, {3, -3}, {4, -4}, {5, -5}, {6, -6}};
+    const tsl::hopscotch_map<int, int> map_const = map;
+    
+    /**
+     * find
+     */
+    BOOST_REQUIRE(map.find(3, map.hash_function()(3)) != map.end());
+    BOOST_CHECK_EQUAL(map.find(3, map.hash_function()(3))->second, -3);
+    
+    BOOST_REQUIRE(map_const.find(3, map_const.hash_function()(3)) != map_const.end());
+    BOOST_CHECK_EQUAL(map_const.find(3, map_const.hash_function()(3))->second, -3);
+    
+    BOOST_REQUIRE_NE(map.hash_function()(2), map.hash_function()(3));
+    BOOST_CHECK(map.find(3, map.hash_function()(2)) == map.end());
+    
+    /**
+     * at
+     */
+    BOOST_CHECK_EQUAL(map.at(3, map.hash_function()(3)), -3);
+    BOOST_CHECK_EQUAL(map_const.at(3, map_const.hash_function()(3)), -3);
+    
+    BOOST_REQUIRE_NE(map.hash_function()(2), map.hash_function()(3));
+    BOOST_CHECK_THROW(map.at(3, map.hash_function()(2)), std::out_of_range);
+    
+    /**
+     * count
+     */
+    BOOST_CHECK_EQUAL(map.count(3, map.hash_function()(3)), 1);
+    BOOST_CHECK_EQUAL(map_const.count(3, map_const.hash_function()(3)), 1);
+    
+    BOOST_REQUIRE_NE(map.hash_function()(2), map.hash_function()(3));
+    BOOST_CHECK_EQUAL(map.count(3, map.hash_function()(2)), 0);
+    
+    /**
+     * equal_range
+     */
+    auto it_range = map.equal_range(3, map.hash_function()(3));
+    BOOST_REQUIRE_EQUAL(std::distance(it_range.first, it_range.second), 1);
+    BOOST_CHECK_EQUAL(it_range.first->second, -3);
+    
+    auto it_range_const = map_const.equal_range(3, map_const.hash_function()(3));
+    BOOST_REQUIRE_EQUAL(std::distance(it_range_const.first, it_range_const.second), 1);
+    BOOST_CHECK_EQUAL(it_range_const.first->second, -3);
+    
+    it_range = map.equal_range(3, map.hash_function()(2));
+    BOOST_REQUIRE_NE(map.hash_function()(2), map.hash_function()(3));
+    BOOST_CHECK_EQUAL(std::distance(it_range.first, it_range.second), 0);
+    
+    /**
+     * erase
+     */
+    BOOST_CHECK_EQUAL(map.erase(3, map.hash_function()(3)), 1);
+    
+    BOOST_REQUIRE_NE(map.hash_function()(2), map.hash_function()(4));
+    BOOST_CHECK_EQUAL(map.erase(4, map.hash_function()(2)), 0);
+}
