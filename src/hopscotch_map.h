@@ -597,6 +597,14 @@ public:
     /*
      * Other
      */
+    
+    /**
+     * Convert a const_iterator to an iterator.
+     */
+    iterator mutable_iterator(const_iterator pos) {
+        return m_ht.mutable_iterator(pos);
+    }
+    
     size_type overflow_size() const noexcept { return m_ht.overflow_size(); }
     
     friend bool operator==(const hopscotch_map& lhs, const hopscotch_map& rhs) {
