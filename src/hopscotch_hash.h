@@ -29,12 +29,14 @@
 #include <array>
 #include <cassert>
 #include <cmath>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <functional>
 #include <initializer_list>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <ratio>
 #include <stdexcept>
@@ -75,6 +77,11 @@ public:
      * This number is a minimum, the policy may update this value with a higher value if needed.
      */
     power_of_two_growth_policy(std::size_t& min_bucket_count_in_out) {
+        if(min_bucket_count_in_out > max_bucket_count()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        static_assert(MIN_BUCKETS_SIZE > 0, "");
         const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
         
         min_bucket_count_in_out = std::max(min_bucket_count, min_bucket_count_in_out);
@@ -93,27 +100,42 @@ public:
      * Return the bucket count to uses when the bucket array grows on rehash.
      */
     std::size_t next_bucket_count() const {
+        if((m_mask + 1) > max_bucket_count()/2) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
         return (m_mask + 1) * 2;
     }
     
-private:    
-    // TODO could be faster
+    /**
+     * Return the maximum number of buckets supported by the policy.
+     */
+    std::size_t max_bucket_count() const {
+        return std::numeric_limits<std::size_t>::max()/2 + 1;
+    }
+    
+private:
     static std::size_t round_up_to_power_of_two(std::size_t value) {
+        if(value == 0) {
+            return 1;
+        }
+        
         if(is_power_of_two(value)) {
             return value;
         }
-        
-        std::size_t power = 1;
-        while(power < value) {
-            power <<= 1;
+            
+        --value;
+        for(std::size_t i = 1; i < sizeof(std::size_t) * CHAR_BIT; i *= 2) {
+            value |= value >> i;
         }
         
-        return power;
+        return value + 1;
     }
     
     static constexpr bool is_power_of_two(std::size_t value) {
         return value != 0 && (value & (value - 1)) == 0;
-    }    
+    }
+    
 private:
     static const std::size_t MIN_BUCKETS_SIZE = 2;
     
@@ -128,6 +150,11 @@ template<class GrowthFactor = std::ratio<3, 2>>
 class mod_growth_policy {
 public:
     mod_growth_policy(std::size_t& min_bucket_count_in_out) {
+        if(min_bucket_count_in_out > max_bucket_count()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        static_assert(MIN_BUCKETS_SIZE > 0, "");
         const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
         
         min_bucket_count_in_out = std::max(min_bucket_count, min_bucket_count_in_out);
@@ -140,13 +167,35 @@ public:
     }
     
     std::size_t next_bucket_count() const {
-        return static_cast<std::size_t>(
-                    std::ceil(static_cast<double>(m_bucket_count) * REHASH_SIZE_MULTIPLICATION_FACTOR));
+        if(m_bucket_count == max_bucket_count()) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        const double next_bucket_count = std::ceil(double(m_bucket_count) * REHASH_SIZE_MULTIPLICATION_FACTOR);
+        if(!std::isnormal(next_bucket_count)) {
+            throw std::length_error("The map exceeds its maxmimum size.");
+        }
+        
+        if(next_bucket_count > double(max_bucket_count())) {
+            return max_bucket_count();
+        }
+        else {
+            return std::size_t(next_bucket_count);
+        }
+    }
+    
+    std::size_t max_bucket_count() const {
+        return MAX_BUCKET_COUNT;
     }
     
 private:
     static const std::size_t MIN_BUCKETS_SIZE = 2;
     static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
+    static const std::size_t MAX_BUCKET_COUNT = 
+            std::size_t(double(
+                    std::numeric_limits<std::size_t>::max()/REHASH_SIZE_MULTIPLICATION_FACTOR
+            ));
+            
     static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Grow factor should be >= 1.1.");
     
     std::size_t m_bucket_count;
@@ -156,8 +205,8 @@ private:
 
 namespace detail_hopscotch_hash {
 
-static constexpr const std::array<std::size_t, 38> PRIMES = {{
-    17ul, 29ul, 37ul, 53ul, 67ul, 79ul, 97ul, 131ul, 193ul, 257ul, 389ul, 521ul, 769ul, 1031ul, 1543ul, 2053ul, 
+static constexpr const std::array<std::size_t, 39> PRIMES = {{
+    5ul, 17ul, 29ul, 37ul, 53ul, 67ul, 79ul, 97ul, 131ul, 193ul, 257ul, 389ul, 521ul, 769ul, 1031ul, 1543ul, 2053ul, 
     3079ul, 6151ul, 12289ul, 24593ul, 49157ul, 98317ul, 196613ul, 393241ul, 786433ul, 1572869ul, 3145739ul, 
     6291469ul, 12582917ul, 25165843ul, 50331653ul, 100663319ul, 201326611ul, 402653189ul, 805306457ul, 
     1610612741ul, 3221225473ul, 4294967291ul
@@ -168,11 +217,11 @@ static std::size_t mod(std::size_t hash) { return hash % PRIMES[IPrime]; }
 
 // MOD_PRIME[iprime](hash) returns hash % PRIMES[iprime]. This table allows for faster modulo as the
 // compiler can optimize the modulo code better with a constant known at the compilation.
-static constexpr const std::array<std::size_t(*)(std::size_t), 38> MOD_PRIME = {{ 
+static constexpr const std::array<std::size_t(*)(std::size_t), 39> MOD_PRIME = {{ 
     &mod<0>, &mod<1>, &mod<2>, &mod<3>, &mod<4>, &mod<5>, &mod<6>, &mod<7>, &mod<8>, &mod<9>, &mod<10>, 
     &mod<11>, &mod<12>, &mod<13>, &mod<14>, &mod<15>, &mod<16>, &mod<17>, &mod<18>, &mod<19>, &mod<20>, 
     &mod<21>, &mod<22>, &mod<23>, &mod<24>, &mod<25>, &mod<26>, &mod<27>, &mod<28>, &mod<29>, &mod<30>, 
-    &mod<31>, &mod<32>, &mod<33>, &mod<34>, &mod<35>, &mod<36>, &mod<37> 
+    &mod<31>, &mod<32>, &mod<33>, &mod<34>, &mod<35>, &mod<36>, &mod<37> , &mod<38>
 }};
 
 }
@@ -205,6 +254,10 @@ public:
         
         return tsl::detail_hopscotch_hash::PRIMES[m_iprime + 1];
     }   
+    
+    std::size_t max_bucket_count() const {
+        return tsl::detail_hopscotch_hash::PRIMES.back();
+    }
     
 private:  
     std::size_t bucket_for_hash_iprime(std::size_t hash, unsigned int iprime) const {
@@ -1211,13 +1264,15 @@ public:
     }
     
     size_type max_bucket_count() const {
+        std::size_t max_bucket_count = std::min(GrowthPolicy::max_bucket_count(), m_buckets.max_size());
         if(StoreHash) {
-            return std::numeric_limits<typename hopscotch_bucket_hash<StoreHash>::hash_type>::max()
-                    - NeighborhoodSize + 1;
+            const std::size_t max_bucket_count_bucket_hash = 
+                        std::numeric_limits<typename hopscotch_bucket_hash<StoreHash>::hash_type>::max();
+                        
+            max_bucket_count = std::min(max_bucket_count, max_bucket_count_bucket_hash);
         }
-        else {
-            return m_buckets.max_size() - NeighborhoodSize + 1;
-        }
+        
+        return max_bucket_count - NeighborhoodSize + 1;
     }
     
     

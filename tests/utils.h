@@ -1,7 +1,15 @@
 #ifndef TSL_UTILS_H
 #define TSL_UTILS_H
 
+
 #include <boost/numeric/conversion/cast.hpp>
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <ostream>
+#include <string>
+#include <utility>
+
 
 template<unsigned int MOD>
 class mod_hash {

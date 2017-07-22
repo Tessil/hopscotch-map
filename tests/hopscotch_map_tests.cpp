@@ -2,27 +2,36 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/mpl/list.hpp>
+#include <cstdint>
+#include <functional>
+#include <iterator>
+#include <limits>
+#include <memory>
+#include <ratio>
+#include <stdexcept>
+#include <string>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 
 #include "utils.h"
 #include "hopscotch_map.h"
 #include "hopscotch_sc_map.h"
 
 
+BOOST_AUTO_TEST_SUITE(test_hopscotch_map)
+
 using test_types = boost::mpl::list<
-                        tsl::hopscotch_map<int64_t, int64_t>,
-                        // Test with hash having a lot of collisions
-                        tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>>,
-                        tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 
-                            std::allocator<std::pair<int64_t, int64_t>>, 6>, 
                         tsl::hopscotch_map<std::string, std::string>,
-                        tsl::hopscotch_map<std::string, std::string, mod_hash<9>>,
+                        // Test with hash having a lot of collisions
+                        tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 
+                            std::allocator<std::pair<int64_t, int64_t>>, 6>,
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
                             std::allocator<std::pair<std::string, std::string>>, 6>,
-                        tsl::hopscotch_map<int64_t, move_only_test>,
-                        tsl::hopscotch_map<move_only_test, int64_t>,
                         tsl::hopscotch_map<move_only_test, move_only_test, mod_hash<9>, std::equal_to<move_only_test>, 
                             std::allocator<std::pair<move_only_test, move_only_test>>, 6>,
-                        tsl::hopscotch_map<self_reference_member_test, self_reference_member_test>,
                         tsl::hopscotch_map<self_reference_member_test, self_reference_member_test, 
                             mod_hash<9>, std::equal_to<self_reference_member_test>, 
                             std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6>,
@@ -460,8 +469,39 @@ BOOST_AUTO_TEST_CASE(test_modify_value) {
     }
 }
 
-
-
+/**
+ * Constructor
+ */
+BOOST_AUTO_TEST_CASE(test_extreme_bucket_count_value_construction) {
+    BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
+                                         std::allocator<std::pair<int, int>>, 62, false, 
+                                         tsl::power_of_two_growth_policy>
+                            (std::numeric_limits<std::size_t>::max())), std::length_error);
+    
+    BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
+                                         std::allocator<std::pair<int, int>>, 62, false, 
+                                         tsl::power_of_two_growth_policy>
+                            (std::numeric_limits<std::size_t>::max()/2 + 1)), std::length_error);
+    
+    
+    
+    BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
+                                         std::allocator<std::pair<int, int>>, 62, false, 
+                                         tsl::prime_growth_policy>
+                            (std::numeric_limits<std::size_t>::max())), std::length_error);
+    
+    BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
+                                         std::allocator<std::pair<int, int>>, 62, false, 
+                                         tsl::prime_growth_policy>
+                            (std::numeric_limits<std::size_t>::max()/2)), std::length_error);
+    
+    
+    
+    BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
+                                         std::allocator<std::pair<int, int>>, 62, false, 
+                                         tsl::mod_growth_policy<>>
+                            (std::numeric_limits<std::size_t>::max())), std::length_error);
+}
 
 /**
  * operator=
@@ -477,35 +517,55 @@ BOOST_AUTO_TEST_CASE(test_assign_operator) {
 
 
 BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_constructor) {
-    tsl::hopscotch_map<int64_t, int64_t> map = {{1, 1}, {2, 1}, {3, 1}};
+    using HMap = tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
+                                    std::allocator<std::pair<int, int>>, 7, true>;
+                                    
+    HMap map = {{1, 1}, {2, 1}, {3, 1}};
     BOOST_CHECK_EQUAL(map.size(), 3);
     
-    tsl::hopscotch_map<int64_t, int64_t> map_move(std::move(map));
+    HMap map_move(std::move(map));
     BOOST_CHECK_EQUAL(map_move.size(), 3);
     BOOST_CHECK_EQUAL(map.size(), 0);
     
-    BOOST_CHECK(map_move == (tsl::hopscotch_map<int64_t, int64_t>({{1, 1}, {2, 1}, {3, 1}})));
-    BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>()));
+    BOOST_CHECK(map_move == (HMap({{1, 1}, {2, 1}, {3, 1}})));
+    BOOST_CHECK(map == (HMap()));
+    
+    
+    for(int i = 4; i <= 100; i++) {
+        map_move.insert({i, 1});
+    }
+    BOOST_CHECK_EQUAL(map_move.size(), 100);
+    
     
     map = {{4, 1}, {5, 1}};
     BOOST_CHECK_EQUAL(map.size(), 2);
-    BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>({{4, 1}, {5, 1}})));
+    BOOST_CHECK(map == (HMap({{4, 1}, {5, 1}})));
 }
 
 BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_operator) {
-    tsl::hopscotch_map<int64_t, int64_t> map = {{1, 1}, {2, 1}, {3, 1}};
+    using HMap = tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
+                                    std::allocator<std::pair<int, int>>, 7, true>;
+                                    
+    HMap map = {{1, 1}, {2, 1}, {3, 1}};
     BOOST_CHECK_EQUAL(map.size(), 3);
     
-    tsl::hopscotch_map<int64_t, int64_t> map_move = std::move(map);
+    HMap map_move = std::move(map);
     BOOST_CHECK_EQUAL(map_move.size(), 3);
     BOOST_CHECK_EQUAL(map.size(), 0);
     
-    BOOST_CHECK(map_move == (tsl::hopscotch_map<int64_t, int64_t>({{1, 1}, {2, 1}, {3, 1}})));
-    BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>()));
+    BOOST_CHECK(map_move == (HMap({{1, 1}, {2, 1}, {3, 1}})));
+    BOOST_CHECK(map == (HMap()));
+    
+    
+    for(int i = 4; i <= 100; i++) {
+        map_move.insert({i, 1});
+    }
+    BOOST_CHECK_EQUAL(map_move.size(), 100);
+    
     
     map = {{4, 1}, {5, 1}};
     BOOST_CHECK_EQUAL(map.size(), 2);
-    BOOST_CHECK(map == (tsl::hopscotch_map<int64_t, int64_t>({{4, 1}, {5, 1}})));
+    BOOST_CHECK(map == (HMap({{4, 1}, {5, 1}})));
 }
 
 BOOST_AUTO_TEST_CASE(test_copy) {
@@ -766,3 +826,6 @@ BOOST_AUTO_TEST_CASE(test_precalculated_hash) {
     BOOST_REQUIRE_NE(map.hash_function()(2), map.hash_function()(4));
     BOOST_CHECK_EQUAL(map.erase(4, map.hash_function()(2)), 0);
 }
+
+
+BOOST_AUTO_TEST_SUITE_END()

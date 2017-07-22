@@ -2,15 +2,19 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/mpl/list.hpp>
+#include <cstdint>
+#include <utility>
 
 #include "utils.h"
 #include "hopscotch_set.h"
 #include "hopscotch_sc_set.h"
 
 
-using test_types = boost::mpl::list<tsl::hopscotch_set<int64_t>,
-                                    tsl::hopscotch_set<self_reference_member_test>,
-                                    tsl::hopscotch_set<move_only_test>,
+BOOST_AUTO_TEST_SUITE(test_hopscotch_set)
+ 
+using test_types = boost::mpl::list<tsl::hopscotch_set<int64_t, mod_hash<9>>,
+                                    tsl::hopscotch_set<self_reference_member_test, mod_hash<9>>,
+                                    tsl::hopscotch_set<move_only_test, mod_hash<9>>,
                                     tsl::hopscotch_sc_set<int64_t, mod_hash<9>>,
                                     tsl::hopscotch_sc_set<self_reference_member_test, mod_hash<9>>,
                                     tsl::hopscotch_sc_set<move_only_test, mod_hash<9>>>;
@@ -49,3 +53,5 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HSet, test_types) {
         BOOST_CHECK_EQUAL(*it, utils::get_key<key_t>(i));
     }
 }
+
+BOOST_AUTO_TEST_SUITE_END()
