@@ -90,7 +90,7 @@ using test_overflow_rehash_types = boost::mpl::list<
                     tsl::hopscotch_map<int64_t, move_only_test, mod_hash<overflow_mod>, std::equal_to<int64_t>, 
                             std::allocator<std::pair<int64_t, move_only_test>>, 6>,
                     tsl::hopscotch_sc_map<int64_t, move_only_test, mod_hash<overflow_mod>, std::equal_to<int64_t>, 
-                            std::less<int64_t>, std::allocator<std::pair<int64_t, move_only_test>>, 6>>;                   
+                            std::less<int64_t>, std::allocator<std::pair<const int64_t, move_only_test>>, 6>>;                   
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_overflow_rehash_nothrow_move_construbtible, HMap, test_overflow_rehash_types) {    
     // insert x/mod values, insert x values, check values
     static_assert(std::is_nothrow_move_constructible<typename HMap::value_type>::value, "");
