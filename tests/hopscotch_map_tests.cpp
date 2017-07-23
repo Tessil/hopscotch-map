@@ -218,6 +218,31 @@ BOOST_AUTO_TEST_CASE(test_insert_with_hint) {
     BOOST_CHECK_EQUAL(map.insert(map.find(2), std::make_pair(5, 4))->first, 5);
 }
 
+/**
+ * emplace
+ */
+BOOST_AUTO_TEST_CASE(test_emplace) {
+    tsl::hopscotch_map<int64_t, move_only_test> map;
+    tsl::hopscotch_map<int64_t, move_only_test>::iterator it;
+    bool inserted;
+    
+    
+    std::tie(it, inserted) = map.emplace(std::piecewise_construct,
+                                            std::forward_as_tuple(10),
+                                            std::forward_as_tuple(1));
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    BOOST_CHECK(inserted);
+    
+    
+    std::tie(it, inserted) = map.emplace(std::piecewise_construct,
+                                            std::forward_as_tuple(10),
+                                            std::forward_as_tuple(3));
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    BOOST_CHECK(!inserted);
+}
+
 
 /**
  * try_emplace
@@ -238,6 +263,24 @@ BOOST_AUTO_TEST_CASE(test_try_emplace) {
     BOOST_CHECK_EQUAL(it->first, 10);
     BOOST_CHECK_EQUAL(it->second, move_only_test(1));
     BOOST_CHECK(!inserted);
+}
+
+BOOST_AUTO_TEST_CASE(test_try_emplace_hint) {
+    tsl::hopscotch_map<int64_t, move_only_test> map(0);
+    
+    auto it = map.try_emplace(map.find(10), 10, 1);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    
+    
+    it = map.try_emplace(map.find(10), 10, 3);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
+    
+    
+    it = map.try_emplace(map.find(-1), 10, 3);
+    BOOST_CHECK_EQUAL(it->first, 10);
+    BOOST_CHECK_EQUAL(it->second, move_only_test(1));
 }
 
 
@@ -470,7 +513,7 @@ BOOST_AUTO_TEST_CASE(test_modify_value) {
 }
 
 /**
- * Constructor
+ * constructor
  */
 BOOST_AUTO_TEST_CASE(test_extreme_bucket_count_value_construction) {
     BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
