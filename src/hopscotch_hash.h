@@ -570,6 +570,15 @@ public:
         tsl_assert(empty());
     }
     
+    static std::size_t max_size() noexcept {
+        if(StoreHash) {
+            return std::numeric_limits<typename bucket_hash::hash_type>::max();
+        }
+        else {
+            return std::numeric_limits<std::size_t>::max();
+        }
+    }
+    
 private:
     void set_empty(bool is_empty) noexcept {
         if(is_empty) {
@@ -921,7 +930,7 @@ public:
     }
     
     size_type max_size() const noexcept {
-        return m_buckets.max_bucket_count() * max_load_factor();
+        return hopscotch_bucket::max_size();
     }
     
     /*
@@ -1264,14 +1273,7 @@ public:
     }
     
     size_type max_bucket_count() const {
-        std::size_t max_bucket_count = std::min(GrowthPolicy::max_bucket_count(), m_buckets.max_size());
-        if(StoreHash) {
-            const std::size_t max_bucket_count_bucket_hash = 
-                        std::numeric_limits<typename hopscotch_bucket_hash<StoreHash>::hash_type>::max();
-                        
-            max_bucket_count = std::min(max_bucket_count, max_bucket_count_bucket_hash);
-        }
-        
+        const std::size_t max_bucket_count = std::min(GrowthPolicy::max_bucket_count(), m_buckets.max_size());
         return max_bucket_count - NeighborhoodSize + 1;
     }
     
