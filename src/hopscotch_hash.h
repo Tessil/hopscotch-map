@@ -988,12 +988,13 @@ public:
                            typename std::iterator_traits<InputIt>::iterator_category>::value) 
         {
             const auto nb_elements_insert = std::distance(first, last);
-            const std::size_t nb_free_buckets = m_load_threshold - (m_nb_elements - m_overflow_elements.size());
+            const std::size_t nb_elements_in_buckets = m_nb_elements - m_overflow_elements.size();
+            const std::size_t nb_free_buckets = m_load_threshold - nb_elements_in_buckets;
             tsl_assert(m_nb_elements >= m_overflow_elements.size());
-            tsl_assert(m_load_threshold >= m_nb_elements - m_overflow_elements.size());
+            tsl_assert(m_load_threshold >= nb_elements_in_buckets);
             
             if(nb_elements_insert > 0 && nb_free_buckets < std::size_t(nb_elements_insert)) {
-                reserve(m_nb_elements + (std::size_t(nb_elements_insert) - nb_free_buckets));
+                reserve(nb_elements_in_buckets + std::size_t(nb_elements_insert));
             }
         }
         
