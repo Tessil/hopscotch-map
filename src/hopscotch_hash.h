@@ -171,7 +171,7 @@ public:
             throw std::length_error("The map exceeds its maxmimum size.");
         }
         
-        const double next_bucket_count = std::ceil(double(m_bucket_count) * REHASH_SIZE_MULTIPLICATION_FACTOR);
+        const double next_bucket_count = std::ceil(m_bucket_count * REHASH_SIZE_MULTIPLICATION_FACTOR);
         if(!std::isnormal(next_bucket_count)) {
             throw std::length_error("The map exceeds its maxmimum size.");
         }
@@ -1283,7 +1283,8 @@ public:
      *  Hash policy 
      */
     float load_factor() const {
-        return float(m_nb_elements)/float(bucket_count());
+        tsl_assert(bucket_count() != 0);
+        return m_nb_elements/float(bucket_count());
     }
     
     float max_load_factor() const {
@@ -1292,17 +1293,17 @@ public:
     
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
-        m_load_threshold = size_type(float(bucket_count())*m_max_load_factor);
+        m_load_threshold = size_type(bucket_count()*m_max_load_factor);
         m_min_load_factor_rehash_threshold = size_type(bucket_count()*MIN_LOAD_FACTOR_FOR_REHASH);
     }
     
     void rehash(size_type count) {
-        count = std::max(count, size_type(std::ceil(float(size())/max_load_factor())));
+        count = std::max(count, size_type(std::ceil(size()/max_load_factor())));
         rehash_impl(count);
     }
     
     void reserve(size_type count) {
-        rehash(size_type(std::ceil(float(count)/max_load_factor())));
+        rehash(size_type(std::ceil(count/max_load_factor())));
     }
     
     
