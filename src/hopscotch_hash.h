@@ -1320,6 +1320,20 @@ public:
     /*
      * Other
      */
+    iterator mutable_iterator(const_iterator pos) {
+        if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
+            // Get a non-const iterator
+            auto it = m_buckets.begin() + std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
+            return iterator(it, m_buckets.end(), m_overflow_elements.begin());
+        }
+        else {
+            // Get a non-const iterator
+            auto it = mutable_overflow_iterator(pos.m_overflow_iterator);
+            
+            return iterator(m_buckets.end(), m_buckets.end(), it);
+        }
+    }
+    
     size_type overflow_size() const noexcept {
         return m_overflow_elements.size();
     }
@@ -1328,6 +1342,7 @@ public:
     typename U::key_compare key_comp() const {
         return m_overflow_elements.key_comp();
     }
+    
     
 private:
     template<class K>
@@ -1342,20 +1357,6 @@ private:
     
     std::size_t bucket_for_hash(std::size_t hash) const {
         return GrowthPolicy::bucket_for_hash(hash);
-    }
-    
-    iterator mutable_iterator(const_iterator pos) {
-        if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
-            // Get a non-const iterator
-            auto it = m_buckets.begin() + std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
-            return iterator(it, m_buckets.end(), m_overflow_elements.begin());
-        }
-        else {
-            // Get a non-const iterator
-            auto it = mutable_overflow_iterator(pos.m_overflow_iterator);
-            
-            return iterator(m_buckets.end(), m_buckets.end(), it);
-        }
     }
     
     
