@@ -196,7 +196,7 @@ private:
                     std::numeric_limits<std::size_t>::max()/REHASH_SIZE_MULTIPLICATION_FACTOR
             ));
             
-    static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Grow factor should be >= 1.1.");
+    static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Growth factor should be >= 1.1.");
     
     std::size_t m_bucket_count;
 };
@@ -462,13 +462,9 @@ public:
         noexcept(std::is_nothrow_copy_constructible<value_type>::value) 
     {
         if(this != &bucket) {
+            remove_value();
+            
             bucket_hash::operator=(bucket);
-            
-            if(!empty()) {
-                destroy_value();
-                set_empty(true);
-            }
-            
             if(!bucket.empty()) {
                 ::new (static_cast<void*>(std::addressof(m_value))) value_type(bucket.value());
             }
@@ -533,11 +529,11 @@ public:
         return *reinterpret_cast<const value_type*>(std::addressof(m_value));
     }
     
-    template<typename P>
-    void set_value_of_empty_bucket(P&& value, std::size_t hash) {
+    template<typename... Args>
+    void set_value_of_empty_bucket(std::size_t hash, Args&&... value_type_args) {
         tsl_assert(empty());
         
-        ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::forward<P>(value));
+        ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::forward<Args>(value_type_args)...);
         set_empty(false);
         this->set_hash(hash);
     }
@@ -837,6 +833,9 @@ public:
         }
         
         static_assert(NeighborhoodSize - 1 > 0, "");
+        
+        // Can't directly construct with the appropriate size in the initializer 
+        // as m_buckets(bucket_count, alloc) is not supported by GCC 4.8
         m_buckets.resize(bucket_count + NeighborhoodSize - 1);
         
         
@@ -1200,7 +1199,9 @@ public:
             return *value;
         }
         else {
-            return insert_impl(std::make_pair(std::forward<K>(key), T()), hash, ibucket_for_hash).first.value();
+            return insert_impl(ibucket_for_hash, hash, std::piecewise_construct, 
+                                                       std::forward_as_tuple(std::forward<K>(key)), 
+                                                       std::forward_as_tuple()).first.value();
         }
     }
     
@@ -1390,7 +1391,7 @@ private:
                                             new_map.hash_key(KeySelect()(it_bucket->value()));
                 const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
                 
-                new_map.insert_impl(std::move(it_bucket->value()), hash, ibucket_for_hash);
+                new_map.insert_impl(ibucket_for_hash, hash, std::move(it_bucket->value()));
                 
                 
                 erase_from_bucket(it_bucket, bucket_for_hash(hash));
@@ -1415,7 +1416,7 @@ private:
                 
                 // The elements we insert were not in the overflow list before the switch.
                 // They will not be go in the overflow list if we rollback the switch.
-                insert_impl(std::move(it_bucket->value()), hash, ibucket_for_hash);
+                insert_impl(ibucket_for_hash, hash, std::move(it_bucket->value()));
             }
             
             throw;
@@ -1440,14 +1441,14 @@ private:
                                          new_map.hash_key(KeySelect()(bucket.value()));
             const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
             
-            new_map.insert_impl(bucket.value(), hash, ibucket_for_hash);
+            new_map.insert_impl(ibucket_for_hash, hash, bucket.value());
         }
         
         for(const value_type& value: m_overflow_elements) {
             const std::size_t hash = new_map.hash_key(KeySelect()(value));
             const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
             
-            new_map.insert_impl(value, hash, ibucket_for_hash);
+            new_map.insert_impl(ibucket_for_hash, hash, value);
         }
             
         new_map.swap(*this);
@@ -1500,18 +1501,12 @@ private:
     
     template<class K, class M>
     std::pair<iterator, bool> insert_or_assign_impl(K&& key, M&& obj) {
-        const std::size_t hash = hash_key(key);
-        const std::size_t ibucket_for_hash = bucket_for_hash(hash);
-        
-        // Check if already presents
-        auto it_find = find_impl(key, hash, m_buckets.begin() + ibucket_for_hash);
-        if(it_find != end()) {
-            it_find.value() = std::forward<M>(obj);
-            return std::make_pair(it_find, false);
+        auto it = try_emplace_impl(std::forward<K>(key), std::forward<M>(obj));
+        if(!it.second) {
+            it.first.value() = std::forward<M>(obj);
         }
         
-
-        return insert_impl(value_type(std::forward<K>(key), std::forward<M>(obj)), hash, ibucket_for_hash);
+        return it;
     }
     
     template<typename P, class... Args>
@@ -1525,11 +1520,9 @@ private:
             return std::make_pair(it_find, false);
         }
         
-
-        return insert_impl(value_type(std::piecewise_construct, 
-                                          std::forward_as_tuple(std::forward<P>(key)), 
-                                          std::forward_as_tuple(std::forward<Args>(args_value)...)), 
-                               hash, ibucket_for_hash);
+        return insert_impl(ibucket_for_hash, hash, std::piecewise_construct, 
+                                                   std::forward_as_tuple(std::forward<P>(key)), 
+                                                   std::forward_as_tuple(std::forward<Args>(args_value)...));
     }
     
     template<typename P>
@@ -1544,11 +1537,11 @@ private:
         }
         
         
-        return insert_impl(std::forward<P>(value), hash, ibucket_for_hash);
+        return insert_impl(ibucket_for_hash, hash, std::forward<P>(value));
     }
     
-    template<typename P>
-    std::pair<iterator, bool> insert_impl(P&& value, std::size_t hash, std::size_t ibucket_for_hash) {
+    template<typename... Args>
+    std::pair<iterator, bool> insert_impl(std::size_t ibucket_for_hash, std::size_t hash, Args&&... value_type_args) {
         if((m_nb_elements - m_overflow_elements.size()) >= m_load_threshold) {
             rehash(GrowthPolicy::next_bucket_count());
             ibucket_for_hash = bucket_for_hash(hash);
@@ -1561,7 +1554,8 @@ private:
                 
                 // Empty bucket is in range of NeighborhoodSize, use it
                 if(ibucket_empty - ibucket_for_hash < NeighborhoodSize) {
-                    auto it = insert_in_bucket(std::forward<P>(value), hash, ibucket_empty, ibucket_for_hash);
+                    auto it = insert_in_bucket(ibucket_empty, ibucket_for_hash, 
+                                               hash, std::forward<Args>(value_type_args)...);
                     return std::make_pair(iterator(it, m_buckets.end(), m_overflow_elements.begin()), true);
                 }
             }
@@ -1571,7 +1565,8 @@ private:
             
         // Load factor is too low or a rehash will not change the neighborhood, put the value in overflow list
         if(size() < m_min_load_factor_rehash_threshold || !will_neighborhood_change_on_rehash(ibucket_for_hash)) {
-            auto it_insert = m_overflow_elements.insert(m_overflow_elements.end(), std::forward<P>(value));
+            auto it_insert = insert_in_overflow(std::forward<Args>(value_type_args)...);
+            
             m_buckets[ibucket_for_hash].set_overflow(true);
             m_nb_elements++;
             
@@ -1581,7 +1576,7 @@ private:
         rehash(GrowthPolicy::next_bucket_count());
         
         ibucket_for_hash = bucket_for_hash(hash);
-        return insert_impl(std::forward<P>(value), hash, ibucket_for_hash);
+        return insert_impl(ibucket_for_hash, hash, std::forward<Args>(value_type_args)...);
     }    
     
     /*
@@ -1629,13 +1624,13 @@ private:
      * 
      * Return bucket iterator to ibucket_empty
      */
-    template<typename P>
-    iterator_buckets insert_in_bucket(P&& value, std::size_t hash, 
-                                      std::size_t ibucket_empty, std::size_t ibucket_for_hash) 
+    template<typename... Args>
+    iterator_buckets insert_in_bucket(std::size_t ibucket_empty, std::size_t ibucket_for_hash,
+                                      std::size_t hash, Args&&... value_type_args) 
     {
         tsl_assert(ibucket_empty >= ibucket_for_hash );
         tsl_assert(m_buckets[ibucket_empty].empty());
-        m_buckets[ibucket_empty].set_value_of_empty_bucket(std::forward<P>(value), hash);
+        m_buckets[ibucket_empty].set_value_of_empty_bucket(hash, std::forward<Args>(value_type_args)...);
         
         tsl_assert(!m_buckets[ibucket_for_hash].empty());
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_empty - ibucket_for_hash);
@@ -1795,9 +1790,7 @@ private:
     }
     
 
-    // TODO Use a better way to check if we should use 
-    // std::find_if(m_overflow_elements.begin(), m_overflow_elements.end(), ...) or
-    // m_overflow_elements.find(...)
+    
     template<class K, class U = OverflowContainer, typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
     iterator_overflow find_in_overflow(const K& key) {
         return std::find_if(m_overflow_elements.begin(), m_overflow_elements.end(), 
@@ -1823,6 +1816,20 @@ private:
     const_iterator_overflow find_in_overflow(const K& key) const {
         return m_overflow_elements.find(key);
     }
+    
+    
+    
+    template<class... Args, class U = OverflowContainer, typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
+    iterator_overflow insert_in_overflow(Args&&... value_type_args) {
+        return m_overflow_elements.emplace(m_overflow_elements.end(), std::forward<Args>(value_type_args)...);
+    }
+    
+    template<class... Args, class U = OverflowContainer, typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
+    iterator_overflow insert_in_overflow(Args&&... value_type_args) {
+        return m_overflow_elements.emplace(std::forward<Args>(value_type_args)...).first;
+    }
+    
+    
     
     template<class U = OverflowContainer, typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
     hopscotch_hash new_hopscotch_hash(size_type bucket_count) {
