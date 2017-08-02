@@ -132,42 +132,6 @@ private:
     std::unique_ptr<int64_t> m_value;
 };
 
-class virtual_table_test_base_class {
-public:     
-    explicit virtual_table_test_base_class(int64_t value) : m_value(value) {
-    }
-    
-    virtual ~virtual_table_test_base_class() {
-    }
-    
-    virtual int64_t value() const {
-        return m_value;
-    }
-    
-protected:    
-    int64_t m_value;
-};
-
-class virtual_table_test_class_1 : public virtual_table_test_base_class {
-public:    
-    explicit virtual_table_test_class_1(int64_t value) : virtual_table_test_base_class(value) {
-    }
-    
-    int64_t value() const override {
-        return m_value + 1;
-    }
-};
-
-class virtual_table_test_class_2 : public virtual_table_test_base_class {
-public:    
-    explicit virtual_table_test_class_2(int64_t value) : virtual_table_test_base_class(value) {
-    }
-    
-    int64_t value() const override {
-        return m_value + 2;
-    }
-};
-
 
 namespace std {
     template<>
@@ -181,13 +145,6 @@ namespace std {
     struct hash<move_only_test> {
         size_t operator()(const move_only_test& val) const {
             return std::hash<int64_t>()(val.value());
-        }
-    };
-    
-    template<>
-    struct hash<virtual_table_test_base_class*> {
-        size_t operator()(virtual_table_test_base_class* const & val) const {
-            return std::hash<int64_t>()(val->value());
         }
     };
 }
@@ -256,7 +213,9 @@ template<typename HMap>
 inline HMap utils::get_filled_hash_map(size_t nb_elements) {
     using key_t = typename HMap::key_type; using value_t = typename HMap:: mapped_type;
     
-    HMap map(nb_elements*2);
+    HMap map;
+    map.reserve(nb_elements);
+    
     for(size_t i = 0; i < nb_elements; i++) {
         map.insert({utils::get_key<key_t>(i), utils::get_value<value_t>(i)});
     }

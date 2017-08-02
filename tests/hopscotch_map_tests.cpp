@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HMap, test_types) {
     BOOST_CHECK_EQUAL(map.size(), nb_values);
     
     for(size_t i = 0; i < nb_values; i++) {
-        std::tie(it, inserted) = map.insert({utils::get_key<key_t>(i), utils::get_value<value_t>(i)});
+        std::tie(it, inserted) = map.insert({utils::get_key<key_t>(i), utils::get_value<value_t>(i + 1)});
         
         BOOST_CHECK_EQUAL(it->first, utils::get_key<key_t>(i));
         BOOST_CHECK_EQUAL(it->second, utils::get_value<value_t>(i));
@@ -141,57 +141,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_overflow_rehash_nothrow_move_construbt
 }
 
 
-// Check that the virtual table stays intact. 
-BOOST_AUTO_TEST_CASE(test_insert_virtual_table) {
-    // insert 2x values with same base class, check values
-    const size_t nb_values = 5000;
-    
-    std::vector<std::unique_ptr<virtual_table_test_base_class>> class_1_elements;
-    std::vector<std::unique_ptr<virtual_table_test_base_class>> class_2_elements;
-    
-    for(size_t i = 0; i < nb_values; i++) {
-        class_1_elements.emplace_back(new virtual_table_test_class_1(i));
-        class_2_elements.emplace_back(new virtual_table_test_class_2(i));
-    }
-    
-    
-    using HMap = tsl::hopscotch_map<virtual_table_test_base_class*, int64_t, mod_hash<9>>;
-    HMap::iterator it;
-    bool inserted;
-    
-    
-    HMap map(19);
-    for(size_t i = 0; i < nb_values; i++) {
-        std::tie(it, inserted) = map.insert({class_1_elements[i].get(), 1});
-        BOOST_CHECK(inserted);
-        BOOST_CHECK_EQUAL(it->first->value(), class_1_elements[i]->value());
-        BOOST_CHECK_NE(it->first->value(), class_2_elements[i]->value());
-        BOOST_CHECK_EQUAL(it->second, 1);
-        
-        std::tie(it, inserted) = map.insert({class_2_elements[i].get(), 2});
-        BOOST_CHECK(inserted);
-        BOOST_CHECK_EQUAL(it->first->value(), class_2_elements[i]->value());
-        BOOST_CHECK_NE(it->first->value(), class_1_elements[i]->value());
-        BOOST_CHECK_EQUAL(it->second, 2);
-    }
-    
-    BOOST_CHECK(map.overflow_size() > 0);
-    BOOST_CHECK_EQUAL(map.size(), nb_values*2);
-    
-    
-    for(size_t i = 0; i < nb_values; i++) {
-        it = map.find(class_1_elements[i].get());
-        BOOST_CHECK_EQUAL(it->first->value(), class_1_elements[i]->value());
-        BOOST_CHECK_NE(it->first->value(), class_2_elements[i]->value());
-        BOOST_CHECK_EQUAL(it->second, 1);
-        
-        it = map.find(class_2_elements[i].get());
-        BOOST_CHECK_EQUAL(it->first->value(), class_2_elements[i]->value());
-        BOOST_CHECK_NE(it->first->value(), class_1_elements[i]->value());
-        BOOST_CHECK_EQUAL(it->second, 2);
-    }
-}
-
 BOOST_AUTO_TEST_CASE(test_range_insert) {
     const int nb_values = 1000;
     std::vector<std::pair<int, int>> values;
@@ -200,10 +149,17 @@ BOOST_AUTO_TEST_CASE(test_range_insert) {
     }
     
     
-    tsl::hopscotch_map<int, int> map = {{-1, 0}, {-2, 0}};
+    tsl::hopscotch_map<int, int> map = {{-1, 1}, {-2, 2}};
     map.insert(std::next(values.begin(), 10), values.end());
     
     BOOST_CHECK_EQUAL(map.size(), 992);
+    
+    BOOST_CHECK_EQUAL(map[-1], 1);
+    BOOST_CHECK_EQUAL(map[-2], 2);
+    
+    for(int i = 10; i < nb_values; i++) {
+        BOOST_CHECK_EQUAL(map[i], i+1);
+    }
 }
 
 
@@ -474,6 +430,7 @@ BOOST_AUTO_TEST_CASE(test_clear) {
     // insert x values, clear map
     const size_t nb_values = 1000;
     auto map = utils::get_filled_hash_map<tsl::hopscotch_map<int64_t, int64_t>>(nb_values);
+    BOOST_CHECK_EQUAL(map.size(), nb_values);
     
     map.clear();
     BOOST_CHECK_EQUAL(map.size(), 0);
@@ -546,8 +503,9 @@ BOOST_AUTO_TEST_CASE(test_extreme_bucket_count_value_construction) {
                             (std::numeric_limits<std::size_t>::max())), std::length_error);
 }
 
+
 /**
- * operator=
+ * operator=(std::initializer_list)
  */
 BOOST_AUTO_TEST_CASE(test_assign_operator) {
     tsl::hopscotch_map<int64_t, int64_t> map = {{0, 10}, {-2, 20}};
@@ -559,75 +517,99 @@ BOOST_AUTO_TEST_CASE(test_assign_operator) {
 }
 
 
-BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_constructor) {
-    using HMap = tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
-                                    std::allocator<std::pair<int, int>>, 7, true>;
-                                    
-    HMap map = {{1, 1}, {2, 1}, {3, 1}};
-    BOOST_CHECK_EQUAL(map.size(), 3);
+/**
+ * move/copy constructor/operator
+ */
+BOOST_AUTO_TEST_CASE(test_move_constructor) {
+    // insert x values in map, move map into map_move, check map and map_move, 
+    // insert additional values in map_move, check map_move
+    using HMap = tsl::hopscotch_map<std::string, move_only_test, std::hash<std::string>, std::equal_to<std::string>, 
+                                    std::allocator<std::pair<std::string, move_only_test>>, 7, true>;
     
+    const std::size_t nb_values = 100;
+    HMap map = utils::get_filled_hash_map<HMap>(nb_values);
     HMap map_move(std::move(map));
+    
+    BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values));
+    BOOST_CHECK(map == (HMap()));
+
+    
+    
+    for(std::size_t i = nb_values; i < nb_values*2; i++) {
+        map_move.insert({utils::get_key<std::string>(i), utils::get_value<move_only_test>(i)});
+    }
+    
+    BOOST_CHECK_EQUAL(map_move.size(), nb_values*2);
+    BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values*2));
+}
+
+BOOST_AUTO_TEST_CASE(test_move_operator) {
+    // insert x values in map, move map into map_move, check map and map_move, 
+    // insert additional values in map_move, check map_move
+    using HMap = tsl::hopscotch_map<std::string, move_only_test, std::hash<std::string>, std::equal_to<std::string>, 
+                                    std::allocator<std::pair<std::string, move_only_test>>, 7, true>;
+    
+    const std::size_t nb_values = 100;
+    HMap map = utils::get_filled_hash_map<HMap>(nb_values);
+    HMap map_move = std::move(map);
+    
+    BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values));
+    BOOST_CHECK(map == (HMap()));
+
+    
+    
+    for(std::size_t i = nb_values; i < nb_values*2; i++) {
+        map_move.insert({utils::get_key<std::string>(i), utils::get_value<move_only_test>(i)});
+    }
+    
+    BOOST_CHECK_EQUAL(map_move.size(), nb_values*2);
+    BOOST_CHECK(map_move == utils::get_filled_hash_map<HMap>(nb_values*2));
+}
+
+BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_constructor) {
+    using HMap = tsl::hopscotch_map<std::string, std::string>;
+    
+    HMap map = {{"Key1", "Value1"}, {"Key2", "Value2"}, {"Key3", "Value3"}};
+    HMap map_move(std::move(map));
+    
     BOOST_CHECK_EQUAL(map_move.size(), 3);
     BOOST_CHECK_EQUAL(map.size(), 0);
     
-    BOOST_CHECK(map_move == (HMap({{1, 1}, {2, 1}, {3, 1}})));
-    BOOST_CHECK(map == (HMap()));
-    
-    
-    for(int i = 4; i <= 100; i++) {
-        map_move.insert({i, 1});
-    }
-    BOOST_CHECK_EQUAL(map_move.size(), 100);
-    
-    
-    map = {{4, 1}, {5, 1}};
-    BOOST_CHECK_EQUAL(map.size(), 2);
-    BOOST_CHECK(map == (HMap({{4, 1}, {5, 1}})));
+    map = {{"Key4", "Value4"}, {"Key5", "Value5"}};
+    BOOST_CHECK(map == (HMap({{"Key4", "Value4"}, {"Key5", "Value5"}})));
 }
 
 BOOST_AUTO_TEST_CASE(test_reassign_moved_object_move_operator) {
-    using HMap = tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
-                                    std::allocator<std::pair<int, int>>, 7, true>;
-                                    
-    HMap map = {{1, 1}, {2, 1}, {3, 1}};
-    BOOST_CHECK_EQUAL(map.size(), 3);
+    using HMap = tsl::hopscotch_map<std::string, std::string>;
     
+    HMap map = {{"Key1", "Value1"}, {"Key2", "Value2"}, {"Key3", "Value3"}};
     HMap map_move = std::move(map);
+    
     BOOST_CHECK_EQUAL(map_move.size(), 3);
     BOOST_CHECK_EQUAL(map.size(), 0);
     
-    BOOST_CHECK(map_move == (HMap({{1, 1}, {2, 1}, {3, 1}})));
-    BOOST_CHECK(map == (HMap()));
-    
-    
-    for(int i = 4; i <= 100; i++) {
-        map_move.insert({i, 1});
-    }
-    BOOST_CHECK_EQUAL(map_move.size(), 100);
-    
-    
-    map = {{4, 1}, {5, 1}};
-    BOOST_CHECK_EQUAL(map.size(), 2);
-    BOOST_CHECK(map == (HMap({{4, 1}, {5, 1}})));
+    map = {{"Key4", "Value4"}, {"Key5", "Value5"}};
+    BOOST_CHECK(map == (HMap({{"Key4", "Value4"}, {"Key5", "Value5"}})));
 }
 
 BOOST_AUTO_TEST_CASE(test_copy) {
-    using HMap = tsl::hopscotch_map<int64_t, int64_t, mod_hash<9>, std::equal_to<int64_t>, 
-                                    std::allocator<std::pair<int64_t, int64_t>>, 6, true>;
+    using HMap = tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
+                                    std::allocator<std::pair<std::string, std::string>>, 6, true>;
     
     
-    HMap map;
-    const int64_t nb_keys = 1000;
-    for(int64_t i=0; i < nb_keys; i++) {
-        map.insert({i, i*2});
-    }
+    const std::size_t nb_values = 100;
+    HMap map = utils::get_filled_hash_map<HMap>(nb_values);
     
     HMap map_copy = map;
-    HMap map_copy2;
-    map_copy2 = map;
+    HMap map_copy2(map);
+    HMap map_copy3;
+    map_copy3 = map;
     
     BOOST_CHECK(map == map_copy);
-    BOOST_CHECK(map == map_copy2);
+    map.clear();
+    
+    BOOST_CHECK(map_copy == map_copy2);
+    BOOST_CHECK(map_copy == map_copy3);
 }
 
 
@@ -758,8 +740,12 @@ BOOST_AUTO_TEST_CASE(test_heterogeneous_lookups) {
     BOOST_CHECK_THROW(map.at(addr_unknown), std::out_of_range);
     
     
+    BOOST_REQUIRE(map.find(addr1) != map.end());
     BOOST_CHECK_EQUAL(*map.find(addr1)->first, 1);
+    
+    BOOST_REQUIRE(map.find(addr2) != map.end());
     BOOST_CHECK_EQUAL(*map.find(addr2)->first, 2);
+    
     BOOST_CHECK(map.find(addr_unknown) == map.end());
     
     
