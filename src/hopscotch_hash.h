@@ -81,12 +81,13 @@ public:
             throw std::length_error("The map exceeds its maxmimum size.");
         }
         
-        static_assert(MIN_BUCKETS_SIZE > 0, "");
-        const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
-        
-        min_bucket_count_in_out = std::max(min_bucket_count, min_bucket_count_in_out);
-        min_bucket_count_in_out = round_up_to_power_of_two(min_bucket_count_in_out);
-        m_mask = min_bucket_count_in_out - 1;
+        if(min_bucket_count_in_out > 0) {
+            min_bucket_count_in_out = round_up_to_power_of_two(min_bucket_count_in_out);
+            m_mask = min_bucket_count_in_out - 1;
+        }
+        else {
+            m_mask = 0;
+        }
     }
     
     /**
@@ -137,8 +138,6 @@ private:
     }
     
 private:
-    static const std::size_t MIN_BUCKETS_SIZE = 2;
-    
     std::size_t m_mask;
 };
 
@@ -154,24 +153,25 @@ public:
             throw std::length_error("The map exceeds its maxmimum size.");
         }
         
-        static_assert(MIN_BUCKETS_SIZE > 0, "");
-        const std::size_t min_bucket_count = MIN_BUCKETS_SIZE;
-        
-        min_bucket_count_in_out = std::max(min_bucket_count, min_bucket_count_in_out);
-        m_bucket_count = min_bucket_count_in_out;
+        if(min_bucket_count_in_out > 0) {
+            m_mod = min_bucket_count_in_out;
+        }
+        else {
+            m_mod = 1;
+        }
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const {
-        tsl_assert(m_bucket_count != 0);
-        return hash % m_bucket_count;
+        tsl_assert(m_mod != 0);
+        return hash % m_mod;
     }
     
     std::size_t next_bucket_count() const {
-        if(m_bucket_count == max_bucket_count()) {
+        if(m_mod == max_bucket_count()) {
             throw std::length_error("The map exceeds its maxmimum size.");
         }
         
-        const double next_bucket_count = std::ceil(double(m_bucket_count) * REHASH_SIZE_MULTIPLICATION_FACTOR);
+        const double next_bucket_count = std::ceil(double(m_mod) * REHASH_SIZE_MULTIPLICATION_FACTOR);
         if(!std::isnormal(next_bucket_count)) {
             throw std::length_error("The map exceeds its maxmimum size.");
         }
@@ -198,18 +198,18 @@ private:
             
     static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Growth factor should be >= 1.1.");
     
-    std::size_t m_bucket_count;
+    std::size_t m_mod;
 };
 
 
 
 namespace detail_hopscotch_hash {
 
-static constexpr const std::array<std::size_t, 39> PRIMES = {{
-    5ul, 17ul, 29ul, 37ul, 53ul, 67ul, 79ul, 97ul, 131ul, 193ul, 257ul, 389ul, 521ul, 769ul, 1031ul, 1543ul, 2053ul, 
-    3079ul, 6151ul, 12289ul, 24593ul, 49157ul, 98317ul, 196613ul, 393241ul, 786433ul, 1572869ul, 3145739ul, 
-    6291469ul, 12582917ul, 25165843ul, 50331653ul, 100663319ul, 201326611ul, 402653189ul, 805306457ul, 
-    1610612741ul, 3221225473ul, 4294967291ul
+static constexpr const std::array<std::size_t, 40> PRIMES = {{
+    1ul, 5ul, 17ul, 29ul, 37ul, 53ul, 67ul, 79ul, 97ul, 131ul, 193ul, 257ul, 389ul, 521ul, 769ul, 1031ul, 
+    1543ul, 2053ul, 3079ul, 6151ul, 12289ul, 24593ul, 49157ul, 98317ul, 196613ul, 393241ul, 786433ul, 
+    1572869ul, 3145739ul, 6291469ul, 12582917ul, 25165843ul, 50331653ul, 100663319ul, 201326611ul, 
+    402653189ul, 805306457ul, 1610612741ul, 3221225473ul, 4294967291ul
 }};
 
 template<unsigned int IPrime>
@@ -217,11 +217,11 @@ static std::size_t mod(std::size_t hash) { return hash % PRIMES[IPrime]; }
 
 // MOD_PRIME[iprime](hash) returns hash % PRIMES[iprime]. This table allows for faster modulo as the
 // compiler can optimize the modulo code better with a constant known at the compilation.
-static constexpr const std::array<std::size_t(*)(std::size_t), 39> MOD_PRIME = {{ 
+static constexpr const std::array<std::size_t(*)(std::size_t), 40> MOD_PRIME = {{ 
     &mod<0>, &mod<1>, &mod<2>, &mod<3>, &mod<4>, &mod<5>, &mod<6>, &mod<7>, &mod<8>, &mod<9>, &mod<10>, 
     &mod<11>, &mod<12>, &mod<13>, &mod<14>, &mod<15>, &mod<16>, &mod<17>, &mod<18>, &mod<19>, &mod<20>, 
     &mod<21>, &mod<22>, &mod<23>, &mod<24>, &mod<25>, &mod<26>, &mod<27>, &mod<28>, &mod<29>, &mod<30>, 
-    &mod<31>, &mod<32>, &mod<33>, &mod<34>, &mod<35>, &mod<36>, &mod<37> , &mod<38>
+    &mod<31>, &mod<32>, &mod<33>, &mod<34>, &mod<35>, &mod<36>, &mod<37> , &mod<38>, &mod<39>
 }};
 
 }
@@ -234,13 +234,21 @@ class prime_growth_policy {
 public:
     prime_growth_policy(std::size_t& min_bucket_count_in_out) {
         auto it_prime = std::lower_bound(tsl::detail_hopscotch_hash::PRIMES.begin(), 
-                                         tsl::detail_hopscotch_hash::PRIMES.end(), min_bucket_count_in_out);
+                                         tsl::detail_hopscotch_hash::PRIMES.end(), 
+                                         min_bucket_count_in_out);
+        
         if(it_prime == tsl::detail_hopscotch_hash::PRIMES.end()) {
             throw std::length_error("The map exceeds its maxmimum size.");
         }
         
-        m_iprime = static_cast<unsigned int>(std::distance(tsl::detail_hopscotch_hash::PRIMES.begin(), it_prime));
-        min_bucket_count_in_out = *it_prime;
+        m_iprime = static_cast<unsigned int>(std::distance(tsl::detail_hopscotch_hash::PRIMES.begin(), 
+                                                           it_prime));
+        if(min_bucket_count_in_out > 0) {
+            min_bucket_count_in_out = *it_prime;
+        }
+        else {
+            min_bucket_count_in_out = 0;
+        }
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const {
@@ -788,8 +796,6 @@ public:
         iterator_overflow m_overflow_iterator;
     };
     
-
-    
 public:
     template<class OC = OverflowContainer, typename std::enable_if<!has_key_compare<OC>::value>::type* = nullptr>
     hopscotch_hash(size_type bucket_count, 
@@ -801,14 +807,21 @@ public:
                                             GrowthPolicy(bucket_count),
                                             m_buckets(alloc), 
                                             m_overflow_elements(alloc),
+                                            m_first_or_empty_bucket(static_empty_bucket_ptr()),
                                             m_nb_elements(0)
     {
         if(bucket_count > max_bucket_count()) {
             throw std::length_error("The map exceeds its maxmimum size.");
         }
         
-        static_assert(NeighborhoodSize - 1 > 0, "");
-        m_buckets.resize(bucket_count + NeighborhoodSize - 1);
+        if(bucket_count > 0) {
+            static_assert(NeighborhoodSize - 1 > 0, "");
+            
+            // Can't directly construct with the appropriate size in the initializer 
+            // as m_buckets(bucket_count, alloc) is not supported by GCC 4.8
+            m_buckets.resize(bucket_count + NeighborhoodSize - 1);
+            m_first_or_empty_bucket = m_buckets.data();
+        }
         
         
         this->max_load_factor(max_load_factor);
@@ -825,6 +838,7 @@ public:
                                                           GrowthPolicy(bucket_count),
                                                           m_buckets(alloc), 
                                                           m_overflow_elements(comp, alloc),
+                                                          m_first_or_empty_bucket(static_empty_bucket_ptr()),
                                                           m_nb_elements(0)
     {
         
@@ -832,17 +846,33 @@ public:
             throw std::length_error("The map exceeds its maxmimum size.");
         }
         
-        static_assert(NeighborhoodSize - 1 > 0, "");
-        
-        // Can't directly construct with the appropriate size in the initializer 
-        // as m_buckets(bucket_count, alloc) is not supported by GCC 4.8
-        m_buckets.resize(bucket_count + NeighborhoodSize - 1);
+        if(bucket_count > 0) {
+            static_assert(NeighborhoodSize - 1 > 0, "");
+            
+            // Can't directly construct with the appropriate size in the initializer 
+            // as m_buckets(bucket_count, alloc) is not supported by GCC 4.8
+            m_buckets.resize(bucket_count + NeighborhoodSize - 1);
+            m_first_or_empty_bucket = m_buckets.data();
+        }
         
         
         this->max_load_factor(max_load_factor);
     }
     
-    hopscotch_hash(const hopscotch_hash& other) = default;
+    hopscotch_hash(const hopscotch_hash& other): 
+                          Hash(other),
+                          KeyEqual(other),
+                          GrowthPolicy(other),
+                          m_buckets(other.m_buckets),
+                          m_overflow_elements(other.m_overflow_elements),
+                          m_first_or_empty_bucket(m_buckets.empty()?static_empty_bucket_ptr():
+                                                                    m_buckets.data()),
+                          m_nb_elements(other.m_nb_elements),
+                          m_max_load_factor(other.m_max_load_factor),
+                          m_load_threshold(other.m_load_threshold),
+                          m_min_load_factor_rehash_threshold(other.m_min_load_factor_rehash_threshold) 
+    {
+    }
     
     hopscotch_hash(hopscotch_hash&& other) 
                         noexcept(
@@ -851,21 +881,49 @@ public:
                             std::is_nothrow_move_constructible<GrowthPolicy>::value &&
                             std::is_nothrow_move_constructible<buckets_container_type>::value &&
                             std::is_nothrow_move_constructible<overflow_container_type>::value
-                        )
-                        : Hash(std::move(static_cast<Hash&>(other))),
+                        ):
+                          Hash(std::move(static_cast<Hash&>(other))),
                           KeyEqual(std::move(static_cast<KeyEqual&>(other))),
                           GrowthPolicy(std::move(static_cast<GrowthPolicy&>(other))),
                           m_buckets(std::move(other.m_buckets)),
                           m_overflow_elements(std::move(other.m_overflow_elements)),
+                          m_first_or_empty_bucket(other.m_first_or_empty_bucket),
                           m_nb_elements(other.m_nb_elements),
                           m_max_load_factor(other.m_max_load_factor),
                           m_load_threshold(other.m_load_threshold),
                           m_min_load_factor_rehash_threshold(other.m_min_load_factor_rehash_threshold)
     {
-        other.clear();
+        other.m_buckets.clear();
+        other.m_overflow_elements.clear();
+        other.m_first_or_empty_bucket = static_empty_bucket_ptr();
+        other.m_nb_elements = 0;
+        other.m_load_threshold = 0;
+        other.m_min_load_factor_rehash_threshold = 0;
+        
+        size_t zero = 0;
+        other.GrowthPolicy::operator=(GrowthPolicy(zero)); // TODO Exception safety
+        tsl_assert(zero == 0);
     }
     
-    hopscotch_hash& operator=(const hopscotch_hash& other) = default;
+    hopscotch_hash& operator=(const hopscotch_hash& other) {
+        if(&other != this) {
+            // TODO Exception safety
+            Hash::operator=(other);
+            KeyEqual::operator=(other);
+            GrowthPolicy::operator=(other);
+            
+            m_buckets = other.m_buckets;
+            m_overflow_elements = other.m_overflow_elements;
+            m_first_or_empty_bucket = m_buckets.empty()?static_empty_bucket_ptr():
+                                                        m_buckets.data();
+            m_nb_elements = other.m_nb_elements;
+            m_max_load_factor = other.m_max_load_factor;
+            m_load_threshold = other.m_load_threshold;
+            m_min_load_factor_rehash_threshold = other.m_min_load_factor_rehash_threshold;
+        }
+        
+        return *this;
+    }
     
     hopscotch_hash& operator=(hopscotch_hash&& other) {
         other.swap(*this);
@@ -1088,7 +1146,7 @@ public:
         
         if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
             auto it_bucket = m_buckets.begin() + std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
-            erase_from_bucket(it_bucket, ibucket_for_hash);
+            erase_from_bucket(&(*it_bucket), ibucket_for_hash);
             
             return ++iterator(it_bucket, m_buckets.end(), m_overflow_elements.begin()); 
         }
@@ -1119,15 +1177,15 @@ public:
     template<class K>
     size_type erase(const K& key, std::size_t hash) {
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
-        
-        auto it_find = find_in_buckets(key, hash, m_buckets.begin() + ibucket_for_hash);
-        if(it_find != m_buckets.end()) {
-            erase_from_bucket(it_find, ibucket_for_hash);
+
+        hopscotch_bucket* bucket_found = find_in_buckets(key, hash, m_first_or_empty_bucket + ibucket_for_hash);
+        if(bucket_found != nullptr) {
+            erase_from_bucket(bucket_found, ibucket_for_hash);
 
             return 1;
         }
         
-        if(m_buckets[ibucket_for_hash].has_overflow()) {
+        if((m_first_or_empty_bucket + ibucket_for_hash)->has_overflow()) {
             auto it_overflow = find_in_overflow(key);
             if(it_overflow != m_overflow_elements.end()) {
                 erase_from_overflow(it_overflow, ibucket_for_hash);
@@ -1147,6 +1205,7 @@ public:
         swap(static_cast<GrowthPolicy&>(*this), static_cast<GrowthPolicy&>(other));
         swap(m_buckets, other.m_buckets);
         swap(m_overflow_elements, other.m_overflow_elements);
+        swap(m_first_or_empty_bucket, other.m_first_or_empty_bucket);
         swap(m_nb_elements, other.m_nb_elements);
         swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_load_threshold, other.m_load_threshold);
@@ -1177,7 +1236,7 @@ public:
     const typename U::value_type& at(const K& key, std::size_t hash) const {
         using T = typename U::value_type;
         
-        const T* value = find_value_impl(key, hash, m_buckets.begin() + bucket_for_hash(hash));
+        const T* value = find_value_impl(key, hash, m_first_or_empty_bucket + bucket_for_hash(hash));
         if(value == nullptr) {
             throw std::out_of_range("Couldn't find key.");
         }
@@ -1194,7 +1253,7 @@ public:
         const std::size_t hash = hash_key(key);
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
-        T* value = find_value_impl(key, hash, m_buckets.begin() + ibucket_for_hash);
+        T* value = find_value_impl(key, hash, m_first_or_empty_bucket + ibucket_for_hash);
         if(value != nullptr) {
             return *value;
         }
@@ -1213,7 +1272,7 @@ public:
     
     template<class K>
     size_type count(const K& key, std::size_t hash) const {
-        return count_impl(key, hash, m_buckets.cbegin() + bucket_for_hash(hash));
+        return count_impl(key, hash, m_first_or_empty_bucket + bucket_for_hash(hash));
     }
     
     
@@ -1224,7 +1283,7 @@ public:
     
     template<class K>
     iterator find(const K& key, std::size_t hash) {
-        return find_impl(key, hash, m_buckets.begin() + bucket_for_hash(hash));
+        return find_impl(key, hash, m_first_or_empty_bucket + bucket_for_hash(hash));
     }
     
     
@@ -1235,7 +1294,7 @@ public:
     
     template<class K>
     const_iterator find(const K& key, std::size_t hash) const {
-        return find_impl(key, hash, m_buckets.begin() + bucket_for_hash(hash));
+        return find_impl(key, hash, m_first_or_empty_bucket + bucket_for_hash(hash));
     }
     
     
@@ -1268,9 +1327,13 @@ public:
     size_type bucket_count() const {
         /*
          * So that the last bucket can have NeighborhoodSize neighbors, the size of the bucket array is a little
-         * bigger than the real number of buckets. We could use some of the buckets at the beginning, but
-         * it is easier this way and we avoid weird behaviour with iterators.
+         * bigger than the real number of buckets when not empty. 
+         * We could use some of the buckets at the beginning, but it is faster this way as we avoid extra checks.
          */
+        if(m_buckets.empty()) {
+            return 0;
+        }
+        
         return m_buckets.size() - NeighborhoodSize + 1; 
     }
     
@@ -1357,7 +1420,10 @@ private:
     }
     
     std::size_t bucket_for_hash(std::size_t hash) const {
-        return GrowthPolicy::bucket_for_hash(hash);
+        const std::size_t bucket = GrowthPolicy::bucket_for_hash(hash);
+        tsl_assert(bucket < m_buckets.size() || (bucket == 0 && m_buckets.empty()));
+        
+        return bucket;
     }
     
     
@@ -1394,7 +1460,7 @@ private:
                 new_map.insert_impl(ibucket_for_hash, hash, std::move(it_bucket->value()));
                 
                 
-                erase_from_bucket(it_bucket, bucket_for_hash(hash));
+                erase_from_bucket(&(*it_bucket), bucket_for_hash(hash));
             }
         } 
         /*
@@ -1487,12 +1553,16 @@ private:
         return it_next;
     }
     
-    // iterator is in bucket
-    void erase_from_bucket(iterator_buckets pos, std::size_t ibucket_for_hash) noexcept {
-        const std::size_t ibucket_for_pos = std::distance(m_buckets.begin(), pos);
+
+    /**
+     * bucket_for_value is the bucket in which the value is.
+     * ibucket_for_hash is the bucket where the value belongs.
+     */
+    void erase_from_bucket(hopscotch_bucket* bucket_for_value, std::size_t ibucket_for_hash) noexcept {
+        const std::size_t ibucket_for_pos = std::distance(m_first_or_empty_bucket, bucket_for_value);
         tsl_assert(ibucket_for_pos >= ibucket_for_hash);
         
-        m_buckets[ibucket_for_pos].remove_value();
+        bucket_for_value->remove_value();
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_for_pos - ibucket_for_hash);
         m_nb_elements--;
     }
@@ -1515,7 +1585,7 @@ private:
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
         // Check if already presents
-        auto it_find = find_impl(key, hash, m_buckets.begin() + ibucket_for_hash);
+        auto it_find = find_impl(key, hash, m_first_or_empty_bucket + ibucket_for_hash);
         if(it_find != end()) {
             return std::make_pair(it_find, false);
         }
@@ -1531,7 +1601,7 @@ private:
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
         // Check if already presents
-        auto it_find = find_impl(KeySelect()(value), hash, m_buckets.begin() + ibucket_for_hash);
+        auto it_find = find_impl(KeySelect()(value), hash, m_first_or_empty_bucket + ibucket_for_hash);
         if(it_find != end()) {
             return std::make_pair(it_find, false);
         }
@@ -1683,9 +1753,9 @@ private:
     
     
     template<class K, class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
-    typename U::value_type* find_value_impl(const K& key, std::size_t hash, iterator_buckets it_bucket) {
+    typename U::value_type* find_value_impl(const K& key, std::size_t hash, hopscotch_bucket* bucket) {
         return const_cast<typename U::value_type*>(
-                    static_cast<const hopscotch_hash*>(this)->find_value_impl(key, hash, it_bucket));
+                    static_cast<const hopscotch_hash*>(this)->find_value_impl(key, hash, bucket));
     }
     
     /*
@@ -1695,14 +1765,14 @@ private:
      */
     template<class K, class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
     const typename U::value_type* find_value_impl(const K& key, std::size_t hash, 
-                                                  const_iterator_buckets it_bucket) const 
+                                                  const hopscotch_bucket* bucket) const 
     {
-        auto it_find = find_in_buckets(key, hash, it_bucket);
-        if(it_find != m_buckets.cend()) {
-            return std::addressof(ValueSelect()(it_find->value()));
+        const hopscotch_bucket* bucket_found = find_in_buckets(key, hash, bucket);
+        if(bucket_found != nullptr) {
+            return std::addressof(ValueSelect()(bucket_found->value()));
         }
         
-        if(it_bucket->has_overflow()) {
+        if(bucket->has_overflow()) {
             auto it_overflow = find_in_overflow(key);
             if(it_overflow != m_overflow_elements.end()) {
                 return std::addressof(ValueSelect()(*it_overflow));
@@ -1713,11 +1783,11 @@ private:
     }
     
     template<class K>
-    size_type count_impl(const K& key, std::size_t hash, const_iterator_buckets it_bucket) const {
-        if(find_in_buckets(key, hash, it_bucket) != m_buckets.cend()) {
+    size_type count_impl(const K& key, std::size_t hash, const hopscotch_bucket* bucket) const {
+        if(find_in_buckets(key, hash, bucket) != nullptr) {
             return 1;
         }
-        else if(it_bucket->has_overflow() && find_in_overflow(key) != m_overflow_elements.cend()) {
+        else if(bucket->has_overflow() && find_in_overflow(key) != m_overflow_elements.cend()) {
             return 1;
         }
         else {
@@ -1726,13 +1796,14 @@ private:
     }
     
     template<class K>
-    iterator find_impl(const K& key, std::size_t hash, iterator_buckets it_bucket) {
-        auto it = find_in_buckets(key, hash, it_bucket);
-        if(it != m_buckets.end()) {
-            return iterator(it, m_buckets.end(), m_overflow_elements.begin());
+    iterator find_impl(const K& key, std::size_t hash, hopscotch_bucket* bucket) {
+        hopscotch_bucket* bucket_found = find_in_buckets(key, hash, bucket);
+        if(bucket_found != nullptr) {
+            return iterator(m_buckets.begin() + std::distance(m_buckets.data(), bucket_found), 
+                            m_buckets.end(), m_overflow_elements.begin());
         }
         
-        if(!it_bucket->has_overflow()) {
+        if(!bucket->has_overflow()) {
             return end();
         }
         
@@ -1740,13 +1811,14 @@ private:
     }
     
     template<class K>
-    const_iterator find_impl(const K& key, std::size_t hash, const_iterator_buckets it_bucket) const {
-        auto it = find_in_buckets(key, hash, it_bucket);
-        if(it != m_buckets.cend()) {
-            return const_iterator(it, m_buckets.cend(), m_overflow_elements.cbegin());
+    const_iterator find_impl(const K& key, std::size_t hash, const hopscotch_bucket* bucket) const {
+        const hopscotch_bucket* bucket_found = find_in_buckets(key, hash, bucket);
+        if(bucket_found != nullptr) {
+            return const_iterator(m_buckets.cbegin() + std::distance(m_buckets.data(), bucket_found), 
+                                  m_buckets.cend(), m_overflow_elements.cbegin());
         }
         
-        if(!it_bucket->has_overflow()) {
+        if(!bucket->has_overflow()) {
             return cend();
         }
 
@@ -1755,38 +1827,41 @@ private:
     }
     
     template<class K>
-    iterator_buckets find_in_buckets(const K& key, std::size_t hash, iterator_buckets it_bucket) {   
-        auto it_find = static_cast<const hopscotch_hash*>(this)->find_in_buckets(key, hash, it_bucket); 
-        return m_buckets.begin() + std::distance(m_buckets.cbegin(), it_find);
+    hopscotch_bucket* find_in_buckets(const K& key, std::size_t hash, hopscotch_bucket* bucket) {   
+        auto bucket_found = static_cast<const hopscotch_hash*>(this)->find_in_buckets(key, hash, bucket); 
+        return const_cast<hopscotch_bucket*>(bucket_found);
     }
 
     
+    /**
+     * Return a pointer to the bucket which has the value, nullptr otherwise.
+     */
     template<class K>
-    const_iterator_buckets find_in_buckets(const K& key, std::size_t hash, const_iterator_buckets it_bucket) const {      
+    const hopscotch_bucket* find_in_buckets(const K& key, std::size_t hash, const hopscotch_bucket* bucket) const {      
         (void) hash; // Avoid warning of unused variable when StoreHash is false;
 
         // TODO Try to optimize the function. 
         // I tried to use ffs and  __builtin_ffs functions but I could not reduce the time the function
         // takes with -march=native
         
-        neighborhood_bitmap neighborhood_infos = it_bucket->neighborhood_infos();
+        neighborhood_bitmap neighborhood_infos = bucket->neighborhood_infos();
         while(neighborhood_infos != 0) {
             if((neighborhood_infos & 1) == 1) {
                 // Check StoreHash before calling bucket_hash_equal. Functionally it doesn't change anythin. 
                 // If StoreHash is false, bucket_hash_equal is a no-op. Avoiding the call is there to help 
                 // GCC optimizes `hash` parameter away, it seems to not be able to do without this hint.
-                if((!StoreHash || it_bucket->bucket_hash_equal(hash)) && 
-                    compare_keys(KeySelect()(it_bucket->value()), key)) 
+                if((!StoreHash || bucket->bucket_hash_equal(hash)) && 
+                    compare_keys(KeySelect()(bucket->value()), key)) 
                 {
-                    return it_bucket;
+                    return bucket;
                 }
             }
             
-            ++it_bucket;
+            ++bucket;
             neighborhood_infos = neighborhood_bitmap(neighborhood_infos >> 1);
         }
         
-        return m_buckets.end();
+        return nullptr;
     }
     
 
@@ -1854,9 +1929,22 @@ private:
     static const bool USE_STORED_HASH_ON_REHASH = 
                 StoreHash && std::is_same<GrowthPolicy, tsl::power_of_two_growth_policy>::value;
     
+                
+    hopscotch_bucket* static_empty_bucket_ptr() {
+        static hopscotch_bucket empty_bucket;
+        return &empty_bucket;
+    }
+    
 private:    
     buckets_container_type m_buckets;
     overflow_container_type m_overflow_elements;
+    
+    /**
+     * Points to m_buckets.data() if !m_buckets.empty() otherwise points to static_empty_bucket_ptr.
+     * This variable is useful to avoid the cost of checking if m_buckets is empty when trying 
+     * to find an element.
+     */
+    hopscotch_bucket* m_first_or_empty_bucket;
     
     size_type m_nb_elements;
     
