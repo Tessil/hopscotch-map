@@ -869,8 +869,8 @@ public:
                                                                     m_buckets.data()),
                           m_nb_elements(other.m_nb_elements),
                           m_max_load_factor(other.m_max_load_factor),
-                          m_load_threshold(other.m_load_threshold),
-                          m_min_load_factor_rehash_threshold(other.m_min_load_factor_rehash_threshold) 
+                          m_max_load_threshold_rehash(other.m_max_load_threshold_rehash),
+                          m_min_load_threshold_rehash(other.m_min_load_threshold_rehash) 
     {
     }
     
@@ -890,15 +890,15 @@ public:
                           m_first_or_empty_bucket(other.m_first_or_empty_bucket),
                           m_nb_elements(other.m_nb_elements),
                           m_max_load_factor(other.m_max_load_factor),
-                          m_load_threshold(other.m_load_threshold),
-                          m_min_load_factor_rehash_threshold(other.m_min_load_factor_rehash_threshold)
+                          m_max_load_threshold_rehash(other.m_max_load_threshold_rehash),
+                          m_min_load_threshold_rehash(other.m_min_load_threshold_rehash)
     {
         other.m_buckets.clear();
         other.m_overflow_elements.clear();
         other.m_first_or_empty_bucket = static_empty_bucket_ptr();
         other.m_nb_elements = 0;
-        other.m_load_threshold = 0;
-        other.m_min_load_factor_rehash_threshold = 0;
+        other.m_max_load_threshold_rehash = 0;
+        other.m_min_load_threshold_rehash = 0;
         
         size_t zero = 0;
         other.GrowthPolicy::operator=(GrowthPolicy(zero)); // TODO Exception safety
@@ -918,8 +918,8 @@ public:
                                                         m_buckets.data();
             m_nb_elements = other.m_nb_elements;
             m_max_load_factor = other.m_max_load_factor;
-            m_load_threshold = other.m_load_threshold;
-            m_min_load_factor_rehash_threshold = other.m_min_load_factor_rehash_threshold;
+            m_max_load_threshold_rehash = other.m_max_load_threshold_rehash;
+            m_min_load_threshold_rehash = other.m_min_load_threshold_rehash;
         }
         
         return *this;
@@ -1046,9 +1046,9 @@ public:
         {
             const auto nb_elements_insert = std::distance(first, last);
             const std::size_t nb_elements_in_buckets = m_nb_elements - m_overflow_elements.size();
-            const std::size_t nb_free_buckets = m_load_threshold - nb_elements_in_buckets;
+            const std::size_t nb_free_buckets = m_max_load_threshold_rehash - nb_elements_in_buckets;
             tsl_assert(m_nb_elements >= m_overflow_elements.size());
-            tsl_assert(m_load_threshold >= nb_elements_in_buckets);
+            tsl_assert(m_max_load_threshold_rehash >= nb_elements_in_buckets);
             
             if(nb_elements_insert > 0 && nb_free_buckets < std::size_t(nb_elements_insert)) {
                 reserve(nb_elements_in_buckets + std::size_t(nb_elements_insert));
@@ -1208,8 +1208,8 @@ public:
         swap(m_first_or_empty_bucket, other.m_first_or_empty_bucket);
         swap(m_nb_elements, other.m_nb_elements);
         swap(m_max_load_factor, other.m_max_load_factor);
-        swap(m_load_threshold, other.m_load_threshold);
-        swap(m_min_load_factor_rehash_threshold, other.m_min_load_factor_rehash_threshold);
+        swap(m_max_load_threshold_rehash, other.m_max_load_threshold_rehash);
+        swap(m_min_load_threshold_rehash, other.m_min_load_threshold_rehash);
     }
     
     
@@ -1356,8 +1356,8 @@ public:
     
     void max_load_factor(float ml) {
         m_max_load_factor = ml;
-        m_load_threshold = size_type(float(bucket_count())*m_max_load_factor);
-        m_min_load_factor_rehash_threshold = size_type(bucket_count()*MIN_LOAD_FACTOR_FOR_REHASH);
+        m_max_load_threshold_rehash = size_type(float(bucket_count())*m_max_load_factor);
+        m_min_load_threshold_rehash = size_type(bucket_count()*MIN_LOAD_FACTOR_FOR_REHASH);
     }
     
     void rehash(size_type count_) {
@@ -1612,7 +1612,7 @@ private:
     
     template<typename... Args>
     std::pair<iterator, bool> insert_impl(std::size_t ibucket_for_hash, std::size_t hash, Args&&... value_type_args) {
-        if((m_nb_elements - m_overflow_elements.size()) >= m_load_threshold) {
+        if((m_nb_elements - m_overflow_elements.size()) >= m_max_load_threshold_rehash) {
             rehash(GrowthPolicy::next_bucket_count());
             ibucket_for_hash = bucket_for_hash(hash);
         }
@@ -1634,7 +1634,7 @@ private:
         }
             
         // Load factor is too low or a rehash will not change the neighborhood, put the value in overflow list
-        if(size() < m_min_load_factor_rehash_threshold || !will_neighborhood_change_on_rehash(ibucket_for_hash)) {
+        if(size() < m_min_load_threshold_rehash || !will_neighborhood_change_on_rehash(ibucket_for_hash)) {
             auto it_insert = insert_in_overflow(std::forward<Args>(value_type_args)...);
             
             m_buckets[ibucket_for_hash].set_overflow(true);
@@ -1949,8 +1949,17 @@ private:
     size_type m_nb_elements;
     
     float m_max_load_factor;
-    size_type m_load_threshold;
-    size_type m_min_load_factor_rehash_threshold;
+    
+    /**
+     * Max size of the hash table before a rehash occurs automatically to grow the table.
+     */
+    size_type m_max_load_threshold_rehash;
+    
+    /**
+     * Min size of the hash table before a rehash can occurs automatically (except if m_max_load_threshold_rehash os reached).
+     * If the neighborhood of a bucket is full before the min is reacher, the elements are put into m_overflow_elements.
+     */
+    size_type m_min_load_threshold_rehash;
 };
 
 } // end namespace detail_hopscotch_hash
