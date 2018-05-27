@@ -655,9 +655,21 @@ public:
 private:
     ht m_ht;
 };
-  
+
+
+/**
+ * Same as `tsl::bhopscotch_map<Key, T, Hash, KeyEqual, Compare, Allocator, NeighborhoodSize, StoreHash, tsl::hh::prime_growth_policy>`.
+ */
+template<class Key, 
+         class T, 
+         class Hash = std::hash<Key>,
+         class KeyEqual = std::equal_to<Key>,
+         class Compare = std::less<Key>,
+         class Allocator = std::allocator<std::pair<const Key, T>>,
+         unsigned int NeighborhoodSize = 62,
+         bool StoreHash = false>
+using bhopscotch_pg_map = bhopscotch_map<Key, T, Hash, KeyEqual, Compare, Allocator, NeighborhoodSize, StoreHash, tsl::hh::prime_growth_policy>;
 
 } // end namespace tsl
-
 
 #endif

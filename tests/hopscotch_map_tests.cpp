@@ -63,12 +63,11 @@ using test_types = boost::mpl::list<
                         tsl::hopscotch_map<self_reference_member_test, self_reference_member_test, 
                             mod_hash<9>, std::equal_to<self_reference_member_test>, 
                             std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6, true>,
-                        // hopscotch_sc_map
+                        // bhopscotch_map
                         tsl::bhopscotch_map<int64_t, int64_t, mod_hash<9>>,
-                        // with tsl::prime_growth_policy
-                        tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
-                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::hh::prime_growth_policy>,
-                        // with tsl::mod_growth_policy
+                        // with tsl::hh::prime_growth_policy
+                        tsl::hopscotch_pg_map<std::string, std::string, mod_hash<9>>,
+                        // with tsl::hh::mod_growth_policy
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
                             std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::hh::mod_growth_policy<>>,
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 

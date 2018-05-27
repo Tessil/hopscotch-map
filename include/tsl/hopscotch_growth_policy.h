@@ -51,7 +51,7 @@ public:
     /**
      * Called on the hash table creation and on rehash. The number of buckets for the table is passed in parameter.
      * This number is a minimum, the policy may update this value with a higher value if needed (but not lower).
-
+     *
      * If 0 is given, min_bucket_count_in_out must still be 0 after the policy creation and
      * bucket_for_hash must always return 0 in this case.
      */
