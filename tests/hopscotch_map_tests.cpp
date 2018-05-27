@@ -41,7 +41,7 @@
 
 #include "utils.h"
 #include "hopscotch_map.h"
-#include "hopscotch_sc_map.h"
+#include "bhopscotch_map.h"
 
 
 BOOST_AUTO_TEST_SUITE(test_hopscotch_map)
@@ -65,7 +65,7 @@ using test_types = boost::mpl::list<
                             mod_hash<9>, std::equal_to<self_reference_member_test>, 
                             std::allocator<std::pair<self_reference_member_test, self_reference_member_test>>, 6, true>,
                         // hopscotch_sc_map
-                        tsl::hopscotch_sc_map<int64_t, int64_t, mod_hash<9>>,
+                        tsl::bhopscotch_map<int64_t, int64_t, mod_hash<9>>,
                         // with tsl::prime_growth_policy
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
                             std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::hh::prime_growth_policy>,
@@ -123,7 +123,7 @@ static const unsigned int overflow_mod = 50;
 using test_overflow_rehash_types = boost::mpl::list<
                     tsl::hopscotch_map<int64_t, move_only_test, mod_hash<overflow_mod>, std::equal_to<int64_t>, 
                             std::allocator<std::pair<int64_t, move_only_test>>, 6>,
-                    tsl::hopscotch_sc_map<int64_t, move_only_test, mod_hash<overflow_mod>, std::equal_to<int64_t>, 
+                    tsl::bhopscotch_map<int64_t, move_only_test, mod_hash<overflow_mod>, std::equal_to<int64_t>, 
                             std::less<int64_t>, std::allocator<std::pair<const int64_t, move_only_test>>, 6>>;                   
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_overflow_rehash_nothrow_move_construbtible, HMap, test_overflow_rehash_types) {    
     // insert x/mod values, insert x values, check values
