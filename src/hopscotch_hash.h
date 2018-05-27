@@ -205,7 +205,6 @@ public:
     }
     
 private:
-    static const std::size_t MIN_BUCKETS_SIZE = 2;
     static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
     static const std::size_t MAX_BUCKET_COUNT = 
             std::size_t(double(
