@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE(test_power_of_two_policy) {
     bool exception_thrown = false;
     
     std::size_t bucket_count = 0;
-    tsl::power_of_two_growth_policy policy(bucket_count);
+    tsl::power_of_two_growth_policy<2> policy(bucket_count);
     
     BOOST_CHECK_EQUAL(policy.bucket_for_hash(0), 0);
     BOOST_CHECK_EQUAL(bucket_count, 0);
@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(test_power_of_two_policy) {
     try {
         while(true) {
             bucket_count = policy.next_bucket_count();
-            policy = tsl::power_of_two_growth_policy(bucket_count);
+            policy = tsl::power_of_two_growth_policy<2>(bucket_count);
             
             BOOST_CHECK_EQUAL(policy.bucket_for_hash(0), 0);
             BOOST_CHECK(bucket_count > 0);
@@ -41,26 +41,26 @@ BOOST_AUTO_TEST_CASE(test_power_of_two_policy) {
 
 BOOST_AUTO_TEST_CASE(test_power_of_two_policy_min_size) {
     std::size_t size = 0;
-    tsl::power_of_two_growth_policy policy(size);
+    tsl::power_of_two_growth_policy<2> policy(size);
     
     BOOST_CHECK_EQUAL(policy.bucket_for_hash(0), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_power_of_two_policy_max_size) {
     std::size_t size = 0;
-    tsl::power_of_two_growth_policy policy(size);
+    tsl::power_of_two_growth_policy<2> policy(size);
     
     
     size = policy.max_bucket_count();
-    tsl::power_of_two_growth_policy policy2(size);
+    tsl::power_of_two_growth_policy<2> policy2(size);
     
     
     size = std::numeric_limits<std::size_t>::max();
-    BOOST_CHECK_THROW((tsl::power_of_two_growth_policy(size)), std::length_error);
+    BOOST_CHECK_THROW((tsl::power_of_two_growth_policy<2>(size)), std::length_error);
     
     
     size = policy.max_bucket_count() + 1;
-    BOOST_CHECK_THROW((tsl::power_of_two_growth_policy(size)), std::length_error);
+    BOOST_CHECK_THROW((tsl::power_of_two_growth_policy<2>(size)), std::length_error);
 }
 
 

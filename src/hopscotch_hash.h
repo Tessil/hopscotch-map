@@ -67,21 +67,24 @@
 namespace tsl {
 
 /**
- * Grow the map by a factor of two keeping bucket_count to a power of two. It allows
- * the map to use a mask operation instead of a modulo operation to map a hash to a bucket.
+ * Grow the hash table by a factor of GrowthFactor keeping the bucket count to a power of two. It allows
+ * the table to use a mask operation instead of a modulo operation to map a hash to a bucket.
+ * 
+ * GrowthFactor must be a power of two >= 2.
  */
+template<std::size_t GrowthFactor>
 class power_of_two_growth_policy {
 public:
     /**
-     * Called on map creation and rehash. The number of buckets requested is passed by parameter.
-     * This number is a minimum, the policy may update this value with a higher value if needed.
-     * 
+     * Called on the hash table creation and on rehash. The number of buckets for the table is passed in parameter.
+     * This number is a minimum, the policy may update this value with a higher value if needed (but not lower).
+
      * If 0 is given, min_bucket_count_in_out must still be 0 after the policy creation and
      * bucket_for_hash must always return 0 in this case.
      */
-    power_of_two_growth_policy(std::size_t& min_bucket_count_in_out) {
+    explicit power_of_two_growth_policy(std::size_t& min_bucket_count_in_out) {
         if(min_bucket_count_in_out > max_bucket_count()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
+            throw std::length_error("The hash table exceeds its maxmimum size.");
         }
         
         if(min_bucket_count_in_out > 0) {
@@ -97,26 +100,27 @@ public:
      * Return the bucket [0, bucket_count()) to which the hash belongs. 
      * If bucket_count() is 0, it must always return 0.
      */
-    std::size_t bucket_for_hash(std::size_t hash) const {
+    std::size_t bucket_for_hash(std::size_t hash) const noexcept {
         return hash & m_mask;
     }
     
     /**
-     * Return the bucket count to uses when the bucket array grows on rehash.
+     * Return the bucket count to use when the bucket array grows on rehash.
      */
     std::size_t next_bucket_count() const {
-        if((m_mask + 1) > max_bucket_count()/2) {
-            throw std::length_error("The map exceeds its maxmimum size.");
+        if((m_mask + 1) > max_bucket_count() / GrowthFactor) {
+            throw std::length_error("The hash table exceeds its maxmimum size.");
         }
         
-        return (m_mask + 1) * 2;
+        return (m_mask + 1) * GrowthFactor;
     }
     
     /**
      * Return the maximum number of buckets supported by the policy.
      */
     std::size_t max_bucket_count() const {
-        return std::numeric_limits<std::size_t>::max()/2 + 1;
+        // Largest power of two.
+        return (std::numeric_limits<std::size_t>::max() / 2) + 1;
     }
     
     /**
@@ -129,12 +133,12 @@ public:
     
 private:
     static std::size_t round_up_to_power_of_two(std::size_t value) {
-        if(value == 0) {
-            return 1;
-        }
-        
         if(is_power_of_two(value)) {
             return value;
+        }
+        
+        if(value == 0) {
+            return 1;
         }
             
         --value;
@@ -150,19 +154,21 @@ private:
     }
     
 private:
+    static_assert(is_power_of_two(GrowthFactor) && GrowthFactor >= 2, "GrowthFactor must be a power of two >= 2.");
+    
     std::size_t m_mask;
 };
 
 /**
- * Grow the map by GrowthFactor::num/GrowthFactor::den and use a modulo to map a hash
- * to a bucket. Slower but it can be usefull if you want a slower growth.
+ * Grow the hash table by GrowthFactor::num / GrowthFactor::den and use a modulo to map a hash
+ * to a bucket. Slower but it can be useful if you want a slower growth.
  */
 template<class GrowthFactor = std::ratio<3, 2>>
 class mod_growth_policy {
 public:
-    mod_growth_policy(std::size_t& min_bucket_count_in_out) {
+    explicit mod_growth_policy(std::size_t& min_bucket_count_in_out) {
         if(min_bucket_count_in_out > max_bucket_count()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
+            throw std::length_error("The hash table exceeds its maxmimum size.");
         }
         
         if(min_bucket_count_in_out > 0) {
@@ -173,19 +179,19 @@ public:
         }
     }
     
-    std::size_t bucket_for_hash(std::size_t hash) const {
+    std::size_t bucket_for_hash(std::size_t hash) const noexcept {
         tsl_assert(m_mod != 0);
         return hash % m_mod;
     }
     
     std::size_t next_bucket_count() const {
         if(m_mod == max_bucket_count()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
+            throw std::length_error("The hash table exceeds its maxmimum size.");
         }
         
         const double next_bucket_count = std::ceil(double(m_mod) * REHASH_SIZE_MULTIPLICATION_FACTOR);
         if(!std::isnormal(next_bucket_count)) {
-            throw std::length_error("The map exceeds its maxmimum size.");
+            throw std::length_error("The hash table exceeds its maxmimum size.");
         }
         
         if(next_bucket_count > double(max_bucket_count())) {
@@ -205,10 +211,10 @@ public:
     }
     
 private:
-    static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0*GrowthFactor::num/GrowthFactor::den;
+    static constexpr double REHASH_SIZE_MULTIPLICATION_FACTOR = 1.0 * GrowthFactor::num / GrowthFactor::den;
     static const std::size_t MAX_BUCKET_COUNT = 
             std::size_t(double(
-                    std::numeric_limits<std::size_t>::max()/REHASH_SIZE_MULTIPLICATION_FACTOR
+                    std::numeric_limits<std::size_t>::max() / REHASH_SIZE_MULTIPLICATION_FACTOR
             ));
             
     static_assert(REHASH_SIZE_MULTIPLICATION_FACTOR >= 1.1, "Growth factor should be >= 1.1.");
@@ -228,7 +234,7 @@ static constexpr const std::array<std::size_t, 40> PRIMES = {{
 }};
 
 template<unsigned int IPrime>
-static std::size_t mod(std::size_t hash) { return hash % PRIMES[IPrime]; }
+static constexpr std::size_t mod(std::size_t hash) { return hash % PRIMES[IPrime]; }
 
 // MOD_PRIME[iprime](hash) returns hash % PRIMES[iprime]. This table allows for faster modulo as the
 // compiler can optimize the modulo code better with a constant known at the compilation.
@@ -242,18 +248,38 @@ static constexpr const std::array<std::size_t(*)(std::size_t), 40> MOD_PRIME = {
 }
 
 /**
- * Grow the map by using prime numbers as size. Slower than tsl::power_of_two_growth_policy in general 
- * but will probably distribute the values around better in the buckets with a poor hash function.
+ * Grow the hash table by using prime numbers as bucket count. Slower than tsl::power_of_two_growth_policy in  
+ * general but will probably distribute the values around better in the buckets with a poor hash function.
+ * 
+ * To allow the compiler to optimize the modulo operation, a lookup table is used with constant primes numbers.
+ * 
+ * With a switch the code would look like:
+ * \code
+ * switch(iprime) { // iprime is the current prime of the hash table
+ *     case 0: hash % 5ul;
+ *             break;
+ *     case 1: hash % 17ul;
+ *             break;
+ *     case 2: hash % 29ul;
+ *             break;
+ *     ...
+ * }    
+ * \endcode
+ * 
+ * Due to the constant variable in the modulo the compiler is able to optimize the operation
+ * by a series of multiplications, substractions and shifts. 
+ * 
+ * The 'hash % 5' could become something like 'hash - (hash * 0xCCCCCCCD) >> 34) * 5' in a 64 bits environement.
  */
 class prime_growth_policy {
 public:
-    prime_growth_policy(std::size_t& min_bucket_count_in_out) {
+    explicit prime_growth_policy(std::size_t& min_bucket_count_in_out) {
         auto it_prime = std::lower_bound(tsl::detail_hopscotch_hash::PRIMES.begin(), 
                                          tsl::detail_hopscotch_hash::PRIMES.end(), 
                                          min_bucket_count_in_out);
         
         if(it_prime == tsl::detail_hopscotch_hash::PRIMES.end()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
+            throw std::length_error("The hash table exceeds its maxmimum size.");
         }
         
         m_iprime = static_cast<unsigned int>(std::distance(tsl::detail_hopscotch_hash::PRIMES.begin(), 
@@ -266,13 +292,13 @@ public:
         }
     }
     
-    std::size_t bucket_for_hash(std::size_t hash) const {
+    std::size_t bucket_for_hash(std::size_t hash) const noexcept {
         return bucket_for_hash_iprime(hash, m_iprime);
     }
     
     std::size_t next_bucket_count() const {
         if(m_iprime + 1 >= tsl::detail_hopscotch_hash::PRIMES.size()) {
-            throw std::length_error("The map exceeds its maxmimum size.");
+            throw std::length_error("The hash table exceeds its maxmimum size.");
         }
         
         return tsl::detail_hopscotch_hash::PRIMES[m_iprime + 1];
@@ -294,8 +320,10 @@ private:
     
 private:
     unsigned int m_iprime;
-};
-
+    
+    static_assert(std::numeric_limits<decltype(m_iprime)>::max() >= tsl::detail_hopscotch_hash::MOD_PRIME.size(), 
+                  "The type of m_iprime is not big enough.");
+}; 
 
 namespace detail_hopscotch_hash {
     
@@ -322,6 +350,15 @@ struct has_key_compare : std::false_type {
 
 template<typename T>
 struct has_key_compare<T, typename make_void<typename T::key_compare>::type> : std::true_type {
+};
+
+
+template<typename U>
+struct is_power_of_two_policy: std::false_type {
+};
+
+template<std::size_t GrowthFactor>
+struct is_power_of_two_policy<tsl::power_of_two_growth_policy<GrowthFactor>>: std::true_type {
 };
 
 
@@ -380,17 +417,19 @@ public:
 static const std::size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
 
 
+using truncated_hash_type = std::uint_least32_t;
+
+/**
+ * Helper class that store a truncated hash if StoreHash is true and nothing otherwise.
+ */
 template<bool StoreHash>
 class hopscotch_bucket_hash {
-public:    
-    using hash_type = std::false_type;
-    
+public:
     bool bucket_hash_equal(std::size_t /*hash*/) const noexcept {
         return true;
     }
     
-    std::size_t truncated_bucket_hash() const noexcept {
-        assert(false);
+    truncated_hash_type truncated_bucket_hash() const noexcept {
         return 0;
     }
     
@@ -398,21 +437,18 @@ protected:
     void copy_hash(const hopscotch_bucket_hash& ) noexcept {
     }
     
-    void set_hash(std::size_t /*hash*/) noexcept {
+    void set_hash(truncated_hash_type /*hash*/) noexcept {
     }
 };
 
 template<>
 class hopscotch_bucket_hash<true> {
 public:
-    using hash_type = std::uint_least32_t;
-    static_assert(sizeof(hash_type) <= sizeof(std::size_t), "");
-    
     bool bucket_hash_equal(std::size_t hash) const noexcept {
-        return m_hash == hash_type(hash);
+        return m_hash == truncated_hash_type(hash);
     }
     
-    std::size_t truncated_bucket_hash() const noexcept {
+    truncated_hash_type truncated_bucket_hash() const noexcept {
         return m_hash;
     }
     
@@ -421,13 +457,14 @@ protected:
         m_hash = bucket.m_hash;
     }
     
-    void set_hash(std::size_t hash) noexcept {
-        m_hash = hash_type(hash);
+    void set_hash(truncated_hash_type hash) noexcept {
+        m_hash = hash;
     }
     
 private:    
-    hash_type m_hash;
+    truncated_hash_type m_hash;
 };
+
 
 template<typename ValueType, unsigned int NeighborhoodSize, bool StoreHash>
 class hopscotch_bucket: public hopscotch_bucket_hash<StoreHash> {
@@ -557,7 +594,7 @@ public:
     }
     
     template<typename... Args>
-    void set_value_of_empty_bucket(std::size_t hash, Args&&... value_type_args) {
+    void set_value_of_empty_bucket(truncated_hash_type hash, Args&&... value_type_args) {
         tsl_assert(empty());
         
         ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::forward<Args>(value_type_args)...);
@@ -600,6 +637,10 @@ public:
         else {
             return std::numeric_limits<std::size_t>::max();
         }
+    }
+    
+    static truncated_hash_type truncate_hash(std::size_t hash) noexcept {
+        return truncated_hash_type(hash);
     }
     
 private:
@@ -1466,12 +1507,13 @@ private:
         }
         
         try {
+            const bool use_stored_hash = USE_STORED_HASH_ON_REHASH(new_map.bucket_count());
             for(auto it_bucket = m_buckets.begin(); it_bucket != m_buckets.end(); ++it_bucket) {
                 if(it_bucket->empty()) {
                     continue;
                 }
                 
-                const std::size_t hash = USE_STORED_HASH_ON_REHASH?
+                const std::size_t hash = use_stored_hash?
                                             it_bucket->truncated_bucket_hash():
                                             new_map.hash_key(KeySelect()(it_bucket->value()));
                 const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
@@ -1489,12 +1531,13 @@ private:
         catch(...) {
             m_overflow_elements.swap(new_map.m_overflow_elements);
             
+            const bool use_stored_hash = USE_STORED_HASH_ON_REHASH(new_map.bucket_count());
             for(auto it_bucket = new_map.m_buckets.begin(); it_bucket != new_map.m_buckets.end(); ++it_bucket) {
                 if(it_bucket->empty()) {
                     continue;
                 }
                 
-                const std::size_t hash = USE_STORED_HASH_ON_REHASH?
+                const std::size_t hash = use_stored_hash?
                                             it_bucket->truncated_bucket_hash():
                                             hash_key(KeySelect()(it_bucket->value()));
                 const std::size_t ibucket_for_hash = bucket_for_hash(hash);
@@ -1516,12 +1559,13 @@ private:
     void rehash_impl(size_type count_) {
         hopscotch_hash new_map = new_hopscotch_hash(count_);
                 
+        const bool use_stored_hash = USE_STORED_HASH_ON_REHASH(new_map.bucket_count());
         for(const hopscotch_bucket& bucket: m_buckets) {
             if(bucket.empty()) {
                 continue;
             }
             
-            const std::size_t hash = USE_STORED_HASH_ON_REHASH?
+            const std::size_t hash = use_stored_hash?
                                          bucket.truncated_bucket_hash():
                                          new_map.hash_key(KeySelect()(bucket.value()));
             const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
@@ -1672,13 +1716,14 @@ private:
         std::size_t expand_bucket_count = GrowthPolicy::next_bucket_count();
         GrowthPolicy expand_growth_policy(expand_bucket_count);
         
+        const bool use_stored_hash = USE_STORED_HASH_ON_REHASH(expand_bucket_count);
         for(size_t ibucket = ibucket_neighborhood_check; 
             ibucket < m_buckets.size() && (ibucket - ibucket_neighborhood_check) < NeighborhoodSize; 
             ++ibucket)
         {
             tsl_assert(!m_buckets[ibucket].empty());
             
-            const size_t hash = USE_STORED_HASH_ON_REHASH?
+            const size_t hash = use_stored_hash?
                                     m_buckets[ibucket].truncated_bucket_hash():
                                     hash_key(KeySelect()(m_buckets[ibucket].value()));
             if(bucket_for_hash(hash) != expand_growth_policy.bucket_for_hash(hash)) {
@@ -1715,7 +1760,7 @@ private:
     {
         tsl_assert(ibucket_empty >= ibucket_for_hash );
         tsl_assert(m_buckets[ibucket_empty].empty());
-        m_buckets[ibucket_empty].set_value_of_empty_bucket(hash, std::forward<Args>(value_type_args)...);
+        m_buckets[ibucket_empty].set_value_of_empty_bucket(hopscotch_bucket::truncate_hash(hash), std::forward<Args>(value_type_args)...);
         
         tsl_assert(!m_buckets[ibucket_for_hash].empty());
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_empty - ibucket_for_hash);
@@ -1950,8 +1995,16 @@ private:
     static const std::size_t MAX_PROBES_FOR_EMPTY_BUCKET = 12*NeighborhoodSize;
     static constexpr float MIN_LOAD_FACTOR_FOR_REHASH = 0.1f;
     
-    static const bool USE_STORED_HASH_ON_REHASH = 
-                StoreHash && std::is_same<GrowthPolicy, tsl::power_of_two_growth_policy>::value;
+    static bool USE_STORED_HASH_ON_REHASH(size_type bucket_count) {
+        (void) bucket_count;
+        if(StoreHash && is_power_of_two_policy<GrowthPolicy>::value) {
+            tsl_assert(bucket_count > 0);
+            return (bucket_count - 1) <= std::numeric_limits<truncated_hash_type>::max();
+        }
+        else {
+            return false;   
+        }
+    }
     
     /**
      * Return an always valid pointer to an static empty hopscotch_bucket.

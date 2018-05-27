@@ -74,7 +74,7 @@ template<class Key,
          class Allocator = std::allocator<Key>,
          unsigned int NeighborhoodSize = 62,
          bool StoreHash = false,
-         class GrowthPolicy = tsl::power_of_two_growth_policy>
+         class GrowthPolicy = tsl::power_of_two_growth_policy<2>>
 class hopscotch_set {
 private:    
     template<typename U>
