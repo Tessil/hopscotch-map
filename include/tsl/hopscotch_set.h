@@ -508,6 +508,18 @@ private:
     ht m_ht;    
 };
 
+
+/**
+ * Same as `tsl::hopscotch_set<Key, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, tsl::hh::prime_growth_policy>`.
+ */
+template<class Key, 
+         class Hash = std::hash<Key>,
+         class KeyEqual = std::equal_to<Key>,
+         class Allocator = std::allocator<Key>,
+         unsigned int NeighborhoodSize = 62,
+         bool StoreHash = false>
+using hopscotch_pg_set = hopscotch_set<Key, Hash, KeyEqual, Allocator, NeighborhoodSize, StoreHash, tsl::hh::prime_growth_policy>;
+
 } // end namespace tsl
 
 #endif
