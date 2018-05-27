@@ -4,7 +4,7 @@
 
 The hopscotch-map library is a C++ implementation of a fast hash map and hash set using open-addressing and hopscotch hashing to resolve collisions. It is a cache-friendly data structure offering better performances than `std::unordered_map` in most cases and is closely similar to `google::dense_hash_map` while using less memory and providing more functionalities.
 
-The library provides four classes: `tsl::hopscotch_map`, `tsl::hopscotch_set`, `tsl::hopscotch_sc_map` and `tsl::hopscotch_sc_set`. The `tsl::hopscotch_sc_map` and `tsl::hopscotch_sc_set` classes have an additional requirement for the key, must be `LessThanComparable`, but provide a better upper bound, see [details](https://github.com/Tessil/hopscotch-map#deny-of-service-dos-attack) in example. Nonetheless, `tsl::hopscotch_map` and `tsl::hopscotch_set` should be sufficient in most cases and should be your default pick as they perform better in general.
+The library provides four classes: `tsl::hopscotch_map`, `tsl::hopscotch_set`, `tsl::bhopscotch_map` and `tsl::bhopscotch_set`. The `tsl::bhopscotch_map` and `tsl::bhopscotch_set` classes have an additional requirement for the key, must be `LessThanComparable`, but provide a better upper bound, see [details](https://github.com/Tessil/hopscotch-map#deny-of-service-dos-attack) in example. Nonetheless, `tsl::hopscotch_map` and `tsl::hopscotch_set` should be sufficient in most cases and should be your default pick as they perform better in general.
 
 An overview of hopscotch hashing and some implementation details may be found [here](https://tessil.github.io/2016/08/29/hopscotch-hashing.html).
 
@@ -20,7 +20,7 @@ A **benchmark** of `tsl::hopscotch_map` against other hash maps may be found [th
 - No need to reserve any sentinel value from the keys.
 - Possibility to store the hash value on insert for faster rehash and lookup if the hash or the key equal functions are expensive to compute (see the [StoreHash](https://tessil.github.io/hopscotch-map/doc/html/classtsl_1_1hopscotch__map.html#details) template parameter).
 - If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup.
-- The `tsl::hopscotch_sc_map` and `tsl::hopscotch_sc_set` provide a worst-case of O(log n) on lookup and delete making these classes resistant to hash table Deny of Service (DoS) attacks (see [details](https://github.com/Tessil/hopscotch-map#deny-of-service-dos-attack) in example).
+- The `tsl::bhopscotch_map` and `tsl::bhopscotch_set` provide a worst-case of O(log n) on lookup and delete making these classes resistant to hash table Deny of Service (DoS) attacks (see [details](https://github.com/Tessil/hopscotch-map#deny-of-service-dos-attack) in example).
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
 
 ### Differences compare to `std::unordered_map`
@@ -60,7 +60,7 @@ If you encounter poor performances, check `overflow_size()`. If it is not zero, 
 
 You can also use `tsl::mod_growth_policy` if you want a more configurable growth rate or you could even define your own policy (see [API](https://tessil.github.io/hopscotch-map/doc/html/classtsl_1_1hopscotch__map.html#details)).
 
-A bad distribution may lead to a runtime complexity of O(n) for lookups. Unfortunately it is sometimes difficult to guard yourself against it (e.g. DoS attack on the hash map). If needed, check `tsl::hopscotch_sc_map/set` which offer a worst-case scenario of O(log n) on lookups, see [details](https://github.com/Tessil/hopscotch-map#deny-of-service-dos-attack) in example.
+A bad distribution may lead to a runtime complexity of O(n) for lookups. Unfortunately it is sometimes difficult to guard yourself against it (e.g. DoS attack on the hash map). If needed, check `tsl::bhopscotch_map/set` which offer a worst-case scenario of O(log n) on lookups, see [details](https://github.com/Tessil/hopscotch-map#deny-of-service-dos-attack) in example.
 
 ### Installation
 To use hopscotch-map, just add the [src/](src/) directory to your include path. It is a **header-only** library.
@@ -236,7 +236,7 @@ int main() {
 ```
 
 #### Deny of Service (DoS) attack
-In addition to `tsl::hopscotch_map` and `tsl::hopscotch_set`, the library provides two more "secure" options: `tsl::hopscotch_sc_map` and `tsl::hopscotch_sc_set`. 
+In addition to `tsl::hopscotch_map` and `tsl::hopscotch_set`, the library provides two more "secure" options: `tsl::bhopscotch_map` and `tsl::bhopscotch_set`. 
 
 These two additions have a worst-case runtime of O(log n) for lookups and deletions and an amortized worst case of O(log n) for insertions (amortized due to the possibility of rehash which would be in O(n)). Even if the hash function maps all the elements to the same bucket, the O(log n) would still hold.
 
@@ -249,7 +249,7 @@ To achieve this, the "secure" versions use a binary search tree for the overflow
 #include <cstdint>
 #include <iostream>
 #include "hopscotch_map.h"
-#include "hopscotch_sc_map.h"
+#include "bhopscotch_map.h"
 
 /*
  * Poor hash function which always returns 1 to simulate
@@ -284,7 +284,7 @@ int main() {
      * Faster. Even with the poor hash function, insertions end-up to
      * be O(log n) in average (and O(n) when a rehash occurs).
      */
-    tsl::hopscotch_sc_map<int, int, dos_attack_simulation_hash> map_secure;
+    tsl::bhopscotch_map<int, int, dos_attack_simulation_hash> map_secure;
     
     start = std::chrono::high_resolution_clock::now();
     for(int i=0; i < 10000; i++) {
