@@ -108,7 +108,7 @@ struct is_power_of_two_policy<tsl::hh::power_of_two_growth_policy<GrowthFactor>>
 /*
  * smallest_type_for_min_bits::type returns the smallest type that can fit MinBits.
  */
-static const size_t SMALLEST_TYPE_MAX_BITS_SUPPORTED = 64;
+static const std::size_t SMALLEST_TYPE_MAX_BITS_SUPPORTED = 64;
 template<unsigned int MinBits, typename Enable = void>
 class smallest_type_for_min_bits {
 };
@@ -146,13 +146,16 @@ public:
  * - An unsigned integer of type neighborhood_bitmap used to tell us which buckets in the neighborhood of the 
  *   current bucket contain a value with a hash belonging to the current bucket. 
  * 
- * For a bucket 'b' a bit 'i' (counting from 0 and from the least significant bit to the most significant) 
- * set to 1 means that the bucket 'b+i' contains a value with a hash belonging to bucket 'b'.
+ * For a bucket 'bct', a bit 'i' (counting from 0 and from the least significant bit to the most significant)
+ * set to 1 means that the bucket 'bct + i' contains a value with a hash belonging to bucket 'bct'.
  * The bits used for that, start from the third least significant bit.
- * 
- * The least significant bit is set to 1 if there is a value in the bucket storage.
- * The second least significant bit is set to 1 if there is an overflow. More than NeighborhoodSize values 
- * give the same hash, all overflow values are stored in the m_overflow_elements list of the map.
+ * The two least significant bits are reserved:
+ * - The least significant bit is set to 1 if there is a value in the bucket storage.
+ * - The second least significant bit is set to 1 if there is an overflow. More than NeighborhoodSize values
+  * give the same hash, all overflow values are stored in the m_overflow_elements list of the map.
+ *
+ * Details regarding hopscotch hashing an its implementation can be found here:
+ *  https://tessil.github.io/2016/08/29/hopscotch-hashing.html
  */
 static const std::size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2; 
 
@@ -209,8 +212,8 @@ private:
 template<typename ValueType, unsigned int NeighborhoodSize, bool StoreHash>
 class hopscotch_bucket: public hopscotch_bucket_hash<StoreHash> {
 private:
-    static const size_t MIN_NEIGHBORHOOD_SIZE = 4;
-    static const size_t MAX_NEIGHBORHOOD_SIZE = SMALLEST_TYPE_MAX_BITS_SUPPORTED - NB_RESERVED_BITS_IN_NEIGHBORHOOD; 
+    static const std::size_t MIN_NEIGHBORHOOD_SIZE = 4;
+    static const std::size_t MAX_NEIGHBORHOOD_SIZE = SMALLEST_TYPE_MAX_BITS_SUPPORTED - NB_RESERVED_BITS_IN_NEIGHBORHOOD; 
     
     
     static_assert(NeighborhoodSize >= 4, "NeighborhoodSize should be >= 4.");
@@ -394,14 +397,8 @@ private:
     }
     
     void destroy_value() noexcept {
-        try {
-            tsl_assert(!empty());
-            
-            value().~value_type();
-        }
-        catch(...) {
-            std::terminate();
-        }
+        tsl_assert(!empty());
+        value().~value_type();
     }
     
 private:
@@ -413,14 +410,14 @@ private:
 
 
 /**
- * Internal common class used by hopscotch_(sc)_map and hopscotch_(sc)_set.
+ * Internal common class used by (b)hopscotch_map and (b)hopscotch_set.
  * 
- * ValueType is what will be stored by hopscotch_hash (usually std::pair<Key, T> for map and Key for set).
+ * ValueType is what will be stored by hopscotch_hash (usually std::pair<Key, T> for a map and Key for a set).
  * 
  * KeySelect should be a FunctionObject which takes a ValueType in parameter and returns a reference to the key.
  * 
  * ValueSelect should be a FunctionObject which takes a ValueType in parameter and returns a reference to the value.
- * ValueSelect should be void if there is no value (in set for example).
+ * ValueSelect should be void if there is no value (in a set for example).
  * 
  * OverflowContainer will be used as containers for overflown elements. Usually it should be a list<ValueType>
  * or a set<Key>/map<Key, T>.
@@ -441,7 +438,7 @@ private:
     using has_mapped_type = typename std::integral_constant<bool, !std::is_same<U, void>::value>;
     
 public:
-    template<bool is_const>
+    template<bool IsConst>
     class hopscotch_iterator;
     
     using key_type = typename KeySelect::key_type;
@@ -482,20 +479,20 @@ private:
     
 public:    
     /**
-     * The 'operator*()' and 'operator->()' methods return a const reference and const pointer respectively to the 
+     * The `operator*()` and `operator->()` methods return a const reference and const pointer respectively to the 
      * stored value type.
      * 
-     * In case of a map, to get a modifiable reference to the value associated to a key (the '.second' in the 
-     * stored pair), you have to call 'value()'.
+     * In case of a map, to get a modifiable reference to the value associated to a key (the `.second` in the 
+     * stored pair), you have to call `value()`.
      */
-    template<bool is_const>
+    template<bool IsConst>
     class hopscotch_iterator {
         friend class hopscotch_hash;
     private:
-        using iterator_bucket = typename std::conditional<is_const, 
+        using iterator_bucket = typename std::conditional<IsConst, 
                                                             typename hopscotch_hash::const_iterator_buckets, 
                                                             typename hopscotch_hash::iterator_buckets>::type;
-        using iterator_overflow = typename std::conditional<is_const, 
+        using iterator_overflow = typename std::conditional<IsConst, 
                                                             typename hopscotch_hash::const_iterator_overflow, 
                                                             typename hopscotch_hash::iterator_overflow>::type;
     
@@ -534,7 +531,7 @@ public:
 
         template<class U = ValueSelect, typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
         typename std::conditional<
-                        is_const, 
+                        IsConst, 
                         const typename U::value_type&, 
                         typename U::value_type&>::type value() const
         {
@@ -933,7 +930,10 @@ public:
     }
     
     
-    
+    /**
+     * Here to avoid `template<class K> size_type erase(const K& key)` being used when
+     * we use an iterator instead of a const_iterator.
+     */
     iterator erase(iterator pos) {
         return erase(const_iterator(pos));
     }
