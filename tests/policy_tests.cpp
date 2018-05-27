@@ -18,10 +18,17 @@ BOOST_AUTO_TEST_CASE(test_power_of_two_policy) {
     std::size_t bucket_count = 0;
     tsl::power_of_two_growth_policy policy(bucket_count);
     
+    BOOST_CHECK_EQUAL(policy.bucket_for_hash(0), 0);
+    BOOST_CHECK_EQUAL(bucket_count, 0);
+    
+    
     try {
         while(true) {
             bucket_count = policy.next_bucket_count();
             policy = tsl::power_of_two_growth_policy(bucket_count);
+            
+            BOOST_CHECK_EQUAL(policy.bucket_for_hash(0), 0);
+            BOOST_CHECK(bucket_count > 0);
         }
     }
     catch(const std::length_error& ) {
@@ -66,10 +73,17 @@ BOOST_AUTO_TEST_CASE(test_prime_policy) {
     std::size_t bucket_count = 0;
     tsl::prime_growth_policy policy(bucket_count);
     
+    BOOST_CHECK_EQUAL(policy.bucket_for_hash(0), 0);
+    BOOST_CHECK_EQUAL(bucket_count, 0);
+    
+    
     try {
         while(true) {
             bucket_count = policy.next_bucket_count();
             policy = tsl::prime_growth_policy(bucket_count);
+            
+            BOOST_CHECK_EQUAL(policy.bucket_for_hash(0), 0);
+            BOOST_CHECK(bucket_count > 0);
         }
     }
     catch(const std::length_error& ) {
@@ -114,10 +128,16 @@ BOOST_AUTO_TEST_CASE(test_mod_policy) {
     std::size_t bucket_count = 0;
     tsl::mod_growth_policy<> policy(bucket_count);
     
+    BOOST_CHECK_EQUAL(policy.bucket_for_hash(0), 0);
+    BOOST_CHECK_EQUAL(bucket_count, 0);
+    
     try {
         while(true) {
             bucket_count = policy.next_bucket_count();
             policy = tsl::mod_growth_policy<>(bucket_count);
+            
+            BOOST_CHECK_EQUAL(policy.bucket_for_hash(0), 0);
+            BOOST_CHECK(bucket_count > 0);
         }
     }
     catch(const std::length_error& ) {
