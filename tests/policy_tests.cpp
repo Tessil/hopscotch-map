@@ -30,7 +30,7 @@
 #include <ratio>
 #include <stdexcept>
 
-#include "hopscotch_growth_policy.h"
+#include <tsl/hopscotch_growth_policy.h>
 
 
 BOOST_AUTO_TEST_SUITE(test_policy)

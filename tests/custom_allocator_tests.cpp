@@ -30,8 +30,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <tsl/hopscotch_map.h>
 #include "utils.h"
-#include "hopscotch_map.h"
 
 
 static std::size_t nb_custom_allocs = 0;
