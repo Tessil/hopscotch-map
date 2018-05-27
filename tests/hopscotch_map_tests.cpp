@@ -45,12 +45,12 @@ using test_types = boost::mpl::list<
                         tsl::hopscotch_sc_map<int64_t, int64_t, mod_hash<9>>,
                         // with tsl::prime_growth_policy
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
-                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::prime_growth_policy>,
+                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::hh::prime_growth_policy>,
                         // with tsl::mod_growth_policy
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
-                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::mod_growth_policy<>>,
+                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::hh::mod_growth_policy<>>,
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
-                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::mod_growth_policy<std::ratio<4, 3>>>
+                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::hh::mod_growth_policy<std::ratio<4, 3>>>
                         >;
                                     
                               
@@ -477,31 +477,31 @@ BOOST_AUTO_TEST_CASE(test_modify_value) {
 BOOST_AUTO_TEST_CASE(test_extreme_bucket_count_value_construction) {
     BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
                                          std::allocator<std::pair<int, int>>, 62, false, 
-                                         tsl::power_of_two_growth_policy<2>>
+                                         tsl::hh::power_of_two_growth_policy<2>>
                             (std::numeric_limits<std::size_t>::max())), std::length_error);
     
     BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
                                          std::allocator<std::pair<int, int>>, 62, false, 
-                                         tsl::power_of_two_growth_policy<2>>
+                                         tsl::hh::power_of_two_growth_policy<2>>
                             (std::numeric_limits<std::size_t>::max()/2 + 1)), std::length_error);
     
     
     
     BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
                                          std::allocator<std::pair<int, int>>, 62, false, 
-                                         tsl::prime_growth_policy>
+                                         tsl::hh::prime_growth_policy>
                             (std::numeric_limits<std::size_t>::max())), std::length_error);
     
     BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
                                          std::allocator<std::pair<int, int>>, 62, false, 
-                                         tsl::prime_growth_policy>
+                                         tsl::hh::prime_growth_policy>
                             (std::numeric_limits<std::size_t>::max()/2)), std::length_error);
     
     
     
     BOOST_CHECK_THROW((tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
                                          std::allocator<std::pair<int, int>>, 62, false, 
-                                         tsl::mod_growth_policy<>>
+                                         tsl::hh::mod_growth_policy<>>
                             (std::numeric_limits<std::size_t>::max())), std::length_error);
 }
 
