@@ -13,7 +13,7 @@ A **benchmark** of `tsl::hopscotch_map` against other hash maps may be found [th
 **Note**: By default the library uses a power of two for the size of its buckets array to take advantage of the [fast modulo](https://en.wikipedia.org/wiki/Modulo_operation#Performance_issues). For good performance, it requires the hash table to have a well-distributed hash function. If you encounter performance issues check the [GrowthPolicy](https://github.com/Tessil/hopscotch-map#growth-policy) section to change the default behaviour or change your hash function. You may aslo want to check [Tessil/robin-map](https://github.com/Tessil/robin-map) which may perform better in some cases.
 
 ### Key features
-- Header-only library, just include [src/](src/) to your include path and you are ready to go.
+- Header-only library, just include [include/](include/) to your include path and you are ready to go.
 - Fast hash table, see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html) for some numbers.
 - Support for move-only and non-default constructible key/value.
 - Support for heterogeneous lookups (e.g. if you have a map that uses `std::unique_ptr<int>` as key, you could use an `int*` or a `std::uintptr_t` as key parameter to `find`, see [example](https://github.com/Tessil/hopscotch-map#heterogeneous-lookups)).
@@ -63,7 +63,7 @@ You can also use `tsl::mod_growth_policy` if you want a more configurable growth
 A bad distribution may lead to a runtime complexity of O(n) for lookups. Unfortunately it is sometimes difficult to guard yourself against it (e.g. DoS attack on the hash map). If needed, check `tsl::bhopscotch_map/set` which offer a worst-case scenario of O(log n) on lookups, see [details](https://github.com/Tessil/hopscotch-map#deny-of-service-dos-attack) in example.
 
 ### Installation
-To use hopscotch-map, just add the [src/](src/) directory to your include path. It is a **header-only** library.
+To use hopscotch-map, just add the [include/](include/) directory to your include path. It is a **header-only** library.
 
 The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.
 
@@ -90,8 +90,8 @@ All methods are not documented yet, but they replicate the behaviour of the ones
 #include <cstdint>
 #include <iostream>
 #include <string>
-#include "hopscotch_map.h"
-#include "hopscotch_set.h"
+#include <tsl/hopscotch_map.h>
+#include <tsl/hopscotch_set.h>
 
 int main() {
     tsl::hopscotch_map<std::string, int> map = {{"a", 1}, {"b", 2}};
@@ -158,7 +158,7 @@ Both `KeyEqual` and `Hash` will need to be able to deal with the different types
 #include <functional>
 #include <iostream>
 #include <string>
-#include "hopscotch_map.h"
+#include <tsl/hopscotch_map.h>
 
 
 struct employee {
@@ -248,8 +248,8 @@ To achieve this, the "secure" versions use a binary search tree for the overflow
 #include <chrono>
 #include <cstdint>
 #include <iostream>
-#include "hopscotch_map.h"
-#include "bhopscotch_map.h"
+#include <tsl/hopscotch_map.h>
+#include <tsl/bhopscotch_map.h>
 
 /*
  * Poor hash function which always returns 1 to simulate

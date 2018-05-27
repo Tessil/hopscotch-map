@@ -28,9 +28,9 @@
 #include <cstdint>
 #include <utility>
 
+#include <tsl/bhopscotch_set.h>
+#include <tsl/hopscotch_set.h>
 #include "utils.h"
-#include "hopscotch_set.h"
-#include "bhopscotch_set.h"
 
 
 BOOST_AUTO_TEST_SUITE(test_hopscotch_set)

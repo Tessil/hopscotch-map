@@ -38,10 +38,9 @@
 #include <utility>
 #include <vector>
 
-
+#include <tsl/bhopscotch_map.h>
+#include <tsl/hopscotch_map.h>
 #include "utils.h"
-#include "hopscotch_map.h"
-#include "bhopscotch_map.h"
 
 
 BOOST_AUTO_TEST_SUITE(test_hopscotch_map)
