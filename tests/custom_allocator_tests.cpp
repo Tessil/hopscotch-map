@@ -72,7 +72,7 @@ public:
     pointer allocate(size_type n, const void* /*hint*/ = 0) {
         nb_custom_allocs++;
         
-        pointer ptr = static_cast<pointer>(malloc(n * sizeof(T)));
+        pointer ptr = static_cast<pointer>(std::malloc(n * sizeof(T)));
         if(ptr == nullptr) {
             throw std::bad_alloc();
         }
@@ -110,23 +110,35 @@ bool operator!=(const custom_allocator<T>&, const custom_allocator<U>&) {
 }
 
 
+        
+//TODO Avoid overloading new to check number of global new
+// static std::size_t nb_global_new = 0;
+// void* operator new(std::size_t sz) {
+//     nb_global_new++;
+//     return std::malloc(sz);
+// }
+// 
+// void operator delete(void* ptr) noexcept {
+//     std::free(ptr);
+// }
+
 BOOST_AUTO_TEST_SUITE(test_custom_allocator)
 
 BOOST_AUTO_TEST_CASE(test_custom_allocator_1) {
-        nb_custom_allocs = 0;
-        
-        tsl::hopscotch_map<int, int, mod_hash<9>, std::equal_to<int>, 
-                           custom_allocator<std::pair<int, int>>, 6> map;
-        
-        const int nb_elements = 10000;
-        for(int i = 0; i < nb_elements; i++) {
-            map.insert({i, i*2});
-        }
-        
-        BOOST_CHECK_NE(map.overflow_size(), 0);
-        BOOST_CHECK_NE(nb_custom_allocs, 0);
-        
-        //TODO check that number of global allocations is 0
+//         nb_global_new = 0;
+    nb_custom_allocs = 0;
+    
+    tsl::hopscotch_map<int, int, mod_hash<9>, std::equal_to<int>, 
+                        custom_allocator<std::pair<int, int>>, 6> map;
+    
+    const int nb_elements = 10000;
+    for(int i = 0; i < nb_elements; i++) {
+        map.insert({i, i*2});
+    }
+    
+    BOOST_CHECK_NE(map.overflow_size(), 0);
+    BOOST_CHECK_NE(nb_custom_allocs, 0);
+//         BOOST_CHECK_EQUAL(nb_global_new, 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
