@@ -1156,7 +1156,7 @@ public:
     }
     
     void max_load_factor(float ml) {
-        m_max_load_factor = ml;
+        m_max_load_factor = std::max(0.1f, std::min(ml, 0.95f));
         m_max_load_threshold_rehash = size_type(float(bucket_count())*m_max_load_factor);
         m_min_load_threshold_rehash = size_type(float(bucket_count())*MIN_LOAD_FACTOR_FOR_REHASH);
     }
@@ -1175,11 +1175,11 @@ public:
      * Observers
      */
     hasher hash_function() const {
-        return static_cast<Hash>(*this);
+        return static_cast<const Hash&>(*this);
     }
     
     key_equal key_eq() const {
-        return static_cast<KeyEqual>(*this);
+        return static_cast<const KeyEqual&>(*this);
     }
     
     /*
