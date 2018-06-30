@@ -806,7 +806,7 @@ public:
         
     template<class P, typename std::enable_if<std::is_constructible<value_type, P&&>::value>::type* = nullptr>
     std::pair<iterator, bool> insert(P&& value) { 
-        return emplace(std::forward<P>(value)); 
+        return insert_impl(value_type(std::forward<P>(value)));
     }
     
     std::pair<iterator, bool> insert(value_type&& value) { 
