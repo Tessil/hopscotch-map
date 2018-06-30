@@ -14,8 +14,9 @@ os:
   - osx  
 
 script:
+  - cd tests
   - mkdir build
   - cd build
   - cmake ..
   - make
-  - ./test_hopscotch_map
+  - ./tsl_hopscotch_map_tests
