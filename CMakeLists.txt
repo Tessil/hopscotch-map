@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.1)
 project(tsl_hopscotch_map)
 
 add_library(tsl_hopscotch_map INTERFACE)
-add_library(tsl::hopscotch_map ALIAS tsl_hopscotch_map) # Use tsl::hopscotch_map as target, more consistent with other libraries conventions
+# Use tsl::hopscotch_map as target, more consistent with other libraries conventions (Boost, Qt, ...)
+add_library(tsl::hopscotch_map ALIAS tsl_hopscotch_map)
 
 target_include_directories(tsl_hopscotch_map INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_compile_features(tsl_hopscotch_map INTERFACE cxx_std_11)
