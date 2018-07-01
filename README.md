@@ -7,7 +7,7 @@ The hopscotch-map library is a C++ implementation of a fast hash map and hash se
 The library provides the following main classes: `tsl::hopscotch_map`, `tsl::hopscotch_set`, `tsl::hopscotch_pg_map` and `tsl::hopscotch_pg_set`. The first two are faster and use a power of two growth policy, the last two use a prime growth policy instead and are able to cope better with a poor hash function. Use the prime version if there is a chance of repeating patterns in the lower bits of your hash (e.g. you are storing pointers with an identity hash function). See [GrowthPolicy](#growth-policy) for details.
 
 
-In addition to these classes the library also provides`tsl::bhopscotch_map`, `tsl::bhopscotch_set`, `tsl::bhopscotch_pg_map` and `tsl::bhopscotch_pg_set`. These classes have an additional requirement for the key, it must be `LessThanComparable`, but they provide a better asymptotic upper bound, see [details](#deny-of-service-dos-attack) in example. Nonetheless if you don't have specific requirements (risk of hash DoS attacks), `tsl::hopscotch_map` and `tsl::hopscotch_set` should be sufficient in most cases and should be your default pick as they perform better in general.
+In addition to these classes the library also provides `tsl::bhopscotch_map`, `tsl::bhopscotch_set`, `tsl::bhopscotch_pg_map` and `tsl::bhopscotch_pg_set`. These classes have an additional requirement for the key, it must be `LessThanComparable`, but they provide a better asymptotic upper bound, see [details](#deny-of-service-dos-attack) in example. Nonetheless if you don't have specific requirements (risk of hash DoS attacks), `tsl::hopscotch_map` and `tsl::hopscotch_set` should be sufficient in most cases and should be your default pick as they perform better in general.
 
 
 An overview of hopscotch hashing and some implementation details can be found [here](https://tessil.github.io/2016/08/29/hopscotch-hashing.html).
@@ -21,7 +21,7 @@ A **benchmark** of `tsl::hopscotch_map` against other hash maps may be found [he
 - Support for heterogeneous lookups (e.g. if you have a map that uses `std::unique_ptr<int>` as key, you could use an `int*` or a `std::uintptr_t` as key parameter to `find`, see [example](#heterogeneous-lookups)).
 - No need to reserve any sentinel value from the keys.
 - Possibility to store the hash value on insert for faster rehash and lookup if the hash or the key equal functions are expensive to compute (see the [StoreHash](https://tessil.github.io/hopscotch-map/classtsl_1_1hopscotch__map.html#details) template parameter).
-- If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup.
+- If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see [API](https://tessil.github.io/hopscotch-map/classtsl_1_1hopscotch__map.html#a74d83c67c50bc8385bb11f78142eaa86)).
 - The `tsl::bhopscotch_map` and `tsl::bhopscotch_set` provide a worst-case of O(log n) on lookups and deletions making these classes resistant to hash table Deny of Service (DoS) attacks (see [details](#deny-of-service-dos-attack) in example).
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
 
@@ -29,8 +29,7 @@ A **benchmark** of `tsl::hopscotch_map` against other hash maps may be found [he
 `tsl::hopscotch_map` tries to have an interface similar to `std::unordered_map`, but some differences exist.
 - Iterator invalidation on insert doesn't behave in the same way. In general any operation modifying the hash table, except `erase`, invalidate all the iterators (see [API](https://tessil.github.io/hopscotch-map/classtsl_1_1hopscotch__map.html#details) for details).
 - References and pointers to keys or values in the map are invalidated in the same way as iterators to these keys-values on insert.
-- The size of the bucket array in the map grows by a factor of two, the size will always be a power of two, which may be a too steep growth rate for some purposes. The growth policy is modifiable (see the [`GrowthPolicy`](#growth-policy) template parameter) but it may reduce the speed of the hash map.
-- For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>` making the value `T` not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
+- For iterators, `operator*()` and `operator->()` return a reference and a pointer to `const std::pair<Key, T>` instead of `std::pair<const Key, T>`, making the value `T` not modifiable. To modify the value you have to call the `value()` method of the iterator to get a mutable reference. Example:
 ```c++
 tsl::hopscotch_map<int, int> map = {{1, 1}, {2, 1}, {3, 1}};
 for(auto it = map.begin(); it != map.end(); ++it) {
@@ -100,7 +99,7 @@ cd hopscotch-map/tests
 mkdir build
 cd build
 cmake ..
-make
+cmake --build .
 ./tsl_hopscotch_map_tests 
 ```
 
