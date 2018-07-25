@@ -625,6 +625,13 @@ public:
         
         
         this->max_load_factor(max_load_factor);
+        
+        
+        // Check in the constructor instead of outside of a function to avoi compilation issues
+        // when value_type is not complete.
+        static_assert(std::is_nothrow_move_constructible<value_type>::value || 
+                      std::is_copy_constructible<value_type>::value, 
+                      "value_type must be either copy constructible or nothrow move constructible.");
     }
     
     template<class OC = OverflowContainer, typename std::enable_if<has_key_compare<OC>::value>::type* = nullptr>
@@ -657,6 +664,13 @@ public:
         
         
         this->max_load_factor(max_load_factor);
+        
+        
+        // Check in the constructor instead of outside of a function to avoi compilation issues
+        // when value_type is not complete.
+        static_assert(std::is_nothrow_move_constructible<value_type>::value || 
+                      std::is_copy_constructible<value_type>::value, 
+                      "value_type must be either copy constructible or nothrow move constructible.");
     }
     
     hopscotch_hash(const hopscotch_hash& other): 
@@ -1228,11 +1242,6 @@ private:
         
         return bucket;
     }
-    
-    
-    static_assert(std::is_nothrow_move_constructible<value_type>::value || 
-                  std::is_copy_constructible<value_type>::value, 
-                  "value_type must be either copy constructible or nothrow move constructible.");
     
     template<typename U = value_type, 
              typename std::enable_if<std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
