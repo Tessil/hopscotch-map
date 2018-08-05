@@ -18,10 +18,10 @@ A **benchmark** of `tsl::hopscotch_map` against other hash maps may be found [he
 - Header-only library, just add the [include](include/) directory to your include path and you are ready to go. If you use CMake, you can also use the `tsl::hopscotch_map` exported target from the [CMakeLists.txt](CMakeLists.txt).
 - Fast hash table, see [benchmark](https://tessil.github.io/2016/08/29/benchmark-hopscotch-map.html) for some numbers.
 - Support for move-only and non-default constructible key/value.
-- Support for heterogeneous lookups (e.g. if you have a map that uses `std::unique_ptr<int>` as key, you could use an `int*` or a `std::uintptr_t` as key parameter to `find`, see [example](#heterogeneous-lookups)).
+- Support for heterogeneous lookups allowing the usage of `find` with a type different than `Key` (e.g. if you have a map that uses `std::unique_ptr<foo>` as key, you can use a `foo*` or a `std::uintptr_t` as key parameter to `find` without constructing a `std::unique_ptr<foo>`, see [example](#heterogeneous-lookups)).
 - No need to reserve any sentinel value from the keys.
 - Possibility to store the hash value on insert for faster rehash and lookup if the hash or the key equal functions are expensive to compute (see the [StoreHash](https://tessil.github.io/hopscotch-map/classtsl_1_1hopscotch__map.html#details) template parameter).
-- If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see [API](https://tessil.github.io/hopscotch-map/classtsl_1_1hopscotch__map.html#a74d83c67c50bc8385bb11f78142eaa86)).
+- If the hash is known before a lookup, it is possible to pass it as parameter to speed-up the lookup (see `precalculated_hash` parameter in [API](https://tessil.github.io/hopscotch-map/classtsl_1_1hopscotch__map.html#a74d83c67c50bc8385bb11f78142eaa86)).
 - The `tsl::bhopscotch_map` and `tsl::bhopscotch_set` provide a worst-case of O(log n) on lookups and deletions making these classes resistant to hash table Deny of Service (DoS) attacks (see [details](#deny-of-service-dos-attack) in example).
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
 
@@ -38,11 +38,11 @@ for(auto it = map.begin(); it != map.end(); ++it) {
 }
 ```
 - Move-only types must have a nothrow move constructor (with open addressing, it is not possible to keep the strong exception guarantee on rehash if the move constructor may throw).
-- No support for some buckets related methods (like bucket_size, bucket, ...).
+- No support for some buckets related methods (like `bucket_size`, `bucket`, ...).
 
 These differences also apply between `std::unordered_set` and `tsl::hopscotch_set`.
 
-Thread-safety and exceptions guarantees are the same as `std::unordered_map/set`.
+Thread-safety and exceptions guarantees are the same as `std::unordered_map/set` (i.e. possible to have multiple readers with no writer).
 
 ### Growth policy
 
@@ -136,7 +136,16 @@ int main() {
         std::cout << "{" << key_value.first << ", " << key_value.second << "}" << std::endl;
     }
     
+        
+    if(map.find("a") != map.end()) {
+        std::cout << "Found \"a\"." << std::endl;
+    }
     
+    const std::size_t precalculated_hash = std::hash<std::string>()("a");
+    // If we already know the hash beforehand, we can pass it in parameter to speed-up lookups.
+    if(map.find("a", precalculated_hash) != map.end()) {
+        std::cout << "Found \"a\" with hash " << precalculated_hash << "." << std::endl;
+    }
     
     
     /*
@@ -190,6 +199,7 @@ struct employee {
     employee(int id, std::string name) : m_id(id), m_name(std::move(name)) {
     }
     
+    // Either we include the comparators in the class and we use `std::equal_to<>`...
     friend bool operator==(const employee& empl, int empl_id) {
         return empl.m_id == empl_id;
     }
@@ -207,16 +217,7 @@ struct employee {
     std::string m_name;
 };
 
-struct hash_employee {
-    std::size_t operator()(const employee& empl) const {
-        return std::hash<int>()(empl.m_id);
-    }
-    
-    std::size_t operator()(int id) const {
-        return std::hash<int>()(id);
-    }
-};
-
+// ... or we implement a separate class to compare employees.
 struct equal_employee {
     using is_transparent = void;
     
@@ -230,6 +231,16 @@ struct equal_employee {
     
     bool operator()(const employee& empl1, const employee& empl2) const {
         return empl1.m_id == empl2.m_id;
+    }
+};
+
+struct hash_employee {
+    std::size_t operator()(const employee& empl) const {
+        return std::hash<int>()(empl.m_id);
+    }
+    
+    std::size_t operator()(int id) const {
+        return std::hash<int>()(id);
     }
 };
 
