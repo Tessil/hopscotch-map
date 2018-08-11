@@ -46,23 +46,21 @@
 
 
 #if (defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
-#define TSL_NO_RANGE_ERASE_WITH_CONST_ITERATOR
+#    define TSL_HH_NO_RANGE_ERASE_WITH_CONST_ITERATOR
 #endif
-
 
 
 /*
- * Only activate tsl_assert if TSL_DEBUG is defined. 
- * This way we avoid the performance hit when NDEBUG is not defined with assert as tsl_assert is used a lot
+ * Only activate tsl_hh_assert if TSL_DEBUG is defined. 
+ * This way we avoid the performance hit when NDEBUG is not defined with assert as tsl_hh_assert is used a lot
  * (people usually compile with "-O3" and not "-O3 -DNDEBUG").
  */
-#ifndef tsl_assert
-    #ifdef TSL_DEBUG
-    #define tsl_assert(expr) assert(expr)
-    #else
-    #define tsl_assert(expr) (static_cast<void>(0))
-    #endif
+#ifdef TSL_DEBUG
+#    define tsl_hh_assert(expr) assert(expr)
+#else
+#    define tsl_hh_assert(expr) (static_cast<void>(0))
 #endif
+
 
 namespace tsl {
 
@@ -239,7 +237,7 @@ public:
 
 
     hopscotch_bucket() noexcept: bucket_hash(), m_neighborhood_infos(0) {
-        tsl_assert(empty());
+        tsl_hh_assert(empty());
     }
     
     
@@ -312,13 +310,13 @@ public:
     }
     
     void toggle_neighbor_presence(std::size_t ineighbor) noexcept {
-        tsl_assert(ineighbor <= NeighborhoodSize);
+        tsl_hh_assert(ineighbor <= NeighborhoodSize);
         m_neighborhood_infos = neighborhood_bitmap(
                                     m_neighborhood_infos ^ (1ull << (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)));
     }
     
     bool check_neighbor_presence(std::size_t ineighbor) const noexcept {
-        tsl_assert(ineighbor <= NeighborhoodSize);
+        tsl_hh_assert(ineighbor <= NeighborhoodSize);
         if(((m_neighborhood_infos >> (ineighbor + NB_RESERVED_BITS_IN_NEIGHBORHOOD)) & 1) == 1) {
             return true;
         }
@@ -327,18 +325,18 @@ public:
     }
     
     value_type& value() noexcept {
-        tsl_assert(!empty());
+        tsl_hh_assert(!empty());
         return *reinterpret_cast<value_type*>(std::addressof(m_value));
     }
     
     const value_type& value() const noexcept {
-        tsl_assert(!empty());
+        tsl_hh_assert(!empty());
         return *reinterpret_cast<const value_type*>(std::addressof(m_value));
     }
     
     template<typename... Args>
     void set_value_of_empty_bucket(truncated_hash_type hash, Args&&... value_type_args) {
-        tsl_assert(empty());
+        tsl_hh_assert(empty());
         
         ::new (static_cast<void*>(std::addressof(m_value))) value_type(std::forward<Args>(value_type_args)...);
         set_empty(false);
@@ -346,7 +344,7 @@ public:
     }
     
     void swap_value_into_empty_bucket(hopscotch_bucket& empty_bucket) {
-        tsl_assert(empty_bucket.empty());
+        tsl_hh_assert(empty_bucket.empty());
         if(!empty()) {
             ::new (static_cast<void*>(std::addressof(empty_bucket.m_value))) value_type(std::move(value()));
             empty_bucket.copy_hash(*this);
@@ -370,7 +368,7 @@ public:
         }
         
         m_neighborhood_infos = 0;
-        tsl_assert(empty());
+        tsl_hh_assert(empty());
     }
     
     static std::size_t max_size() noexcept {
@@ -397,7 +395,7 @@ private:
     }
     
     void destroy_value() noexcept {
-        tsl_assert(!empty());
+        tsl_hh_assert(!empty());
         value().~value_type();
     }
     
@@ -858,8 +856,8 @@ public:
             const auto nb_elements_insert = std::distance(first, last);
             const std::size_t nb_elements_in_buckets = m_nb_elements - m_overflow_elements.size();
             const std::size_t nb_free_buckets = m_max_load_threshold_rehash - nb_elements_in_buckets;
-            tsl_assert(m_nb_elements >= m_overflow_elements.size());
-            tsl_assert(m_max_load_threshold_rehash >= nb_elements_in_buckets);
+            tsl_hh_assert(m_nb_elements >= m_overflow_elements.size());
+            tsl_hh_assert(m_max_load_threshold_rehash >= nb_elements_in_buckets);
             
             if(nb_elements_insert > 0 && nb_free_buckets < std::size_t(nb_elements_insert)) {
                 reserve(nb_elements_in_buckets + std::size_t(nb_elements_insert));
@@ -1238,7 +1236,7 @@ private:
     
     std::size_t bucket_for_hash(std::size_t hash) const {
         const std::size_t bucket = GrowthPolicy::bucket_for_hash(hash);
-        tsl_assert(bucket < m_buckets.size() || (bucket == 0 && m_buckets.empty()));
+        tsl_hh_assert(bucket < m_buckets.size() || (bucket == 0 && m_buckets.empty()));
         
         return bucket;
     }
@@ -1335,7 +1333,7 @@ private:
         new_map.swap(*this);
     }
     
-#ifdef TSL_NO_RANGE_ERASE_WITH_CONST_ITERATOR
+#ifdef TSL_HH_NO_RANGE_ERASE_WITH_CONST_ITERATOR
     iterator_overflow mutable_overflow_iterator(const_iterator_overflow it) {
         return std::next(m_overflow_elements.begin(), std::distance(m_overflow_elements.cbegin(), it));        
     }
@@ -1347,7 +1345,7 @@ private:
 
     // iterator is in overflow list
     iterator_overflow erase_from_overflow(const_iterator_overflow pos, std::size_t ibucket_for_hash) {
-#ifdef TSL_NO_RANGE_ERASE_WITH_CONST_ITERATOR        
+#ifdef TSL_HH_NO_RANGE_ERASE_WITH_CONST_ITERATOR        
         auto it_next = m_overflow_elements.erase(mutable_overflow_iterator(pos));
 #else
         auto it_next = m_overflow_elements.erase(pos);
@@ -1356,7 +1354,7 @@ private:
         
         
         // Check if we can remove the overflow flag
-        tsl_assert(m_buckets[ibucket_for_hash].has_overflow());
+        tsl_hh_assert(m_buckets[ibucket_for_hash].has_overflow());
         for(const value_type& value: m_overflow_elements) {
             const std::size_t bucket_for_value = bucket_for_hash(hash_key(KeySelect()(value)));
             if(bucket_for_value == ibucket_for_hash) {
@@ -1375,7 +1373,7 @@ private:
      */
     void erase_from_bucket(hopscotch_bucket& bucket_for_value, std::size_t ibucket_for_hash) noexcept {
         const std::size_t ibucket_for_value = std::distance(m_buckets.data(), &bucket_for_value);
-        tsl_assert(ibucket_for_value >= ibucket_for_hash);
+        tsl_hh_assert(ibucket_for_value >= ibucket_for_hash);
         
         bucket_for_value.remove_value();
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_for_value - ibucket_for_hash);
@@ -1435,7 +1433,7 @@ private:
         std::size_t ibucket_empty = find_empty_bucket(ibucket_for_hash);
         if(ibucket_empty < m_buckets.size()) {
             do {
-                tsl_assert(ibucket_empty >= ibucket_for_hash);
+                tsl_hh_assert(ibucket_empty >= ibucket_for_hash);
                 
                 // Empty bucket is in range of NeighborhoodSize, use it
                 if(ibucket_empty - ibucket_for_hash < NeighborhoodSize) {
@@ -1473,7 +1471,7 @@ private:
             ibucket < m_buckets.size() && (ibucket - ibucket_neighborhood_check) < NeighborhoodSize; 
             ++ibucket)
         {
-            tsl_assert(!m_buckets[ibucket].empty());
+            tsl_hh_assert(!m_buckets[ibucket].empty());
             
             const size_t hash = use_stored_hash?
                                     m_buckets[ibucket].truncated_bucket_hash():
@@ -1510,11 +1508,11 @@ private:
     iterator_buckets insert_in_bucket(std::size_t ibucket_empty, std::size_t ibucket_for_hash,
                                       std::size_t hash, Args&&... value_type_args) 
     {
-        tsl_assert(ibucket_empty >= ibucket_for_hash );
-        tsl_assert(m_buckets[ibucket_empty].empty());
+        tsl_hh_assert(ibucket_empty >= ibucket_for_hash );
+        tsl_hh_assert(m_buckets[ibucket_empty].empty());
         m_buckets[ibucket_empty].set_value_of_empty_bucket(hopscotch_bucket::truncate_hash(hash), std::forward<Args>(value_type_args)...);
         
-        tsl_assert(!m_buckets[ibucket_for_hash].empty());
+        tsl_hh_assert(!m_buckets[ibucket_for_hash].empty());
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_empty - ibucket_for_hash);
         m_nb_elements++;
         
@@ -1548,7 +1546,7 @@ private:
      * If a swap was possible, the position of ibucket_empty_in_out will be closer to 0 and true will re returned.
      */
     bool swap_empty_bucket_closer(std::size_t& ibucket_empty_in_out) {
-        tsl_assert(ibucket_empty_in_out >= NeighborhoodSize);
+        tsl_hh_assert(ibucket_empty_in_out >= NeighborhoodSize);
         const std::size_t neighborhood_start = ibucket_empty_in_out - NeighborhoodSize + 1;
         
         for(std::size_t to_check = neighborhood_start; to_check < ibucket_empty_in_out; to_check++) {
@@ -1557,13 +1555,13 @@ private:
             
             while(neighborhood_infos != 0 && to_swap < ibucket_empty_in_out) {
                 if((neighborhood_infos & 1) == 1) {
-                    tsl_assert(m_buckets[ibucket_empty_in_out].empty());
-                    tsl_assert(!m_buckets[to_swap].empty());
+                    tsl_hh_assert(m_buckets[ibucket_empty_in_out].empty());
+                    tsl_hh_assert(!m_buckets[to_swap].empty());
                     
                     m_buckets[to_swap].swap_value_into_empty_bucket(m_buckets[ibucket_empty_in_out]);
                     
-                    tsl_assert(!m_buckets[to_check].check_neighbor_presence(ibucket_empty_in_out - to_check));
-                    tsl_assert(m_buckets[to_check].check_neighbor_presence(to_swap - to_check));
+                    tsl_hh_assert(!m_buckets[to_check].check_neighbor_presence(ibucket_empty_in_out - to_check));
+                    tsl_hh_assert(m_buckets[to_check].check_neighbor_presence(to_swap - to_check));
                     
                     m_buckets[to_check].toggle_neighbor_presence(ibucket_empty_in_out - to_check);
                     m_buckets[to_check].toggle_neighbor_presence(to_swap - to_check);
@@ -1750,7 +1748,7 @@ private:
     static bool USE_STORED_HASH_ON_REHASH(size_type bucket_count) {
         (void) bucket_count;
         if(StoreHash && is_power_of_two_policy<GrowthPolicy>::value) {
-            tsl_assert(bucket_count > 0);
+            tsl_hh_assert(bucket_count > 0);
             return (bucket_count - 1) <= std::numeric_limits<truncated_hash_type>::max();
         }
         else {
