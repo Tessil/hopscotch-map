@@ -14,6 +14,9 @@ target_sources(tsl_hopscotch_map INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include/
                                            "${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/hopscotch_map.h"
                                            "${CMAKE_CURRENT_SOURCE_DIR}/include/tsl/hopscotch_set.h")
 
+if(MSVC)
+    target_sources(tsl_hopscotch_map INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/tsl_hopscotch_map.natvis")
+endif()
 
 if(${CMAKE_VERSION} VERSION_GREATER "3.7") 
     # Only available since version 3.8
