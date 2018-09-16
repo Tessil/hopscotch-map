@@ -1,45 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
-  <!-- Written in VC 2017 15.7 but is expected to be compatible with VC 2015 -->
+    <!-- Written in VC 2017 15.7 but is expected to be compatible with VC 2015 -->
 
-  <Type Name="tsl::detail_hopscotch_hash::hopscotch_bucket&lt;*&gt;">
-    <DisplayString Condition="(m_neighborhood_infos &amp; 1) == 0">empty</DisplayString>
-    <DisplayString Condition="(m_neighborhood_infos &amp; 1) != 0">{*reinterpret_cast&lt;$T1*&gt;(&amp;m_value)}</DisplayString>
-    <Expand>
-      <ExpandedItem Condition="(m_neighborhood_infos &amp; 1) != 0">*reinterpret_cast&lt;$T1*&gt;(&amp;m_value)</ExpandedItem>
-    </Expand>
-  </Type>
+    <Type Name="tsl::detail_hopscotch_hash::hopscotch_bucket&lt;*&gt;">
+        <DisplayString Condition="(m_neighborhood_infos &amp; 1) == 0">empty</DisplayString>
+        <DisplayString Condition="(m_neighborhood_infos &amp; 1) != 0">{*reinterpret_cast&lt;$T1*&gt;(&amp;m_value)}</DisplayString>
+        <Expand>
+            <ExpandedItem Condition="(m_neighborhood_infos &amp; 1) != 0">*reinterpret_cast&lt;$T1*&gt;(&amp;m_value)</ExpandedItem>
+        </Expand>
+    </Type>
 
-  <Type Name="tsl::hopscotch_map&lt;*&gt;">
-    <AlternativeType Name="tsl::bhopscotch_map&lt;*&gt;"/>
-    <AlternativeType Name="tsl::bhopscotch_set&lt;*&gt;"/>
-    <AlternativeType Name="tsl::hopscotch_set&lt;*&gt;"/>
-    <DisplayString>{{ size={m_ht.m_nb_elements} }}</DisplayString>
-    <Expand>
-      <Item Name="[bucket_count]" IncludeView="detailed">m_ht.m_buckets._Mypair._Myval2._Mylast - m_ht.m_buckets._Mypair._Myval2._Myfirst</Item>
-      <Item Condition="m_ht.m_buckets._Mypair._Myval2._Myfirst != m_ht.m_buckets._Mypair._Myval2._Mylast" Name="[load_factor]" IncludeView="detailed">((float)m_ht.m_nb_elements) / ((float)(m_ht.m_buckets._Mypair._Myval2._Mylast - m_ht.m_buckets._Mypair._Myval2._Myfirst))</Item>
-      <Item Condition="m_ht.m_buckets._Mypair._Myval2._Myfirst == m_ht.m_buckets._Mypair._Myval2._Mylast" Name="[load_factor]" IncludeView="detailed">0</Item>
-      <Item Name="[max_load_factor]" IncludeView="detailed">m_ht.m_max_load_factor</Item>
-      <CustomListItems>
-        <Variable Name="bucket" InitialValue="m_ht.m_first_or_empty_bucket"/>
+    <Type Name="tsl::hopscotch_map&lt;*&gt;">
+        <AlternativeType Name="tsl::bhopscotch_map&lt;*&gt;"/>
+        <AlternativeType Name="tsl::bhopscotch_set&lt;*&gt;"/>
+        <AlternativeType Name="tsl::hopscotch_set&lt;*&gt;"/>
+        <DisplayString>{{ size={m_ht.m_nb_elements} }}</DisplayString>
+        <Expand>
+            <Item Name="[bucket_count]" IncludeView="detailed">m_ht.m_buckets._Mypair._Myval2._Mylast - m_ht.m_buckets._Mypair._Myval2._Myfirst</Item>
+            <Item Condition="m_ht.m_buckets._Mypair._Myval2._Myfirst != m_ht.m_buckets._Mypair._Myval2._Mylast" Name="[load_factor]" IncludeView="detailed">((float)m_ht.m_nb_elements) / ((float)(m_ht.m_buckets._Mypair._Myval2._Mylast - m_ht.m_buckets._Mypair._Myval2._Myfirst))</Item>
+            <Item Condition="m_ht.m_buckets._Mypair._Myval2._Myfirst == m_ht.m_buckets._Mypair._Myval2._Mylast" Name="[load_factor]" IncludeView="detailed">0</Item>
+            <Item Name="[max_load_factor]" IncludeView="detailed">m_ht.m_max_load_factor</Item>
+            <CustomListItems>
+                <Variable Name="bucket" InitialValue="m_ht.m_first_or_empty_bucket"/>
 
-        <Size>m_ht.m_nb_elements</Size>
-        <Loop>
-          <Item Condition="(bucket-&gt;m_neighborhood_infos &amp; 1) != 0">bucket,na</Item>
-          <Break Condition="bucket == m_ht.m_buckets._Mypair._Myval2._Mylast"/>
-          <Exec>++bucket</Exec>
-        </Loop>
-      </CustomListItems>
-      <ExpandedItem>m_ht.m_overflow_elements,view(simple)</ExpandedItem>
-    </Expand>
-  </Type>
+                <Size>m_ht.m_nb_elements</Size>
+                <Loop>
+                    <Item Condition="(bucket-&gt;m_neighborhood_infos &amp; 1) != 0">bucket,na</Item>
+                    <Break Condition="bucket == m_ht.m_buckets._Mypair._Myval2._Mylast"/>
+                    <Exec>++bucket</Exec>
+                </Loop>
+            </CustomListItems>
+            <ExpandedItem>m_ht.m_overflow_elements,view(simple)</ExpandedItem>
+        </Expand>
+    </Type>
 
-  <Type Name="tsl::detail_hopscotch_hash::hopscotch_hash&lt;*&gt;::hopscotch_iterator&lt;*&gt;">
-    <DisplayString Condition="m_buckets_iterator._Ptr != m_buckets_end_iterator._Ptr">{m_buckets_iterator}</DisplayString>
-    <DisplayString Condition="m_buckets_iterator._Ptr == m_buckets_end_iterator._Ptr">{m_overflow_iterator}</DisplayString>
-    <Expand>
-      <ExpandedItem Condition="m_buckets_iterator._Ptr != m_buckets_end_iterator._Ptr">m_buckets_iterator</ExpandedItem>
-      <ExpandedItem Condition="m_buckets_iterator._Ptr == m_buckets_end_iterator._Ptr">m_overflow_iterator</ExpandedItem>
-    </Expand>
-  </Type>
+    <Type Name="tsl::detail_hopscotch_hash::hopscotch_hash&lt;*&gt;::hopscotch_iterator&lt;*&gt;">
+        <DisplayString Condition="m_buckets_iterator._Ptr != m_buckets_end_iterator._Ptr">{m_buckets_iterator}</DisplayString>
+        <DisplayString Condition="m_buckets_iterator._Ptr == m_buckets_end_iterator._Ptr">{m_overflow_iterator}</DisplayString>
+        <Expand>
+            <ExpandedItem Condition="m_buckets_iterator._Ptr != m_buckets_end_iterator._Ptr">m_buckets_iterator</ExpandedItem>
+            <ExpandedItem Condition="m_buckets_iterator._Ptr == m_buckets_end_iterator._Ptr">m_overflow_iterator</ExpandedItem>
+        </Expand>
+    </Type>
 </AutoVisualizer>
