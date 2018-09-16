@@ -30,7 +30,11 @@
                     <Exec>++bucket</Exec>
                 </Loop>
             </CustomListItems>
-            <ExpandedItem>m_ht.m_overflow_elements,view(simple)</ExpandedItem>
+            <Synthetic Name="overflown elements">
+                <Expand>
+                    <ExpandedItem>m_ht.m_overflow_elements</ExpandedItem>
+                </Expand>
+            </Synthetic>
         </Expand>
     </Type>
 
