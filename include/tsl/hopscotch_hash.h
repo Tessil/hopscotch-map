@@ -371,15 +371,6 @@ public:
         tsl_hh_assert(empty());
     }
     
-    static std::size_t max_size() noexcept {
-        if(StoreHash) {
-            return std::numeric_limits<typename bucket_hash::hash_type>::max();
-        }
-        else {
-            return std::numeric_limits<std::size_t>::max();
-        }
-    }
-    
     static truncated_hash_type truncate_hash(std::size_t hash) noexcept {
         return truncated_hash_type(hash);
     }
@@ -796,7 +787,7 @@ public:
     }
     
     size_type max_size() const noexcept {
-        return hopscotch_bucket::max_size();
+        return m_buckets.max_size();
     }
     
     /*

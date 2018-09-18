@@ -876,6 +876,22 @@ BOOST_AUTO_TEST_CASE(test_swap) {
 
 
 
+/**
+ * max_size
+ */
+BOOST_AUTO_TEST_CASE(test_max_size) {
+    // Mainly check that it compiles
+    tsl::hopscotch_map<int, int> map;
+    BOOST_CHECK(map.max_size() > 0);
+    
+    tsl::hopscotch_map<int, int, std::hash<int>, std::equal_to<int>, 
+                       std::allocator<std::pair<int, int>>,
+                       30, true> map_store_hash;
+    BOOST_CHECK(map_store_hash.max_size() > 0);
+}
+
+
+
 
 
 
