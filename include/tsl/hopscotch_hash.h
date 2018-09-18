@@ -1070,9 +1070,9 @@ public:
             return *value;
         }
         else {
-            return insert_impl(ibucket_for_hash, hash, std::piecewise_construct, 
-                                                       std::forward_as_tuple(std::forward<K>(key)), 
-                                                       std::forward_as_tuple()).first.value();
+            return insert_value(ibucket_for_hash, hash, std::piecewise_construct, 
+                                                        std::forward_as_tuple(std::forward<K>(key)), 
+                                                        std::forward_as_tuple()).first.value();
         }
     }
     
@@ -1268,14 +1268,14 @@ private:
                                             new_map.hash_key(KeySelect()(it_bucket->value()));
                 const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
                 
-                new_map.insert_impl(ibucket_for_hash, hash, std::move(it_bucket->value()));
+                new_map.insert_value(ibucket_for_hash, hash, std::move(it_bucket->value()));
                 
                 
                 erase_from_bucket(*it_bucket, bucket_for_hash(hash));
             }
         } 
         /*
-         * The call to insert_impl may throw an exception if an element is added to the overflow
+         * The call to insert_value may throw an exception if an element is added to the overflow
          * list. Rollback the elements in this case.
          */
         catch(...) {
@@ -1294,7 +1294,7 @@ private:
                 
                 // The elements we insert were not in the overflow list before the switch.
                 // They will not be go in the overflow list if we rollback the switch.
-                insert_impl(ibucket_for_hash, hash, std::move(it_bucket->value()));
+                insert_value(ibucket_for_hash, hash, std::move(it_bucket->value()));
             }
             
             throw;
@@ -1320,14 +1320,14 @@ private:
                                          new_map.hash_key(KeySelect()(bucket.value()));
             const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
             
-            new_map.insert_impl(ibucket_for_hash, hash, bucket.value());
+            new_map.insert_value(ibucket_for_hash, hash, bucket.value());
         }
         
         for(const value_type& value: m_overflow_elements) {
             const std::size_t hash = new_map.hash_key(KeySelect()(value));
             const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
             
-            new_map.insert_impl(ibucket_for_hash, hash, value);
+            new_map.insert_value(ibucket_for_hash, hash, value);
         }
             
         new_map.swap(*this);
@@ -1403,9 +1403,9 @@ private:
             return std::make_pair(it_find, false);
         }
         
-        return insert_impl(ibucket_for_hash, hash, std::piecewise_construct, 
-                                                   std::forward_as_tuple(std::forward<P>(key)), 
-                                                   std::forward_as_tuple(std::forward<Args>(args_value)...));
+        return insert_value(ibucket_for_hash, hash, std::piecewise_construct, 
+                                                    std::forward_as_tuple(std::forward<P>(key)), 
+                                                    std::forward_as_tuple(std::forward<Args>(args_value)...));
     }
     
     template<typename P>
@@ -1420,11 +1420,11 @@ private:
         }
         
         
-        return insert_impl(ibucket_for_hash, hash, std::forward<P>(value));
+        return insert_value(ibucket_for_hash, hash, std::forward<P>(value));
     }
     
     template<typename... Args>
-    std::pair<iterator, bool> insert_impl(std::size_t ibucket_for_hash, std::size_t hash, Args&&... value_type_args) {
+    std::pair<iterator, bool> insert_value(std::size_t ibucket_for_hash, std::size_t hash, Args&&... value_type_args) {
         if((m_nb_elements - m_overflow_elements.size()) >= m_max_load_threshold_rehash) {
             rehash(GrowthPolicy::next_bucket_count());
             ibucket_for_hash = bucket_for_hash(hash);
@@ -1455,7 +1455,7 @@ private:
         rehash(GrowthPolicy::next_bucket_count());
         ibucket_for_hash = bucket_for_hash(hash);
         
-        return insert_impl(ibucket_for_hash, hash, std::forward<Args>(value_type_args)...);
+        return insert_value(ibucket_for_hash, hash, std::forward<Args>(value_type_args)...);
     }    
     
     /*
