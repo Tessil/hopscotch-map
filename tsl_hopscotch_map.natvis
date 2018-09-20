@@ -35,7 +35,7 @@
         </Expand>
     </Type>
 
-    <!-- Visualization that shows the key in the name column and the value in the value column -->
+    <!-- Visualization that shows the key in the name column and the key-value pair in the value column -->
     <Type Name="tsl::hopscotch_map&lt;*&gt;" ExcludeView="ShowElementsByIndex" Priority="MediumHigh">
         <AlternativeType Name="tsl::bhopscotch_map&lt;*&gt;"/>
         <DisplayString>{{ size={m_ht.m_nb_elements} }}</DisplayString>
