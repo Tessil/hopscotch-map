@@ -23,7 +23,7 @@
                     <!-- Bucket is either pointing to a static empty bucket (then m_nb_elements == 0) or to a value in m_ht.m_buckets.
                          Break early if m_nb_elements == 0 to avoid using the static empty bucket. -->
                     <Break Condition="m_ht.m_nb_elements == 0 || bucket == m_ht.m_buckets._Mypair._Myval2._Mylast"/>
-                    <Item Condition="(bucket-&gt;m_neighborhood_infos &amp; 1) != 0">bucket,na</Item>
+                    <Item Condition="(bucket-&gt;m_neighborhood_infos &amp; 1) != 0">*bucket</Item>
                     <Exec>++bucket</Exec>
                 </Loop>
             </CustomListItems>
@@ -55,7 +55,7 @@
                          Break early if m_nb_elements == 0 to avoid using the static empty bucket. -->
                     <Break Condition="m_ht.m_nb_elements == 0 || bucket == m_ht.m_buckets._Mypair._Myval2._Mylast"/>
                     <Item Name="[{reinterpret_cast&lt;std::pair&lt;$T1,$T2&gt;*&gt;(&amp;bucket->m_value)->first}]" Condition="(bucket-&gt;m_neighborhood_infos &amp; 1) != 0">
-                        *bucket,view(MapHelper)
+                        *bucket
                     </Item>
                     <Exec>++bucket</Exec>
                 </Loop>
@@ -80,14 +80,6 @@
     <Type Name="tsl::detail_hopscotch_hash::hopscotch_bucket&lt;*&gt;">
         <DisplayString Condition="(m_neighborhood_infos &amp; 1) == 0">empty</DisplayString>
         <DisplayString Condition="(m_neighborhood_infos &amp; 1) != 0">{*reinterpret_cast&lt;$T1*&gt;(&amp;m_value)}</DisplayString>
-        <Expand>
-            <ExpandedItem Condition="(m_neighborhood_infos &amp; 1) != 0">*reinterpret_cast&lt;$T1*&gt;(&amp;m_value)</ExpandedItem>
-        </Expand>
-    </Type>
-
-    <Type Name="tsl::detail_hopscotch_hash::hopscotch_bucket&lt;*&gt;" IncludeView="MapHelper">
-        <DisplayString Condition="(m_neighborhood_infos &amp; 1) == 0">empty</DisplayString>
-        <DisplayString Condition="(m_neighborhood_infos &amp; 1) != 0">{reinterpret_cast&lt;$T1*&gt;(&amp;m_value)->second}</DisplayString>
         <Expand>
             <ExpandedItem Condition="(m_neighborhood_infos &amp; 1) != 0">*reinterpret_cast&lt;$T1*&gt;(&amp;m_value)</ExpandedItem>
         </Expand>
