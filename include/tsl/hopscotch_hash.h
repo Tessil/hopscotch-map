@@ -161,7 +161,7 @@ static const std::size_t NB_RESERVED_BITS_IN_NEIGHBORHOOD = 2;
 using truncated_hash_type = std::uint_least32_t;
 
 /**
- * Helper class that store a truncated hash if StoreHash is true and nothing otherwise.
+ * Helper class that stores a truncated hash if StoreHash is true and nothing otherwise.
  */
 template<bool StoreHash>
 class hopscotch_bucket_hash {
@@ -594,9 +594,9 @@ public:
                   float max_load_factor) :  Hash(hash),
                                             KeyEqual(equal),
                                             GrowthPolicy(bucket_count),
-                                            m_buckets(alloc), 
+                                            m_buckets_data(alloc), 
                                             m_overflow_elements(alloc),
-                                            m_first_or_empty_bucket(static_empty_bucket_ptr()),
+                                            m_buckets(static_empty_bucket_ptr()),
                                             m_nb_elements(0)
     {
         if(bucket_count > max_bucket_count()) {
@@ -607,9 +607,9 @@ public:
             static_assert(NeighborhoodSize - 1 > 0, "");
             
             // Can't directly construct with the appropriate size in the initializer 
-            // as m_buckets(bucket_count, alloc) is not supported by GCC 4.8
-            m_buckets.resize(bucket_count + NeighborhoodSize - 1);
-            m_first_or_empty_bucket = m_buckets.data();
+            // as m_buckets_data(bucket_count, alloc) is not supported by GCC 4.8
+            m_buckets_data.resize(bucket_count + NeighborhoodSize - 1);
+            m_buckets = m_buckets_data.data();
         }
         
         
@@ -632,9 +632,9 @@ public:
                   const typename OC::key_compare& comp) : Hash(hash),
                                                           KeyEqual(equal),
                                                           GrowthPolicy(bucket_count),
-                                                          m_buckets(alloc), 
+                                                          m_buckets_data(alloc), 
                                                           m_overflow_elements(comp, alloc),
-                                                          m_first_or_empty_bucket(static_empty_bucket_ptr()),
+                                                          m_buckets(static_empty_bucket_ptr()),
                                                           m_nb_elements(0)
     {
         
@@ -646,9 +646,9 @@ public:
             static_assert(NeighborhoodSize - 1 > 0, "");
             
             // Can't directly construct with the appropriate size in the initializer 
-            // as m_buckets(bucket_count, alloc) is not supported by GCC 4.8
-            m_buckets.resize(bucket_count + NeighborhoodSize - 1);
-            m_first_or_empty_bucket = m_buckets.data();
+            // as m_buckets_data(bucket_count, alloc) is not supported by GCC 4.8
+            m_buckets_data.resize(bucket_count + NeighborhoodSize - 1);
+            m_buckets = m_buckets_data.data();
         }
         
         
@@ -666,10 +666,10 @@ public:
                           Hash(other),
                           KeyEqual(other),
                           GrowthPolicy(other),
-                          m_buckets(other.m_buckets),
+                          m_buckets_data(other.m_buckets_data),
                           m_overflow_elements(other.m_overflow_elements),
-                          m_first_or_empty_bucket(m_buckets.empty()?static_empty_bucket_ptr():
-                                                                    m_buckets.data()),
+                          m_buckets(m_buckets_data.empty()?static_empty_bucket_ptr():
+                                                           m_buckets_data.data()),
                           m_nb_elements(other.m_nb_elements),
                           m_max_load_factor(other.m_max_load_factor),
                           m_max_load_threshold_rehash(other.m_max_load_threshold_rehash),
@@ -688,19 +688,19 @@ public:
                           Hash(std::move(static_cast<Hash&>(other))),
                           KeyEqual(std::move(static_cast<KeyEqual&>(other))),
                           GrowthPolicy(std::move(static_cast<GrowthPolicy&>(other))),
-                          m_buckets(std::move(other.m_buckets)),
+                          m_buckets_data(std::move(other.m_buckets_data)),
                           m_overflow_elements(std::move(other.m_overflow_elements)),
-                          m_first_or_empty_bucket(m_buckets.empty()?static_empty_bucket_ptr():
-                                                                    m_buckets.data()),
+                          m_buckets(m_buckets_data.empty()?static_empty_bucket_ptr():
+                                                           m_buckets_data.data()),
                           m_nb_elements(other.m_nb_elements),
                           m_max_load_factor(other.m_max_load_factor),
                           m_max_load_threshold_rehash(other.m_max_load_threshold_rehash),
                           m_min_load_threshold_rehash(other.m_min_load_threshold_rehash)
     {
         other.GrowthPolicy::clear();
-        other.m_buckets.clear();
+        other.m_buckets_data.clear();
         other.m_overflow_elements.clear();
-        other.m_first_or_empty_bucket = static_empty_bucket_ptr();
+        other.m_buckets = static_empty_bucket_ptr();
         other.m_nb_elements = 0;
         other.m_max_load_threshold_rehash = 0;
         other.m_min_load_threshold_rehash = 0;
@@ -712,10 +712,10 @@ public:
             KeyEqual::operator=(other);
             GrowthPolicy::operator=(other);
             
-            m_buckets = other.m_buckets;
+            m_buckets_data = other.m_buckets_data;
             m_overflow_elements = other.m_overflow_elements;
-            m_first_or_empty_bucket = m_buckets.empty()?static_empty_bucket_ptr():
-                                                        m_buckets.data();
+            m_buckets = m_buckets_data.empty()?static_empty_bucket_ptr():
+                                               m_buckets_data.data();
             m_nb_elements = other.m_nb_elements;
             m_max_load_factor = other.m_max_load_factor;
             m_max_load_threshold_rehash = other.m_max_load_threshold_rehash;
@@ -733,7 +733,7 @@ public:
     }
     
     allocator_type get_allocator() const {
-        return m_buckets.get_allocator();
+        return m_buckets_data.get_allocator();
     }
     
     
@@ -741,12 +741,12 @@ public:
      * Iterators
      */
     iterator begin() noexcept {
-        auto begin = m_buckets.begin();
-        while(begin != m_buckets.end() && begin->empty()) {
+        auto begin = m_buckets_data.begin();
+        while(begin != m_buckets_data.end() && begin->empty()) {
             ++begin;
         }
         
-        return iterator(begin, m_buckets.end(), m_overflow_elements.begin());
+        return iterator(begin, m_buckets_data.end(), m_overflow_elements.begin());
     }
     
     const_iterator begin() const noexcept {
@@ -754,16 +754,16 @@ public:
     }
     
     const_iterator cbegin() const noexcept {
-        auto begin = m_buckets.cbegin();
-        while(begin != m_buckets.cend() && begin->empty()) {
+        auto begin = m_buckets_data.cbegin();
+        while(begin != m_buckets_data.cend() && begin->empty()) {
             ++begin;
         }
         
-        return const_iterator(begin, m_buckets.cend(), m_overflow_elements.cbegin());
+        return const_iterator(begin, m_buckets_data.cend(), m_overflow_elements.cbegin());
     }
     
     iterator end() noexcept {
-        return iterator(m_buckets.end(), m_buckets.end(), m_overflow_elements.end());
+        return iterator(m_buckets_data.end(), m_buckets_data.end(), m_overflow_elements.end());
     }
     
     const_iterator end() const noexcept {
@@ -771,7 +771,7 @@ public:
     }
     
     const_iterator cend() const noexcept {
-        return const_iterator(m_buckets.cend(), m_buckets.cend(), m_overflow_elements.cend());
+        return const_iterator(m_buckets_data.cend(), m_buckets_data.cend(), m_overflow_elements.cend());
     }
     
     
@@ -787,14 +787,14 @@ public:
     }
     
     size_type max_size() const noexcept {
-        return m_buckets.max_size();
+        return m_buckets_data.max_size();
     }
     
     /*
      * Modifiers
      */
     void clear() noexcept {
-        for(auto& bucket: m_buckets) {
+        for(auto& bucket: m_buckets_data) {
             bucket.clear();
         }
         
@@ -948,14 +948,14 @@ public:
         const std::size_t ibucket_for_hash = bucket_for_hash(hash_key(pos.key()));
         
         if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
-            auto it_bucket = m_buckets.begin() + std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
+            auto it_bucket = m_buckets_data.begin() + std::distance(m_buckets_data.cbegin(), pos.m_buckets_iterator);
             erase_from_bucket(*it_bucket, ibucket_for_hash);
             
-            return ++iterator(it_bucket, m_buckets.end(), m_overflow_elements.begin()); 
+            return ++iterator(it_bucket, m_buckets_data.end(), m_overflow_elements.begin()); 
         }
         else {
             auto it_next_overflow = erase_from_overflow(pos.m_overflow_iterator, ibucket_for_hash);
-            return iterator(m_buckets.end(), m_buckets.end(), it_next_overflow);
+            return iterator(m_buckets_data.end(), m_buckets_data.end(), it_next_overflow);
         }
     }
     
@@ -981,14 +981,14 @@ public:
     size_type erase(const K& key, std::size_t hash) {
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
 
-        hopscotch_bucket* bucket_found = find_in_buckets(key, hash, m_first_or_empty_bucket + ibucket_for_hash);
+        hopscotch_bucket* bucket_found = find_in_buckets(key, hash, m_buckets + ibucket_for_hash);
         if(bucket_found != nullptr) {
             erase_from_bucket(*bucket_found, ibucket_for_hash);
 
             return 1;
         }
         
-        if((m_first_or_empty_bucket + ibucket_for_hash)->has_overflow()) {
+        if(m_buckets[ibucket_for_hash].has_overflow()) {
             auto it_overflow = find_in_overflow(key);
             if(it_overflow != m_overflow_elements.end()) {
                 erase_from_overflow(it_overflow, ibucket_for_hash);
@@ -1006,9 +1006,9 @@ public:
         swap(static_cast<Hash&>(*this), static_cast<Hash&>(other));
         swap(static_cast<KeyEqual&>(*this), static_cast<KeyEqual&>(other));
         swap(static_cast<GrowthPolicy&>(*this), static_cast<GrowthPolicy&>(other));
-        swap(m_buckets, other.m_buckets);
+        swap(m_buckets_data, other.m_buckets_data);
         swap(m_overflow_elements, other.m_overflow_elements);
-        swap(m_first_or_empty_bucket, other.m_first_or_empty_bucket);
+        swap(m_buckets, other.m_buckets);
         swap(m_nb_elements, other.m_nb_elements);
         swap(m_max_load_factor, other.m_max_load_factor);
         swap(m_max_load_threshold_rehash, other.m_max_load_threshold_rehash);
@@ -1039,7 +1039,7 @@ public:
     const typename U::value_type& at(const K& key, std::size_t hash) const {
         using T = typename U::value_type;
         
-        const T* value = find_value_impl(key, hash, m_first_or_empty_bucket + bucket_for_hash(hash));
+        const T* value = find_value_impl(key, hash, m_buckets + bucket_for_hash(hash));
         if(value == nullptr) {
             throw std::out_of_range("Couldn't find key.");
         }
@@ -1056,7 +1056,7 @@ public:
         const std::size_t hash = hash_key(key);
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
-        T* value = find_value_impl(key, hash, m_first_or_empty_bucket + ibucket_for_hash);
+        T* value = find_value_impl(key, hash, m_buckets + ibucket_for_hash);
         if(value != nullptr) {
             return *value;
         }
@@ -1075,7 +1075,7 @@ public:
     
     template<class K>
     size_type count(const K& key, std::size_t hash) const {
-        return count_impl(key, hash, m_first_or_empty_bucket + bucket_for_hash(hash));
+        return count_impl(key, hash, m_buckets + bucket_for_hash(hash));
     }
     
     
@@ -1086,7 +1086,7 @@ public:
     
     template<class K>
     iterator find(const K& key, std::size_t hash) {
-        return find_impl(key, hash, m_first_or_empty_bucket + bucket_for_hash(hash));
+        return find_impl(key, hash, m_buckets + bucket_for_hash(hash));
     }
     
     
@@ -1097,7 +1097,7 @@ public:
     
     template<class K>
     const_iterator find(const K& key, std::size_t hash) const {
-        return find_impl(key, hash, m_first_or_empty_bucket + bucket_for_hash(hash));
+        return find_impl(key, hash, m_buckets + bucket_for_hash(hash));
     }
     
     
@@ -1133,15 +1133,15 @@ public:
          * bigger than the real number of buckets when not empty. 
          * We could use some of the buckets at the beginning, but it is faster this way as we avoid extra checks.
          */
-        if(m_buckets.empty()) {
+        if(m_buckets_data.empty()) {
             return 0;
         }
         
-        return m_buckets.size() - NeighborhoodSize + 1; 
+        return m_buckets_data.size() - NeighborhoodSize + 1; 
     }
     
     size_type max_bucket_count() const {
-        const std::size_t max_bucket_count = std::min(GrowthPolicy::max_bucket_count(), m_buckets.max_size());
+        const std::size_t max_bucket_count = std::min(GrowthPolicy::max_bucket_count(), m_buckets_data.max_size());
         return max_bucket_count - NeighborhoodSize + 1;
     }
     
@@ -1194,13 +1194,13 @@ public:
     iterator mutable_iterator(const_iterator pos) {
         if(pos.m_buckets_iterator != pos.m_buckets_end_iterator) {
             // Get a non-const iterator
-            auto it = m_buckets.begin() + std::distance(m_buckets.cbegin(), pos.m_buckets_iterator);
-            return iterator(it, m_buckets.end(), m_overflow_elements.begin());
+            auto it = m_buckets_data.begin() + std::distance(m_buckets_data.cbegin(), pos.m_buckets_iterator);
+            return iterator(it, m_buckets_data.end(), m_overflow_elements.begin());
         }
         else {
             // Get a non-const iterator
             auto it = mutable_overflow_iterator(pos.m_overflow_iterator);
-            return iterator(m_buckets.end(), m_buckets.end(), it);
+            return iterator(m_buckets_data.end(), m_buckets_data.end(), it);
         }
     }
     
@@ -1227,7 +1227,7 @@ private:
     
     std::size_t bucket_for_hash(std::size_t hash) const {
         const std::size_t bucket = GrowthPolicy::bucket_for_hash(hash);
-        tsl_hh_assert(bucket < m_buckets.size() || (bucket == 0 && m_buckets.empty()));
+        tsl_hh_assert(bucket < m_buckets_data.size() || (bucket == 0 && m_buckets_data.empty()));
         
         return bucket;
     }
@@ -1249,7 +1249,7 @@ private:
         
         try {
             const bool use_stored_hash = USE_STORED_HASH_ON_REHASH(new_map.bucket_count());
-            for(auto it_bucket = m_buckets.begin(); it_bucket != m_buckets.end(); ++it_bucket) {
+            for(auto it_bucket = m_buckets_data.begin(); it_bucket != m_buckets_data.end(); ++it_bucket) {
                 if(it_bucket->empty()) {
                     continue;
                 }
@@ -1273,7 +1273,7 @@ private:
             m_overflow_elements.swap(new_map.m_overflow_elements);
             
             const bool use_stored_hash = USE_STORED_HASH_ON_REHASH(new_map.bucket_count());
-            for(auto it_bucket = new_map.m_buckets.begin(); it_bucket != new_map.m_buckets.end(); ++it_bucket) {
+            for(auto it_bucket = new_map.m_buckets_data.begin(); it_bucket != new_map.m_buckets_data.end(); ++it_bucket) {
                 if(it_bucket->empty()) {
                     continue;
                 }
@@ -1301,7 +1301,7 @@ private:
         hopscotch_hash new_map = new_hopscotch_hash(count_);
                 
         const bool use_stored_hash = USE_STORED_HASH_ON_REHASH(new_map.bucket_count());
-        for(const hopscotch_bucket& bucket: m_buckets) {
+        for(const hopscotch_bucket& bucket: m_buckets_data) {
             if(bucket.empty()) {
                 continue;
             }
@@ -1363,7 +1363,7 @@ private:
      * ibucket_for_hash is the bucket where the value belongs.
      */
     void erase_from_bucket(hopscotch_bucket& bucket_for_value, std::size_t ibucket_for_hash) noexcept {
-        const std::size_t ibucket_for_value = std::distance(m_buckets.data(), &bucket_for_value);
+        const std::size_t ibucket_for_value = std::distance(m_buckets_data.data(), &bucket_for_value);
         tsl_hh_assert(ibucket_for_value >= ibucket_for_hash);
         
         bucket_for_value.remove_value();
@@ -1389,7 +1389,7 @@ private:
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
         // Check if already presents
-        auto it_find = find_impl(key, hash, m_first_or_empty_bucket + ibucket_for_hash);
+        auto it_find = find_impl(key, hash, m_buckets + ibucket_for_hash);
         if(it_find != end()) {
             return std::make_pair(it_find, false);
         }
@@ -1405,7 +1405,7 @@ private:
         const std::size_t ibucket_for_hash = bucket_for_hash(hash);
         
         // Check if already presents
-        auto it_find = find_impl(KeySelect()(value), hash, m_first_or_empty_bucket + ibucket_for_hash);
+        auto it_find = find_impl(KeySelect()(value), hash, m_buckets + ibucket_for_hash);
         if(it_find != end()) {
             return std::make_pair(it_find, false);
         }
@@ -1422,7 +1422,7 @@ private:
         }
         
         std::size_t ibucket_empty = find_empty_bucket(ibucket_for_hash);
-        if(ibucket_empty < m_buckets.size()) {
+        if(ibucket_empty < m_buckets_data.size()) {
             do {
                 tsl_hh_assert(ibucket_empty >= ibucket_for_hash);
                 
@@ -1430,7 +1430,7 @@ private:
                 if(ibucket_empty - ibucket_for_hash < NeighborhoodSize) {
                     auto it = insert_in_bucket(ibucket_empty, ibucket_for_hash, 
                                                hash, std::forward<Args>(value_type_args)...);
-                    return std::make_pair(iterator(it, m_buckets.end(), m_overflow_elements.begin()), true);
+                    return std::make_pair(iterator(it, m_buckets_data.end(), m_overflow_elements.begin()), true);
                 }
             }
             // else, try to swap values to get a closer empty bucket
@@ -1440,7 +1440,7 @@ private:
         // Load factor is too low or a rehash will not change the neighborhood, put the value in overflow list
         if(size() < m_min_load_threshold_rehash || !will_neighborhood_change_on_rehash(ibucket_for_hash)) {
             auto it = insert_in_overflow(ibucket_for_hash, std::forward<Args>(value_type_args)...);
-            return std::make_pair(iterator(m_buckets.end(), m_buckets.end(), it), true);
+            return std::make_pair(iterator(m_buckets_data.end(), m_buckets_data.end(), it), true);
         }
     
         rehash(GrowthPolicy::next_bucket_count());
@@ -1459,7 +1459,7 @@ private:
         
         const bool use_stored_hash = USE_STORED_HASH_ON_REHASH(expand_bucket_count);
         for(size_t ibucket = ibucket_neighborhood_check; 
-            ibucket < m_buckets.size() && (ibucket - ibucket_neighborhood_check) < NeighborhoodSize; 
+            ibucket < m_buckets_data.size() && (ibucket - ibucket_neighborhood_check) < NeighborhoodSize; 
             ++ibucket)
         {
             tsl_hh_assert(!m_buckets[ibucket].empty());
@@ -1476,18 +1476,18 @@ private:
     }
     
     /*
-     * Return the index of an empty bucket in m_buckets.
-     * If none, the returned index equals m_buckets.size()
+     * Return the index of an empty bucket in m_buckets_data.
+     * If none, the returned index equals m_buckets_data.size()
      */
     std::size_t find_empty_bucket(std::size_t ibucket_start) const {
-        const std::size_t limit = std::min(ibucket_start + MAX_PROBES_FOR_EMPTY_BUCKET, m_buckets.size());
+        const std::size_t limit = std::min(ibucket_start + MAX_PROBES_FOR_EMPTY_BUCKET, m_buckets_data.size());
         for(; ibucket_start < limit; ibucket_start++) {
             if(m_buckets[ibucket_start].empty()) {
                 return ibucket_start;
             }
         }
         
-        return m_buckets.size();
+        return m_buckets_data.size();
     }
     
     /*
@@ -1507,7 +1507,7 @@ private:
         m_buckets[ibucket_for_hash].toggle_neighbor_presence(ibucket_empty - ibucket_for_hash);
         m_nb_elements++;
         
-        return m_buckets.begin() + ibucket_empty;
+        return m_buckets_data.begin() + ibucket_empty;
     }
     
     template<class... Args, class U = OverflowContainer, typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
@@ -1620,23 +1620,23 @@ private:
     iterator find_impl(const K& key, std::size_t hash, hopscotch_bucket* bucket_for_hash) {
         hopscotch_bucket* bucket_found = find_in_buckets(key, hash, bucket_for_hash);
         if(bucket_found != nullptr) {
-            return iterator(m_buckets.begin() + std::distance(m_buckets.data(), bucket_found), 
-                            m_buckets.end(), m_overflow_elements.begin());
+            return iterator(m_buckets_data.begin() + std::distance(m_buckets_data.data(), bucket_found), 
+                            m_buckets_data.end(), m_overflow_elements.begin());
         }
         
         if(!bucket_for_hash->has_overflow()) {
             return end();
         }
         
-        return iterator(m_buckets.end(), m_buckets.end(), find_in_overflow(key));
+        return iterator(m_buckets_data.end(), m_buckets_data.end(), find_in_overflow(key));
     }
     
     template<class K>
     const_iterator find_impl(const K& key, std::size_t hash, const hopscotch_bucket* bucket_for_hash) const {
         const hopscotch_bucket* bucket_found = find_in_buckets(key, hash, bucket_for_hash);
         if(bucket_found != nullptr) {
-            return const_iterator(m_buckets.cbegin() + std::distance(m_buckets.data(), bucket_found), 
-                                  m_buckets.cend(), m_overflow_elements.cbegin());
+            return const_iterator(m_buckets_data.cbegin() + std::distance(m_buckets_data.data(), bucket_found), 
+                                  m_buckets_data.cend(), m_overflow_elements.cbegin());
         }
         
         if(!bucket_for_hash->has_overflow()) {
@@ -1644,7 +1644,7 @@ private:
         }
 
         
-        return const_iterator(m_buckets.cend(), m_buckets.cend(), find_in_overflow(key));
+        return const_iterator(m_buckets_data.cend(), m_buckets_data.cend(), find_in_overflow(key));
     }
     
     template<class K>
@@ -1756,15 +1756,17 @@ private:
     }
     
 private:    
-    buckets_container_type m_buckets;
+    buckets_container_type m_buckets_data;
     overflow_container_type m_overflow_elements;
     
     /**
-     * Points to m_buckets.data() if !m_buckets.empty() otherwise points to static_empty_bucket_ptr.
-     * This variable is useful to avoid the cost of checking if m_buckets is empty when trying 
+     * Points to m_buckets_data.data() if !m_buckets_data.empty() otherwise points to static_empty_bucket_ptr.
+     * This variable is useful to avoid the cost of checking if m_buckets_data is empty when trying 
      * to find an element.
+     * 
+     * TODO Remove m_buckets_data and only use a pointer+size instead of a pointer+vector to save some space in the hopscotch_hash object.
      */
-    hopscotch_bucket* m_first_or_empty_bucket;
+    hopscotch_bucket* m_buckets;
     
     size_type m_nb_elements;
     
