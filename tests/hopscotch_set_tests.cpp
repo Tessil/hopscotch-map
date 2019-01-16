@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(test_compare) {
     const tsl::hopscotch_set<std::string> set1_1 = {"a", "e", "d", "c", "b"};
     const tsl::hopscotch_set<std::string> set1_2 = {"e", "c", "b", "a", "d"};
     const tsl::hopscotch_set<std::string> set2_1 = {"e", "c", "b", "a", "d", "f"};
-    const tsl::hopscotch_set<std::string> set3_1 = {"e", "c", "b", "a"};
+    const tsl::hopscotch_set<std::string> set3_1 = {"e", "c", "b", "a", "aa"};
     const tsl::hopscotch_set<std::string> set4_1 = {};
     const tsl::hopscotch_set<std::string> set4_2 = {};
     
