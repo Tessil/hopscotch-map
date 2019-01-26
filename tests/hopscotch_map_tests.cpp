@@ -1002,6 +1002,23 @@ BOOST_AUTO_TEST_CASE(test_swap) {
     BOOST_CHECK(map2 == (tsl::hopscotch_map<std::int64_t, std::int64_t>{{1, 10}, {8, 80}, {3, 30}, {4, 40}}));
 }
 
+BOOST_AUTO_TEST_CASE(test_swap_empty) {
+    tsl::hopscotch_map<std::int64_t, std::int64_t> map = {{1, 10}, {8, 80}, {3, 30}};
+    tsl::hopscotch_map<std::int64_t, std::int64_t> map2;
+    
+    using std::swap;
+    swap(map, map2);
+    
+    BOOST_CHECK(map == (tsl::hopscotch_map<std::int64_t, std::int64_t>{}));
+    BOOST_CHECK(map2 == (tsl::hopscotch_map<std::int64_t, std::int64_t>{{1, 10}, {8, 80}, {3, 30}}));
+    
+    map.insert({6, 60});
+    map2.insert({4, 40});
+    
+    BOOST_CHECK(map == (tsl::hopscotch_map<std::int64_t, std::int64_t>{{6, 60}}));
+    BOOST_CHECK(map2 == (tsl::hopscotch_map<std::int64_t, std::int64_t>{{1, 10}, {8, 80}, {3, 30}, {4, 40}}));
+}
+
 
 
 /**
