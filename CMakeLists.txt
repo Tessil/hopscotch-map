@@ -20,8 +20,8 @@ target_sources(hopscotch_map INTERFACE "$<BUILD_INTERFACE:${headers}>")
 
 if(MSVC)
     target_sources(hopscotch_map INTERFACE
-                   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tsl_hopscotch_map.natvis>"
-                   "$<INSTALL_INTERFACE:tsl_hopscotch_map.natvis>")
+                   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tsl-hopscotch-map.natvis>"
+                   "$<INSTALL_INTERFACE:tsl-hopscotch-map.natvis>")
 endif()
 
 # Only compatible with CMake version >= 3.8
@@ -42,7 +42,7 @@ if(${CMAKE_VERSION} VERSION_GREATER "3.2")
             DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
     if(MSVC)
-        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/tsl_hopscotch_map.natvis"
+        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/tsl-hopscotch-map.natvis"
                 DESTINATION ".")
     endif()
 
