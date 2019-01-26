@@ -89,7 +89,7 @@ add_subdirectory(third-party/hopscotch-map)
 target_link_libraries(your_target PRIVATE tsl::hopscotch_map)  
 ```
 
-If the project has been installed through `make install`, you can also use `find_package(tsl_hopscotch_map REQUIRED)` instead of `add_subdirectory`.
+If the project has been installed through `make install`, you can also use `find_package(tsl-hopscotch-map REQUIRED)` instead of `add_subdirectory`.
 
 The code should work with any C++11 standard-compliant compiler and has been tested with GCC 4.8.4, Clang 3.5.0 and Visual Studio 2015.
 
