@@ -9,20 +9,20 @@
         <AlternativeType Name="tsl::hopscotch_set&lt;*&gt;"/>
         <DisplayString>{{ size={m_ht.m_nb_elements} }}</DisplayString>
         <Expand>
-            <Item Name="[bucket_count]" IncludeView="detailed">m_ht.m_buckets._Mypair._Myval2._Mylast - m_ht.m_buckets._Mypair._Myval2._Myfirst</Item>
-            <Item Name="[load_factor]" Condition="m_ht.m_buckets._Mypair._Myval2._Myfirst != m_ht.m_buckets._Mypair._Myval2._Mylast" IncludeView="detailed">
-                ((float)m_ht.m_nb_elements) / ((float)(m_ht.m_buckets._Mypair._Myval2._Mylast - m_ht.m_buckets._Mypair._Myval2._Myfirst))
+            <Item Name="[bucket_count]" IncludeView="detailed">m_ht.m_buckets_data._Mypair._Myval2._Mylast - m_ht.m_buckets_data._Mypair._Myval2._Myfirst</Item>
+            <Item Name="[load_factor]" Condition="m_ht.m_buckets_data._Mypair._Myval2._Myfirst != m_ht.m_buckets_data._Mypair._Myval2._Mylast" IncludeView="detailed">
+                ((float)m_ht.m_nb_elements) / ((float)(m_ht.m_buckets_data._Mypair._Myval2._Mylast - m_ht.m_buckets_data._Mypair._Myval2._Myfirst))
             </Item>
-            <Item Name="[load_factor]" Condition="m_ht.m_buckets._Mypair._Myval2._Myfirst == m_ht.m_buckets._Mypair._Myval2._Mylast" IncludeView="detailed">
+            <Item Name="[load_factor]" Condition="m_ht.m_buckets_data._Mypair._Myval2._Myfirst == m_ht.m_buckets_data._Mypair._Myval2._Mylast" IncludeView="detailed">
                 0
             </Item>
             <Item Name="[max_load_factor]" IncludeView="detailed">m_ht.m_max_load_factor</Item>
             <CustomListItems>
-                <Variable Name="bucket" InitialValue="m_ht.m_first_or_empty_bucket"/>
+                <Variable Name="bucket" InitialValue="m_ht.m_buckets"/>
                 <Loop>
-                    <!-- Bucket is either pointing to a static empty bucket (then m_nb_elements == 0) or to a value in m_ht.m_buckets.
+                    <!-- Bucket is either pointing to a static empty bucket (then m_nb_elements == 0) or to a value in m_ht.m_buckets_data.
                          Break early if m_nb_elements == 0 to avoid using the static empty bucket. -->
-                    <Break Condition="m_ht.m_nb_elements == 0 || bucket == m_ht.m_buckets._Mypair._Myval2._Mylast"/>
+                    <Break Condition="m_ht.m_nb_elements == 0 || bucket == m_ht.m_buckets_data._Mypair._Myval2._Mylast"/>
                     <Item Condition="(bucket-&gt;m_neighborhood_infos &amp; 1) != 0">*bucket</Item>
                     <Exec>++bucket</Exec>
                 </Loop>
@@ -40,20 +40,20 @@
         <AlternativeType Name="tsl::bhopscotch_map&lt;*&gt;"/>
         <DisplayString>{{ size={m_ht.m_nb_elements} }}</DisplayString>
         <Expand>
-            <Item Name="[bucket_count]" IncludeView="detailed">m_ht.m_buckets._Mypair._Myval2._Mylast - m_ht.m_buckets._Mypair._Myval2._Myfirst</Item>
-            <Item Name="[load_factor]" Condition="m_ht.m_buckets._Mypair._Myval2._Myfirst != m_ht.m_buckets._Mypair._Myval2._Mylast" IncludeView="detailed">
-                ((float)m_ht.m_nb_elements) / ((float)(m_ht.m_buckets._Mypair._Myval2._Mylast - m_ht.m_buckets._Mypair._Myval2._Myfirst))
+            <Item Name="[bucket_count]" IncludeView="detailed">m_ht.m_buckets_data._Mypair._Myval2._Mylast - m_ht.m_buckets_data._Mypair._Myval2._Myfirst</Item>
+            <Item Name="[load_factor]" Condition="m_ht.m_buckets_data._Mypair._Myval2._Myfirst != m_ht.m_buckets_data._Mypair._Myval2._Mylast" IncludeView="detailed">
+                ((float)m_ht.m_nb_elements) / ((float)(m_ht.m_buckets_data._Mypair._Myval2._Mylast - m_ht.m_buckets_data._Mypair._Myval2._Myfirst))
             </Item>
-            <Item Name="[load_factor]" Condition="m_ht.m_buckets._Mypair._Myval2._Myfirst == m_ht.m_buckets._Mypair._Myval2._Mylast" IncludeView="detailed">
+            <Item Name="[load_factor]" Condition="m_ht.m_buckets_data._Mypair._Myval2._Myfirst == m_ht.m_buckets_data._Mypair._Myval2._Mylast" IncludeView="detailed">
                 0
             </Item>
             <Item Name="[max_load_factor]" IncludeView="detailed">m_ht.m_max_load_factor</Item>
             <CustomListItems>
-                <Variable Name="bucket" InitialValue="m_ht.m_first_or_empty_bucket"/>
+                <Variable Name="bucket" InitialValue="m_ht.m_buckets"/>
                 <Loop>
-                    <!-- Bucket is either pointing to a static empty bucket (then m_nb_elements == 0) or to a value in m_ht.m_buckets.
+                    <!-- Bucket is either pointing to a static empty bucket (then m_nb_elements == 0) or to a value in m_ht.m_buckets_data.
                          Break early if m_nb_elements == 0 to avoid using the static empty bucket. -->
-                    <Break Condition="m_ht.m_nb_elements == 0 || bucket == m_ht.m_buckets._Mypair._Myval2._Mylast"/>
+                    <Break Condition="m_ht.m_nb_elements == 0 || bucket == m_ht.m_buckets_data._Mypair._Myval2._Mylast"/>
                     <Item Name="[{reinterpret_cast&lt;std::pair&lt;$T1,$T2&gt;*&gt;(&amp;bucket->m_value)->first}]" Condition="(bucket-&gt;m_neighborhood_infos &amp; 1) != 0">
                         *bucket
                     </Item>
