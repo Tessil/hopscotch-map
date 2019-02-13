@@ -507,11 +507,18 @@ public:
         hopscotch_iterator() noexcept {
         }
         
-        hopscotch_iterator(const hopscotch_iterator<false>& other) noexcept :
+        // Copy constructor from iterator to const_iterator.
+        template<bool TIsConst = IsConst, typename std::enable_if<TIsConst>::type* = nullptr>
+        hopscotch_iterator(const hopscotch_iterator<!TIsConst>& other) noexcept :
             m_buckets_iterator(other.m_buckets_iterator), m_buckets_end_iterator(other.m_buckets_end_iterator),
             m_overflow_iterator(other.m_overflow_iterator)
         {
         }
+
+        hopscotch_iterator(const hopscotch_iterator& other) = default;
+        hopscotch_iterator(hopscotch_iterator&& other) = default;
+        hopscotch_iterator& operator=(const hopscotch_iterator& other) = default;
+        hopscotch_iterator& operator=(hopscotch_iterator&& other) = default;
         
         const typename hopscotch_hash::key_type& key() const {
             if(m_buckets_iterator != m_buckets_end_iterator) {
