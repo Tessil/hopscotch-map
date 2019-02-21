@@ -1743,7 +1743,14 @@ private:
     static const std::size_t MAX_PROBES_FOR_EMPTY_BUCKET = 12*NeighborhoodSize;
     static constexpr float MIN_LOAD_FACTOR_FOR_REHASH = 0.1f;
     
-    static bool USE_STORED_HASH_ON_REHASH(size_type bucket_count) {
+    
+    template<class T, typename std::enable_if<std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
+    static bool USE_STORED_HASH_ON_REHASH(T /*bucket_count*/) {
+        return StoreHash && is_power_of_two_policy<GrowthPolicy>::value;
+    }
+    
+    template<class T, typename std::enable_if<!std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
+    static bool USE_STORED_HASH_ON_REHASH(T bucket_count) {
         (void) bucket_count;
         if(StoreHash && is_power_of_two_policy<GrowthPolicy>::value) {
             tsl_hh_assert(bucket_count > 0);
