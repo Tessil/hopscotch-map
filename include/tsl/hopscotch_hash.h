@@ -1744,13 +1744,13 @@ private:
     static constexpr float MIN_LOAD_FACTOR_FOR_REHASH = 0.1f;
     
     
-    template<class T, typename std::enable_if<std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
-    static bool USE_STORED_HASH_ON_REHASH(T /*bucket_count*/) {
-        return StoreHash && is_power_of_two_policy<GrowthPolicy>::value;
+    template<class T = std::size_t, typename std::enable_if<std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
+    static bool USE_STORED_HASH_ON_REHASH(std::size_t /*bucket_count*/) {
+        return StoreHash;
     }
     
-    template<class T, typename std::enable_if<!std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
-    static bool USE_STORED_HASH_ON_REHASH(T bucket_count) {
+    template<class T = std::size_t, typename std::enable_if<!std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
+    static bool USE_STORED_HASH_ON_REHASH(std::size_t bucket_count) {
         (void) bucket_count;
         if(StoreHash && is_power_of_two_policy<GrowthPolicy>::value) {
             tsl_hh_assert(bucket_count > 0);

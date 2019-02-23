@@ -77,7 +77,7 @@ using test_types = boost::mpl::list<
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
                             std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::hh::mod_growth_policy<>>,
                         tsl::hopscotch_map<std::string, std::string, mod_hash<9>, std::equal_to<std::string>, 
-                            std::allocator<std::pair<std::string, std::string>>, 62, false, tsl::hh::mod_growth_policy<std::ratio<4, 3>>>
+                            std::allocator<std::pair<std::string, std::string>>, 30, true, tsl::hh::mod_growth_policy<std::ratio<4, 3>>>
                         >;
                                     
                               
