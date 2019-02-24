@@ -1743,14 +1743,19 @@ private:
     static const std::size_t MAX_PROBES_FOR_EMPTY_BUCKET = 12*NeighborhoodSize;
     static constexpr float MIN_LOAD_FACTOR_FOR_REHASH = 0.1f;
     
-    
-    template<class T = std::size_t, typename std::enable_if<std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
-    static bool USE_STORED_HASH_ON_REHASH(std::size_t /*bucket_count*/) {
+    /**
+     * We can only use the hash on rehash if the size of the hash type is the same as the stored one or
+     * if we use a power of two modulo. In the case of the power of two modulo, we just mask
+     * the least significant bytes, we just have to check that the truncated_hash_type didn't truncated
+     * too much bytes.
+     */
+    template<class T = size_type, typename std::enable_if<std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
+    static bool USE_STORED_HASH_ON_REHASH(size_type /*bucket_count*/) {
         return StoreHash;
     }
     
-    template<class T = std::size_t, typename std::enable_if<!std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
-    static bool USE_STORED_HASH_ON_REHASH(std::size_t bucket_count) {
+    template<class T = size_type, typename std::enable_if<!std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
+    static bool USE_STORED_HASH_ON_REHASH(size_type bucket_count) {
         (void) bucket_count;
         if(StoreHash && is_power_of_two_policy<GrowthPolicy>::value) {
             tsl_hh_assert(bucket_count > 0);
