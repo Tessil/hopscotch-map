@@ -25,7 +25,7 @@ A **benchmark** of `tsl::hopscotch_map` against other hash maps may be found [he
 - The `tsl::bhopscotch_map` and `tsl::bhopscotch_set` provide a worst-case of O(log n) on lookups and deletions making these classes resistant to hash table Deny of Service (DoS) attacks (see [details](#deny-of-service-dos-attack) in example).
 - API closely similar to `std::unordered_map` and `std::unordered_set`.
 
-### Differences compare to `std::unordered_map`
+### Differences compared to `std::unordered_map`
 `tsl::hopscotch_map` tries to have an interface similar to `std::unordered_map`, but some differences exist.
 - Iterator invalidation on insert doesn't behave in the same way. In general any operation modifying the hash table, except `erase`, invalidate all the iterators (see [API](https://tessil.github.io/hopscotch-map/classtsl_1_1hopscotch__map.html#details) for details).
 - References and pointers to keys or values in the map are invalidated in the same way as iterators to these keys-values on insert.
