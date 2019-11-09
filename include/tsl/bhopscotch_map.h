@@ -88,7 +88,7 @@ private:
             return key_value.second;
         }
         
-        value_type& operator()(std::pair<Key, T>& key_value) {
+        value_type& operator()(std::pair<const Key, T>& key_value) {
             return key_value.second;
         }
     };

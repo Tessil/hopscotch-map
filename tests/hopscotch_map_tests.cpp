@@ -1010,9 +1010,11 @@ BOOST_AUTO_TEST_CASE(test_equal_range) {
 /**
  * operator[]
  */
-BOOST_AUTO_TEST_CASE(test_access_operator) {
+using test_access_operator_types = boost::mpl::list<tsl::hopscotch_map<std::int64_t, std::int64_t>, 
+                                                    tsl::bhopscotch_map<std::int64_t, std::int64_t>>;
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_access_operator, HMap, test_access_operator_types) {
     // insert x values, use at for known and unknown values.
-    tsl::hopscotch_map<std::int64_t, std::int64_t> map = {{0, 10}, {-2, 20}};
+    HMap map = {{0, 10}, {-2, 20}};
     
     BOOST_CHECK_EQUAL(map[0], 10);
     BOOST_CHECK_EQUAL(map[-2], 20);
