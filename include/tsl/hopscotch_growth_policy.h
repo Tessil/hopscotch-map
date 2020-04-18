@@ -37,6 +37,34 @@
 #include <stdexcept>
 
 
+/**
+ * Only activate tsl_hh_assert if TSL_DEBUG is defined. 
+ * This way we avoid the performance hit when NDEBUG is not defined with assert as tsl_hh_assert is used a lot
+ * (people usually compile with "-O3" and not "-O3 -DNDEBUG").
+ */
+#ifdef TSL_DEBUG
+#    define tsl_hh_assert(expr) assert(expr)
+#else
+#    define tsl_hh_assert(expr) (static_cast<void>(0))
+#endif
+
+
+/**
+ * If exceptions are enabled, throw the exception passed in parameter, otherwise call std::terminate.
+ */
+#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || (defined (_MSC_VER) && defined (_CPPUNWIND))) && !defined(TSL_NO_EXCEPTIONS)
+#    define TSL_HH_THROW_OR_TERMINATE(ex, msg) throw ex(msg)
+#else
+#    define TSL_HH_NO_EXCEPTIONS
+#    ifdef NDEBUG
+#        define TSL_HH_THROW_OR_TERMINATE(ex, msg) std::terminate()
+#    else
+#        include <iostream>
+#        define TSL_HH_THROW_OR_TERMINATE(ex, msg) do { std::cerr << msg << std::endl; std::terminate(); } while(0)
+#    endif
+#endif
+
+
 namespace tsl {
 namespace hh {
 
@@ -58,7 +86,7 @@ public:
      */
     explicit power_of_two_growth_policy(std::size_t& min_bucket_count_in_out) {
         if(min_bucket_count_in_out > max_bucket_count()) {
-            throw std::length_error("The hash table exceeds its maxmimum size.");
+            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The hash table exceeds its maxmimum size.");
         }
         
         if(min_bucket_count_in_out > 0) {
@@ -83,7 +111,7 @@ public:
      */
     std::size_t next_bucket_count() const {
         if((m_mask + 1) > max_bucket_count() / GrowthFactor) {
-            throw std::length_error("The hash table exceeds its maxmimum size.");
+            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The hash table exceeds its maxmimum size.");
         }
         
         return (m_mask + 1) * GrowthFactor;
@@ -143,7 +171,7 @@ class mod_growth_policy {
 public:
     explicit mod_growth_policy(std::size_t& min_bucket_count_in_out) {
         if(min_bucket_count_in_out > max_bucket_count()) {
-            throw std::length_error("The hash table exceeds its maxmimum size.");
+            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The hash table exceeds its maxmimum size.");
         }
         
         if(min_bucket_count_in_out > 0) {
@@ -160,12 +188,12 @@ public:
     
     std::size_t next_bucket_count() const {
         if(m_mod == max_bucket_count()) {
-            throw std::length_error("The hash table exceeds its maxmimum size.");
+            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The hash table exceeds its maxmimum size.");
         }
         
         const double next_bucket_count = std::ceil(double(m_mod) * REHASH_SIZE_MULTIPLICATION_FACTOR);
         if(!std::isnormal(next_bucket_count)) {
-            throw std::length_error("The hash table exceeds its maxmimum size.");
+            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The hash table exceeds its maxmimum size.");
         }
         
         if(next_bucket_count > double(max_bucket_count())) {
@@ -273,7 +301,7 @@ public:
         auto it_prime = std::lower_bound(detail::PRIMES.begin(), 
                                          detail::PRIMES.end(), min_bucket_count_in_out);
         if(it_prime == detail::PRIMES.end()) {
-            throw std::length_error("The hash table exceeds its maxmimum size.");
+            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The hash table exceeds its maxmimum size.");
         }
         
         m_iprime = static_cast<unsigned int>(std::distance(detail::PRIMES.begin(), it_prime));
@@ -291,7 +319,7 @@ public:
     
     std::size_t next_bucket_count() const {
         if(m_iprime + 1 >= detail::PRIMES.size()) {
-            throw std::length_error("The hash table exceeds its maxmimum size.");
+            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The hash table exceeds its maxmimum size.");
         }
         
         return detail::PRIMES[m_iprime + 1];
