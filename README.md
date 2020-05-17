@@ -275,7 +275,7 @@ int main() {
 ```
 
 #### Deny of Service (DoS) attack
-In addition to `tsl::hopscotch_map` and `tsl::hopscotch_set`, the library provides two more "secure" options: `tsl::bhopscotch_map` and `tsl::bhopscotch_set` (all with their `pg` counterpars). 
+In addition to `tsl::hopscotch_map` and `tsl::hopscotch_set`, the library provides two more "secure" options: `tsl::bhopscotch_map` and `tsl::bhopscotch_set` (all with their `pg` counterparts). 
 
 These two additions have a worst-case asymptotic complexity of O(log n) for lookups and deletions and an amortized worst case of O(log n) for insertions (amortized due to the possibility of rehash which would be in O(n)). Even if the hash function maps all the elements to the same bucket, the O(log n) would still hold.
 

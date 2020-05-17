@@ -607,7 +607,7 @@ public:
                                             m_nb_elements(0)
     {
         if(bucket_count > max_bucket_count()) {
-            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The map exceeds its maxmimum size.");
+            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The map exceeds its maximum size.");
         }
         
         if(bucket_count > 0) {
@@ -623,7 +623,7 @@ public:
         this->max_load_factor(max_load_factor);
         
         
-        // Check in the constructor instead of outside of a function to avoi compilation issues
+        // Check in the constructor instead of outside of a function to avoid compilation issues
         // when value_type is not complete.
         static_assert(std::is_nothrow_move_constructible<value_type>::value || 
                       std::is_copy_constructible<value_type>::value, 
@@ -646,7 +646,7 @@ public:
     {
         
         if(bucket_count > max_bucket_count()) {
-            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The map exceeds its maxmimum size.");
+            TSL_HH_THROW_OR_TERMINATE(std::length_error, "The map exceeds its maximum size.");
         }
         
         if(bucket_count > 0) {
@@ -662,7 +662,7 @@ public:
         this->max_load_factor(max_load_factor);
         
         
-        // Check in the constructor instead of outside of a function to avoi compilation issues
+        // Check in the constructor instead of outside of a function to avoid compilation issues
         // when value_type is not complete.
         static_assert(std::is_nothrow_move_constructible<value_type>::value || 
                       std::is_copy_constructible<value_type>::value, 

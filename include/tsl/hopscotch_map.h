@@ -41,7 +41,7 @@ namespace tsl {
 /**
  * Implementation of a hash map using the hopscotch hashing algorithm.
  * 
- * The Key and the value T must be either nothrow move-constructible, copy-constuctible or both.
+ * The Key and the value T must be either nothrow move-constructible, copy-constructible or both.
  * 
  * The size of the neighborhood (NeighborhoodSize) must be > 0 and <= 62 if StoreHash is false.
  * When StoreHash is true, 32-bits of the hash will be stored alongside the neighborhood limiting
@@ -371,7 +371,7 @@ public:
     
     /**
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup to the value if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup to the value if you already have the hash.
      */    
     size_type erase(const key_type& key, std::size_t precalculated_hash) { 
         return m_ht.erase(key, precalculated_hash); 
@@ -388,7 +388,7 @@ public:
      * @copydoc erase(const K& key)
      * 
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup to the value if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup to the value if you already have the hash.
      */    
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     size_type erase(const K& key, std::size_t precalculated_hash) { 
@@ -407,7 +407,7 @@ public:
     
     /**
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */
     T& at(const Key& key, std::size_t precalculated_hash) { return m_ht.at(key, precalculated_hash); }
     
@@ -431,7 +431,7 @@ public:
      * @copydoc at(const K& key)
      * 
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */    
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     T& at(const K& key, std::size_t precalculated_hash) { return m_ht.at(key, precalculated_hash); }
@@ -462,7 +462,7 @@ public:
     
     /**
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */
     size_type count(const Key& key, std::size_t precalculated_hash) const { 
         return m_ht.count(key, precalculated_hash); 
@@ -479,7 +479,7 @@ public:
      * @copydoc count(const K& key) const
      * 
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */     
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     size_type count(const K& key, std::size_t precalculated_hash) const { return m_ht.count(key, precalculated_hash); }
@@ -491,7 +491,7 @@ public:
     
     /**
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */
     iterator find(const Key& key, std::size_t precalculated_hash) { return m_ht.find(key, precalculated_hash); }
     
@@ -515,7 +515,7 @@ public:
      * @copydoc find(const K& key)
      * 
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     iterator find(const K& key, std::size_t precalculated_hash) { return m_ht.find(key, precalculated_hash); }
@@ -530,7 +530,7 @@ public:
      * @copydoc find(const K& key)
      * 
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     const_iterator find(const K& key, std::size_t precalculated_hash) const { 
@@ -544,7 +544,7 @@ public:
     
     /**
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */
     bool contains(const Key& key, std::size_t precalculated_hash) const { 
         return m_ht.contains(key, precalculated_hash); 
@@ -561,7 +561,7 @@ public:
      * @copydoc contains(const K& key) const
      * 
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     bool contains(const K& key, std::size_t precalculated_hash) const { 
@@ -575,7 +575,7 @@ public:
     
     /**
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */
     std::pair<iterator, iterator> equal_range(const Key& key, std::size_t precalculated_hash) { 
         return m_ht.equal_range(key, precalculated_hash); 
@@ -602,7 +602,7 @@ public:
      * @copydoc equal_range(const K& key)
      * 
      * Use the hash value 'precalculated_hash' instead of hashing the key. The hash value should be the same
-     * as hash_function()(key). Usefull to speed-up the lookup if you already have the hash.
+     * as hash_function()(key). Useful to speed-up the lookup if you already have the hash.
      */
     template<class K, class KE = KeyEqual, typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr> 
     std::pair<iterator, iterator> equal_range(const K& key, std::size_t precalculated_hash) { 
