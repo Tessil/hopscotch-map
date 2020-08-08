@@ -79,6 +79,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HSet, test_types) {
     }
 }
 
+/**
+ * emplace
+ */
+BOOST_AUTO_TEST_CASE(test_emplace) {
+    tsl::hopscotch_set<int> set;
+    set.emplace(1);
+    
+    BOOST_CHECK_EQUAL(set.size(), 1);
+    BOOST_CHECK(set.find(1) != set.end());
+}
+
 BOOST_AUTO_TEST_CASE(test_compare) {
     const tsl::hopscotch_set<std::string> set1_1 = {"a", "e", "d", "c", "b"};
     const tsl::hopscotch_set<std::string> set1_2 = {"e", "c", "b", "a", "d"};
