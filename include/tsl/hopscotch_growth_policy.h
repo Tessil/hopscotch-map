@@ -109,8 +109,8 @@ class power_of_two_growth_policy {
    * Return the bucket [0, bucket_count()) to which the hash belongs.
    * If bucket_count() is 0, it must always return 0.
    */
-  std::size_t bucket_for_hash(std::size_t __hash) const noexcept {
-    return __hash & m_mask;
+  std::size_t bucket_for_hash(std::size_t hash_) const noexcept {
+    return hash_ & m_mask;
   }
 
   /**
@@ -190,8 +190,8 @@ class mod_growth_policy {
     }
   }
 
-  std::size_t bucket_for_hash(std::size_t __hash) const noexcept {
-    return __hash % m_mod;
+  std::size_t bucket_for_hash(std::size_t hash_) const noexcept {
+    return hash_ % m_mod;
   }
 
   std::size_t next_bucket_count() const {
@@ -300,8 +300,8 @@ static constexpr const std::array<std::size_t, TSL_HH_NB_PRIMES> PRIMES = {{
 }};
 
 template <unsigned int IPrime>
-static constexpr std::size_t mod(std::size_t __hash) {
-  return __hash % PRIMES[IPrime];
+static constexpr std::size_t mod(std::size_t hash_) {
+  return hash_ % PRIMES[IPrime];
 }
 
 // MOD_PRIME[iprime](hash) returns hash % PRIMES[iprime]. This table allows for
@@ -373,8 +373,8 @@ class prime_growth_policy {
     }
   }
 
-  std::size_t bucket_for_hash(std::size_t __hash) const noexcept {
-    return detail::MOD_PRIME[m_iprime](__hash);
+  std::size_t bucket_for_hash(std::size_t hash_) const noexcept {
+    return detail::MOD_PRIME[m_iprime](hash_);
   }
 
   std::size_t next_bucket_count() const {
