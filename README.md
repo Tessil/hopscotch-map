@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/Tessil/hopscotch-map.svg?branch=master)](https://travis-ci.org/Tessil/hopscotch-map) [![Build status](https://ci.appveyor.com/api/projects/status/e97rjkcn3qwrhpvf/branch/master?svg=true)](https://ci.appveyor.com/project/Tessil/hopscotch-map/branch/master)
+[![CI](https://github.com/Tessil/hopscotch-map/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Tessil/hopscotch-map/actions/workflows/ci.yml)
 
 ## A C++ implementation of a fast hash map and hash set using hopscotch hashing
 
