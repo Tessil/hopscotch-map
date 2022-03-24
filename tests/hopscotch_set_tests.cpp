@@ -21,8 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#define BOOST_TEST_DYN_LINK
-
 #include <tsl/bhopscotch_set.h>
 #include <tsl/hopscotch_set.h>
 
