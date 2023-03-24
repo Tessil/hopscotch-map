@@ -30,6 +30,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <iterator>
 #include <limits>
 #include <ratio>
