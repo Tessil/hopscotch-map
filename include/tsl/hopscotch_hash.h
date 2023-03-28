@@ -671,7 +671,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
                   "move constructible.");
   }
 
-  hopscotch_hash(const hopscotch_hash& other) : hopscotch_hash(other, get_allocator()) {}
+  hopscotch_hash(const hopscotch_hash& other) : hopscotch_hash(other, other.get_allocator()) {}
 
   hopscotch_hash(const hopscotch_hash& other, const Allocator& alloc)
       : Hash(other),
