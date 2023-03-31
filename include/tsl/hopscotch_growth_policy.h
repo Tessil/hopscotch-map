@@ -30,7 +30,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <exception>
 #include <iterator>
 #include <limits>
 #include <ratio>
@@ -58,6 +57,7 @@
 #define TSL_HH_THROW_OR_TERMINATE(ex, msg) throw ex(msg)
 #else
 #define TSL_HH_NO_EXCEPTIONS
+#include <exception>
 #ifdef TSL_DEBUG
 #include <iostream>
 #define TSL_HH_THROW_OR_TERMINATE(ex, msg) \
