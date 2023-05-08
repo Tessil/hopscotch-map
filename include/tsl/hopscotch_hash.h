@@ -671,10 +671,13 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   hopscotch_hash(const hopscotch_hash& other)
+      : hopscotch_hash(other, other.get_allocator()) {}
+
+  hopscotch_hash(const hopscotch_hash& other, const Allocator& alloc)
       : Hash(other),
         KeyEqual(other),
         GrowthPolicy(other),
-        m_buckets_data(other.m_buckets_data),
+        m_buckets_data(other.m_buckets_data, alloc),
         m_overflow_elements(other.m_overflow_elements),
         m_buckets(m_buckets_data.empty() ? static_empty_bucket_ptr()
                                          : m_buckets_data.data()),
