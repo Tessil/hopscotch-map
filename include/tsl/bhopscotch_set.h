@@ -75,7 +75,7 @@ class bhopscotch_set {
   using overflow_container_type = std::set<Key, Compare, Allocator>;
   using ht = tsl::detail_hopscotch_hash::hopscotch_hash<
       Key, KeySelect, void, Hash, KeyEqual, Allocator, NeighborhoodSize,
-      StoreHash, GrowthPolicy, overflow_container_type>;
+      StoreHash, GrowthPolicy, overflow_container_type, const Key>;
 
  public:
   using key_type = typename ht::key_type;
