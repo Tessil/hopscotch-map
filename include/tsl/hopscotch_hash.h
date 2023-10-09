@@ -79,7 +79,7 @@ struct is_power_of_two_policy<tsl::hh::power_of_two_growth_policy<GrowthFactor>>
 
 template <typename T, typename U>
 static T numeric_cast(U value,
-                      const char* error_message = "numeric_cast() failed.") {
+                      const char *error_message = "numeric_cast() failed.") {
   T ret = static_cast<T>(value);
   if (static_cast<U>(ret) != value) {
     TSL_HH_THROW_OR_TERMINATE(std::runtime_error, error_message);
@@ -169,7 +169,7 @@ class hopscotch_bucket_hash {
   truncated_hash_type truncated_bucket_hash() const noexcept { return 0; }
 
  protected:
-  void copy_hash(const hopscotch_bucket_hash&) noexcept {}
+  void copy_hash(const hopscotch_bucket_hash &) noexcept {}
 
   void set_hash(truncated_hash_type /*hash*/) noexcept {}
 };
@@ -184,7 +184,7 @@ class hopscotch_bucket_hash<true> {
   truncated_hash_type truncated_bucket_hash() const noexcept { return m_hash; }
 
  protected:
-  void copy_hash(const hopscotch_bucket_hash& bucket) noexcept {
+  void copy_hash(const hopscotch_bucket_hash &bucket) noexcept {
     m_hash = bucket.m_hash;
   }
 
@@ -225,36 +225,36 @@ class hopscotch_bucket : public hopscotch_bucket_hash<StoreHash> {
     tsl_hh_assert(empty());
   }
 
-  hopscotch_bucket(const hopscotch_bucket& bucket) noexcept(
+  hopscotch_bucket(const hopscotch_bucket &bucket) noexcept(
       std::is_nothrow_copy_constructible<value_type>::value)
       : bucket_hash(bucket), m_neighborhood_infos(0) {
     if (!bucket.empty()) {
-      ::new (static_cast<void*>(std::addressof(m_value)))
+      ::new (static_cast<void *>(std::addressof(m_value)))
           value_type(bucket.value());
     }
 
     m_neighborhood_infos = bucket.m_neighborhood_infos;
   }
 
-  hopscotch_bucket(hopscotch_bucket&& bucket) noexcept(
+  hopscotch_bucket(hopscotch_bucket &&bucket) noexcept(
       std::is_nothrow_move_constructible<value_type>::value)
       : bucket_hash(std::move(bucket)), m_neighborhood_infos(0) {
     if (!bucket.empty()) {
-      ::new (static_cast<void*>(std::addressof(m_value)))
+      ::new (static_cast<void *>(std::addressof(m_value)))
           value_type(std::move(bucket.value()));
     }
 
     m_neighborhood_infos = bucket.m_neighborhood_infos;
   }
 
-  hopscotch_bucket& operator=(const hopscotch_bucket& bucket) noexcept(
+  hopscotch_bucket &operator=(const hopscotch_bucket &bucket) noexcept(
       std::is_nothrow_copy_constructible<value_type>::value) {
     if (this != &bucket) {
       remove_value();
 
       bucket_hash::operator=(bucket);
       if (!bucket.empty()) {
-        ::new (static_cast<void*>(std::addressof(m_value)))
+        ::new (static_cast<void *>(std::addressof(m_value)))
             value_type(bucket.value());
       }
 
@@ -264,7 +264,7 @@ class hopscotch_bucket : public hopscotch_bucket_hash<StoreHash> {
     return *this;
   }
 
-  hopscotch_bucket& operator=(hopscotch_bucket&&) = delete;
+  hopscotch_bucket &operator=(hopscotch_bucket &&) = delete;
 
   ~hopscotch_bucket() noexcept {
     if (!empty()) {
@@ -307,41 +307,41 @@ class hopscotch_bucket : public hopscotch_bucket_hash<StoreHash> {
     return false;
   }
 
-  value_type& value() noexcept {
+  value_type &value() noexcept {
     tsl_hh_assert(!empty());
 #if defined(__cplusplus) && __cplusplus >= 201703L
     return *std::launder(
-        reinterpret_cast<value_type*>(std::addressof(m_value)));
+        reinterpret_cast<value_type *>(std::addressof(m_value)));
 #else
-    return *reinterpret_cast<value_type*>(std::addressof(m_value));
+    return *reinterpret_cast<value_type *>(std::addressof(m_value));
 #endif
   }
 
-  const value_type& value() const noexcept {
+  const value_type &value() const noexcept {
     tsl_hh_assert(!empty());
 #if defined(__cplusplus) && __cplusplus >= 201703L
     return *std::launder(
-        reinterpret_cast<const value_type*>(std::addressof(m_value)));
+        reinterpret_cast<const value_type *>(std::addressof(m_value)));
 #else
-    return *reinterpret_cast<const value_type*>(std::addressof(m_value));
+    return *reinterpret_cast<const value_type *>(std::addressof(m_value));
 #endif
   }
 
   template <typename... Args>
   void set_value_of_empty_bucket(truncated_hash_type hash,
-                                 Args&&... value_type_args) {
+                                 Args &&...value_type_args) {
     tsl_hh_assert(empty());
 
-    ::new (static_cast<void*>(std::addressof(m_value)))
+    ::new (static_cast<void *>(std::addressof(m_value)))
         value_type(std::forward<Args>(value_type_args)...);
     set_empty(false);
     this->set_hash(hash);
   }
 
-  void swap_value_into_empty_bucket(hopscotch_bucket& empty_bucket) {
+  void swap_value_into_empty_bucket(hopscotch_bucket &empty_bucket) {
     tsl_hh_assert(empty_bucket.empty());
     if (!empty()) {
-      ::new (static_cast<void*>(std::addressof(empty_bucket.m_value)))
+      ::new (static_cast<void *>(std::addressof(empty_bucket.m_value)))
           value_type(std::move(value()));
       empty_bucket.copy_hash(*this);
       empty_bucket.set_empty(false);
@@ -408,7 +408,8 @@ class hopscotch_bucket : public hopscotch_bucket_hash<StoreHash> {
  */
 template <class ValueType, class KeySelect, class ValueSelect, class Hash,
           class KeyEqual, class Allocator, unsigned int NeighborhoodSize,
-          bool StoreHash, class GrowthPolicy, class OverflowContainer>
+          bool StoreHash, class GrowthPolicy, class OverflowContainer,
+          class ValueTypeIt>
 class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
  private:
   template <typename U>
@@ -432,12 +433,18 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   using hasher = Hash;
   using key_equal = KeyEqual;
   using allocator_type = Allocator;
-  using reference = value_type&;
-  using const_reference = const value_type&;
-  using pointer = value_type*;
-  using const_pointer = const value_type*;
+  using reference = value_type &;
+  using const_reference = const value_type &;
+  using pointer = value_type *;
+  using const_pointer = const value_type *;
   using iterator = hopscotch_iterator<false>;
   using const_iterator = hopscotch_iterator<true>;
+
+  using value_type_it = ValueTypeIt;
+  using reference_it = value_type_it &;
+  using const_reference_it = const value_type_it &;
+  using pointer_it = value_type_it *;
+  using const_pointer_it = const value_type_it *;
 
  private:
   using hopscotch_bucket =
@@ -497,27 +504,33 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
 
    public:
     using iterator_category = std::forward_iterator_tag;
-    using value_type = const typename hopscotch_hash::value_type;
+    using value_type = typename hopscotch_hash::value_type_it;
     using difference_type = std::ptrdiff_t;
-    using reference = value_type&;
-    using pointer = value_type*;
+    using reference =
+        typename std::conditional<IsConst,
+                                  typename hopscotch_hash::const_reference_it,
+                                  typename hopscotch_hash::reference_it>::type;
+    using pointer =
+        typename std::conditional<IsConst,
+                                  typename hopscotch_hash::const_pointer_it,
+                                  typename hopscotch_hash::pointer_it>::type;
 
     hopscotch_iterator() noexcept {}
 
     // Copy constructor from iterator to const_iterator.
     template <bool TIsConst = IsConst,
-              typename std::enable_if<TIsConst>::type* = nullptr>
-    hopscotch_iterator(const hopscotch_iterator<!TIsConst>& other) noexcept
+              typename std::enable_if<TIsConst>::type * = nullptr>
+    hopscotch_iterator(const hopscotch_iterator<!TIsConst> &other) noexcept
         : m_buckets_iterator(other.m_buckets_iterator),
           m_buckets_end_iterator(other.m_buckets_end_iterator),
           m_overflow_iterator(other.m_overflow_iterator) {}
 
-    hopscotch_iterator(const hopscotch_iterator& other) = default;
-    hopscotch_iterator(hopscotch_iterator&& other) = default;
-    hopscotch_iterator& operator=(const hopscotch_iterator& other) = default;
-    hopscotch_iterator& operator=(hopscotch_iterator&& other) = default;
+    hopscotch_iterator(const hopscotch_iterator &other) = default;
+    hopscotch_iterator(hopscotch_iterator &&other) = default;
+    hopscotch_iterator &operator=(const hopscotch_iterator &other) = default;
+    hopscotch_iterator &operator=(hopscotch_iterator &&other) = default;
 
-    const typename hopscotch_hash::key_type& key() const {
+    const typename hopscotch_hash::key_type &key() const {
       if (m_buckets_iterator != m_buckets_end_iterator) {
         return KeySelect()(m_buckets_iterator->value());
       }
@@ -527,9 +540,9 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
 
     template <
         class U = ValueSelect,
-        typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
-    typename std::conditional<IsConst, const typename U::value_type&,
-                              typename U::value_type&>::type
+        typename std::enable_if<has_mapped_type<U>::value>::type * = nullptr>
+    typename std::conditional<IsConst, const typename U::value_type &,
+                              typename U::value_type &>::type
     value() const {
       if (m_buckets_iterator != m_buckets_end_iterator) {
         return U()(m_buckets_iterator->value());
@@ -540,21 +553,22 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
 
     reference operator*() const {
       if (m_buckets_iterator != m_buckets_end_iterator) {
-        return m_buckets_iterator->value();
+        return reinterpret_cast<reference>(m_buckets_iterator->value());
       }
 
-      return *m_overflow_iterator;
+      return reinterpret_cast<reference>(*m_overflow_iterator);
     }
 
     pointer operator->() const {
       if (m_buckets_iterator != m_buckets_end_iterator) {
-        return std::addressof(m_buckets_iterator->value());
+        return reinterpret_cast<pointer>(
+            std::addressof(m_buckets_iterator->value()));
       }
 
-      return std::addressof(*m_overflow_iterator);
+      return reinterpret_cast<pointer>(std::addressof(*m_overflow_iterator));
     }
 
-    hopscotch_iterator& operator++() {
+    hopscotch_iterator &operator++() {
       if (m_buckets_iterator == m_buckets_end_iterator) {
         ++m_overflow_iterator;
         return *this;
@@ -575,14 +589,14 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
       return tmp;
     }
 
-    friend bool operator==(const hopscotch_iterator& lhs,
-                           const hopscotch_iterator& rhs) {
+    friend bool operator==(const hopscotch_iterator &lhs,
+                           const hopscotch_iterator &rhs) {
       return lhs.m_buckets_iterator == rhs.m_buckets_iterator &&
              lhs.m_overflow_iterator == rhs.m_overflow_iterator;
     }
 
-    friend bool operator!=(const hopscotch_iterator& lhs,
-                           const hopscotch_iterator& rhs) {
+    friend bool operator!=(const hopscotch_iterator &lhs,
+                           const hopscotch_iterator &rhs) {
       return !(lhs == rhs);
     }
 
@@ -595,9 +609,9 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
  public:
   template <
       class OC = OverflowContainer,
-      typename std::enable_if<!has_key_compare<OC>::value>::type* = nullptr>
-  hopscotch_hash(size_type bucket_count, const Hash& hash,
-                 const KeyEqual& equal, const Allocator& alloc,
+      typename std::enable_if<!has_key_compare<OC>::value>::type * = nullptr>
+  hopscotch_hash(size_type bucket_count, const Hash &hash,
+                 const KeyEqual &equal, const Allocator &alloc,
                  float max_load_factor)
       : Hash(hash),
         KeyEqual(equal),
@@ -632,10 +646,10 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
 
   template <
       class OC = OverflowContainer,
-      typename std::enable_if<has_key_compare<OC>::value>::type* = nullptr>
-  hopscotch_hash(size_type bucket_count, const Hash& hash,
-                 const KeyEqual& equal, const Allocator& alloc,
-                 float max_load_factor, const typename OC::key_compare& comp)
+      typename std::enable_if<has_key_compare<OC>::value>::type * = nullptr>
+  hopscotch_hash(size_type bucket_count, const Hash &hash,
+                 const KeyEqual &equal, const Allocator &alloc,
+                 float max_load_factor, const typename OC::key_compare &comp)
       : Hash(hash),
         KeyEqual(equal),
         GrowthPolicy(bucket_count),
@@ -667,10 +681,10 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
                   "move constructible.");
   }
 
-  hopscotch_hash(const hopscotch_hash& other)
+  hopscotch_hash(const hopscotch_hash &other)
       : hopscotch_hash(other, other.get_allocator()) {}
 
-  hopscotch_hash(const hopscotch_hash& other, const Allocator& alloc)
+  hopscotch_hash(const hopscotch_hash &other, const Allocator &alloc)
       : Hash(other),
         KeyEqual(other),
         GrowthPolicy(other),
@@ -683,16 +697,16 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
         m_max_load_threshold_rehash(other.m_max_load_threshold_rehash),
         m_max_load_factor(other.m_max_load_factor) {}
 
-  hopscotch_hash(hopscotch_hash&& other) noexcept(
-      std::is_nothrow_move_constructible<Hash>::value&&
-          std::is_nothrow_move_constructible<KeyEqual>::value&&
-              std::is_nothrow_move_constructible<GrowthPolicy>::value&& std::
-                  is_nothrow_move_constructible<buckets_container_type>::value&&
-                      std::is_nothrow_move_constructible<
-                          overflow_container_type>::value)
-      : Hash(std::move(static_cast<Hash&>(other))),
-        KeyEqual(std::move(static_cast<KeyEqual&>(other))),
-        GrowthPolicy(std::move(static_cast<GrowthPolicy&>(other))),
+  hopscotch_hash(hopscotch_hash &&other) noexcept(
+      std::is_nothrow_move_constructible<
+          Hash>::value &&std::is_nothrow_move_constructible<KeyEqual>::value
+          &&std::is_nothrow_move_constructible<GrowthPolicy>::value &&
+              std::is_nothrow_move_constructible<buckets_container_type>::value
+                  &&std::is_nothrow_move_constructible<
+                      overflow_container_type>::value)
+      : Hash(std::move(static_cast<Hash &>(other))),
+        KeyEqual(std::move(static_cast<KeyEqual &>(other))),
+        GrowthPolicy(std::move(static_cast<GrowthPolicy &>(other))),
         m_buckets_data(std::move(other.m_buckets_data)),
         m_overflow_elements(std::move(other.m_overflow_elements)),
         m_buckets(m_buckets_data.empty() ? static_empty_bucket_ptr()
@@ -710,7 +724,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     other.m_max_load_threshold_rehash = 0;
   }
 
-  hopscotch_hash& operator=(const hopscotch_hash& other) {
+  hopscotch_hash &operator=(const hopscotch_hash &other) {
     if (&other != this) {
       Hash::operator=(other);
       KeyEqual::operator=(other);
@@ -730,7 +744,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return *this;
   }
 
-  hopscotch_hash& operator=(hopscotch_hash&& other) {
+  hopscotch_hash &operator=(hopscotch_hash &&other) {
     other.swap(*this);
     other.clear();
 
@@ -790,7 +804,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
    * Modifiers
    */
   void clear() noexcept {
-    for (auto& bucket : m_buckets_data) {
+    for (auto &bucket : m_buckets_data) {
       bucket.clear();
     }
 
@@ -798,21 +812,21 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     m_nb_elements = 0;
   }
 
-  std::pair<iterator, bool> insert(const value_type& value) {
+  std::pair<iterator, bool> insert(const value_type &value) {
     return insert_impl(value);
   }
 
   template <class P, typename std::enable_if<std::is_constructible<
-                         value_type, P&&>::value>::type* = nullptr>
-  std::pair<iterator, bool> insert(P&& value) {
+                         value_type, P &&>::value>::type * = nullptr>
+  std::pair<iterator, bool> insert(P &&value) {
     return insert_impl(value_type(std::forward<P>(value)));
   }
 
-  std::pair<iterator, bool> insert(value_type&& value) {
+  std::pair<iterator, bool> insert(value_type &&value) {
     return insert_impl(std::move(value));
   }
 
-  iterator insert(const_iterator hint, const value_type& value) {
+  iterator insert(const_iterator hint, const value_type &value) {
     if (hint != cend() &&
         compare_keys(KeySelect()(*hint), KeySelect()(value))) {
       return mutable_iterator(hint);
@@ -822,12 +836,12 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class P, typename std::enable_if<std::is_constructible<
-                         value_type, P&&>::value>::type* = nullptr>
-  iterator insert(const_iterator hint, P&& value) {
+                         value_type, P &&>::value>::type * = nullptr>
+  iterator insert(const_iterator hint, P &&value) {
     return emplace_hint(hint, std::forward<P>(value));
   }
 
-  iterator insert(const_iterator hint, value_type&& value) {
+  iterator insert(const_iterator hint, value_type &&value) {
     if (hint != cend() &&
         compare_keys(KeySelect()(*hint), KeySelect()(value))) {
       return mutable_iterator(hint);
@@ -861,17 +875,17 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class M>
-  std::pair<iterator, bool> insert_or_assign(const key_type& k, M&& obj) {
+  std::pair<iterator, bool> insert_or_assign(const key_type &k, M &&obj) {
     return insert_or_assign_impl(k, std::forward<M>(obj));
   }
 
   template <class M>
-  std::pair<iterator, bool> insert_or_assign(key_type&& k, M&& obj) {
+  std::pair<iterator, bool> insert_or_assign(key_type &&k, M &&obj) {
     return insert_or_assign_impl(std::move(k), std::forward<M>(obj));
   }
 
   template <class M>
-  iterator insert_or_assign(const_iterator hint, const key_type& k, M&& obj) {
+  iterator insert_or_assign(const_iterator hint, const key_type &k, M &&obj) {
     if (hint != cend() && compare_keys(KeySelect()(*hint), k)) {
       auto it = mutable_iterator(hint);
       it.value() = std::forward<M>(obj);
@@ -883,7 +897,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class M>
-  iterator insert_or_assign(const_iterator hint, key_type&& k, M&& obj) {
+  iterator insert_or_assign(const_iterator hint, key_type &&k, M &&obj) {
     if (hint != cend() && compare_keys(KeySelect()(*hint), k)) {
       auto it = mutable_iterator(hint);
       it.value() = std::forward<M>(obj);
@@ -895,27 +909,27 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class... Args>
-  std::pair<iterator, bool> emplace(Args&&... args) {
+  std::pair<iterator, bool> emplace(Args &&...args) {
     return insert(value_type(std::forward<Args>(args)...));
   }
 
   template <class... Args>
-  iterator emplace_hint(const_iterator hint, Args&&... args) {
+  iterator emplace_hint(const_iterator hint, Args &&...args) {
     return insert(hint, value_type(std::forward<Args>(args)...));
   }
 
   template <class... Args>
-  std::pair<iterator, bool> try_emplace(const key_type& k, Args&&... args) {
+  std::pair<iterator, bool> try_emplace(const key_type &k, Args &&...args) {
     return try_emplace_impl(k, std::forward<Args>(args)...);
   }
 
   template <class... Args>
-  std::pair<iterator, bool> try_emplace(key_type&& k, Args&&... args) {
+  std::pair<iterator, bool> try_emplace(key_type &&k, Args &&...args) {
     return try_emplace_impl(std::move(k), std::forward<Args>(args)...);
   }
 
   template <class... Args>
-  iterator try_emplace(const_iterator hint, const key_type& k, Args&&... args) {
+  iterator try_emplace(const_iterator hint, const key_type &k, Args &&...args) {
     if (hint != cend() && compare_keys(KeySelect()(*hint), k)) {
       return mutable_iterator(hint);
     }
@@ -924,7 +938,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class... Args>
-  iterator try_emplace(const_iterator hint, key_type&& k, Args&&... args) {
+  iterator try_emplace(const_iterator hint, key_type &&k, Args &&...args) {
     if (hint != cend() && compare_keys(KeySelect()(*hint), k)) {
       return mutable_iterator(hint);
     }
@@ -971,15 +985,15 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class K>
-  size_type erase(const K& key) {
+  size_type erase(const K &key) {
     return erase(key, hash_key(key));
   }
 
   template <class K>
-  size_type erase(const K& key, std::size_t hash) {
+  size_type erase(const K &key, std::size_t hash) {
     const std::size_t ibucket_for_hash = bucket_for_hash(hash);
 
-    hopscotch_bucket* bucket_found =
+    hopscotch_bucket *bucket_found =
         find_in_buckets(key, hash, m_buckets + ibucket_for_hash);
     if (bucket_found != nullptr) {
       erase_from_bucket(*bucket_found, ibucket_for_hash);
@@ -999,12 +1013,13 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return 0;
   }
 
-  void swap(hopscotch_hash& other) {
+  void swap(hopscotch_hash &other) {
     using std::swap;
 
-    swap(static_cast<Hash&>(*this), static_cast<Hash&>(other));
-    swap(static_cast<KeyEqual&>(*this), static_cast<KeyEqual&>(other));
-    swap(static_cast<GrowthPolicy&>(*this), static_cast<GrowthPolicy&>(other));
+    swap(static_cast<Hash &>(*this), static_cast<Hash &>(other));
+    swap(static_cast<KeyEqual &>(*this), static_cast<KeyEqual &>(other));
+    swap(static_cast<GrowthPolicy &>(*this),
+         static_cast<GrowthPolicy &>(other));
     swap(m_buckets_data, other.m_buckets_data);
     swap(m_overflow_elements, other.m_overflow_elements);
     swap(m_buckets, other.m_buckets);
@@ -1017,31 +1032,35 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   /*
    * Lookup
    */
-  template <class K, class U = ValueSelect,
-            typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
-  typename U::value_type& at(const K& key) {
+  template <
+      class K, class U = ValueSelect,
+      typename std::enable_if<has_mapped_type<U>::value>::type * = nullptr>
+  typename U::value_type &at(const K &key) {
     return at(key, hash_key(key));
   }
 
-  template <class K, class U = ValueSelect,
-            typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
-  typename U::value_type& at(const K& key, std::size_t hash) {
-    return const_cast<typename U::value_type&>(
-        static_cast<const hopscotch_hash*>(this)->at(key, hash));
+  template <
+      class K, class U = ValueSelect,
+      typename std::enable_if<has_mapped_type<U>::value>::type * = nullptr>
+  typename U::value_type &at(const K &key, std::size_t hash) {
+    return const_cast<typename U::value_type &>(
+        static_cast<const hopscotch_hash *>(this)->at(key, hash));
   }
 
-  template <class K, class U = ValueSelect,
-            typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
-  const typename U::value_type& at(const K& key) const {
+  template <
+      class K, class U = ValueSelect,
+      typename std::enable_if<has_mapped_type<U>::value>::type * = nullptr>
+  const typename U::value_type &at(const K &key) const {
     return at(key, hash_key(key));
   }
 
-  template <class K, class U = ValueSelect,
-            typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
-  const typename U::value_type& at(const K& key, std::size_t hash) const {
+  template <
+      class K, class U = ValueSelect,
+      typename std::enable_if<has_mapped_type<U>::value>::type * = nullptr>
+  const typename U::value_type &at(const K &key, std::size_t hash) const {
     using T = typename U::value_type;
 
-    const T* value =
+    const T *value =
         find_value_impl(key, hash, m_buckets + bucket_for_hash(hash));
     if (value == nullptr) {
       TSL_HH_THROW_OR_TERMINATE(std::out_of_range, "Couldn't find key.");
@@ -1050,15 +1069,16 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     }
   }
 
-  template <class K, class U = ValueSelect,
-            typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
-  typename U::value_type& operator[](K&& key) {
+  template <
+      class K, class U = ValueSelect,
+      typename std::enable_if<has_mapped_type<U>::value>::type * = nullptr>
+  typename U::value_type &operator[](K &&key) {
     using T = typename U::value_type;
 
     const std::size_t hash = hash_key(key);
     const std::size_t ibucket_for_hash = bucket_for_hash(hash);
 
-    T* value = find_value_impl(key, hash, m_buckets + ibucket_for_hash);
+    T *value = find_value_impl(key, hash, m_buckets + ibucket_for_hash);
     if (value != nullptr) {
       return *value;
     } else {
@@ -1070,64 +1090,64 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class K>
-  size_type count(const K& key) const {
+  size_type count(const K &key) const {
     return count(key, hash_key(key));
   }
 
   template <class K>
-  size_type count(const K& key, std::size_t hash) const {
+  size_type count(const K &key, std::size_t hash) const {
     return count_impl(key, hash, m_buckets + bucket_for_hash(hash));
   }
 
   template <class K>
-  iterator find(const K& key) {
+  iterator find(const K &key) {
     return find(key, hash_key(key));
   }
 
   template <class K>
-  iterator find(const K& key, std::size_t hash) {
+  iterator find(const K &key, std::size_t hash) {
     return find_impl(key, hash, m_buckets + bucket_for_hash(hash));
   }
 
   template <class K>
-  const_iterator find(const K& key) const {
+  const_iterator find(const K &key) const {
     return find(key, hash_key(key));
   }
 
   template <class K>
-  const_iterator find(const K& key, std::size_t hash) const {
+  const_iterator find(const K &key, std::size_t hash) const {
     return find_impl(key, hash, m_buckets + bucket_for_hash(hash));
   }
 
   template <class K>
-  bool contains(const K& key) const {
+  bool contains(const K &key) const {
     return contains(key, hash_key(key));
   }
 
   template <class K>
-  bool contains(const K& key, std::size_t hash) const {
+  bool contains(const K &key, std::size_t hash) const {
     return count(key, hash) != 0;
   }
 
   template <class K>
-  std::pair<iterator, iterator> equal_range(const K& key) {
+  std::pair<iterator, iterator> equal_range(const K &key) {
     return equal_range(key, hash_key(key));
   }
 
   template <class K>
-  std::pair<iterator, iterator> equal_range(const K& key, std::size_t hash) {
+  std::pair<iterator, iterator> equal_range(const K &key, std::size_t hash) {
     iterator it = find(key, hash);
     return std::make_pair(it, (it == end()) ? it : std::next(it));
   }
 
   template <class K>
-  std::pair<const_iterator, const_iterator> equal_range(const K& key) const {
+  std::pair<const_iterator, const_iterator> equal_range(const K &key) const {
     return equal_range(key, hash_key(key));
   }
 
   template <class K>
   std::pair<const_iterator, const_iterator> equal_range(
-      const K& key, std::size_t hash) const {
+      const K &key, std::size_t hash) const {
     const_iterator it = find(key, hash);
     return std::make_pair(it, (it == cend()) ? it : std::next(it));
   }
@@ -1189,9 +1209,9 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   /*
    * Observers
    */
-  hasher hash_function() const { return static_cast<const Hash&>(*this); }
+  hasher hash_function() const { return static_cast<const Hash &>(*this); }
 
-  key_equal key_eq() const { return static_cast<const KeyEqual&>(*this); }
+  key_equal key_eq() const { return static_cast<const KeyEqual &>(*this); }
 
   /*
    * Other
@@ -1213,20 +1233,21 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return m_overflow_elements.size();
   }
 
-  template <class U = OverflowContainer,
-            typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
+  template <
+      class U = OverflowContainer,
+      typename std::enable_if<has_key_compare<U>::value>::type * = nullptr>
   typename U::key_compare key_comp() const {
     return m_overflow_elements.key_comp();
   }
 
  private:
   template <class K>
-  std::size_t hash_key(const K& key) const {
+  std::size_t hash_key(const K &key) const {
     return Hash::operator()(key);
   }
 
   template <class K1, class K2>
-  bool compare_keys(const K1& key1, const K2& key2) const {
+  bool compare_keys(const K1 &key1, const K2 &key2) const {
     return KeyEqual::operator()(key1, key2);
   }
 
@@ -1240,7 +1261,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
 
   template <typename U = value_type,
             typename std::enable_if<
-                std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
+                std::is_nothrow_move_constructible<U>::value>::type * = nullptr>
   void rehash_impl(size_type count_) {
     hopscotch_hash new_map = new_hopscotch_hash(count_);
 
@@ -1248,7 +1269,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
       new_map.m_overflow_elements.swap(m_overflow_elements);
       new_map.m_nb_elements += new_map.m_overflow_elements.size();
 
-      for (const value_type& value : new_map.m_overflow_elements) {
+      for (const value_type &value : new_map.m_overflow_elements) {
         const std::size_t ibucket_for_hash =
             new_map.bucket_for_hash(new_map.hash_key(KeySelect()(value)));
         new_map.m_buckets[ibucket_for_hash].set_overflow(true);
@@ -1313,15 +1334,15 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <typename U = value_type,
-            typename std::enable_if<
-                std::is_copy_constructible<U>::value &&
-                !std::is_nothrow_move_constructible<U>::value>::type* = nullptr>
+            typename std::enable_if<std::is_copy_constructible<U>::value &&
+                                    !std::is_nothrow_move_constructible<
+                                        U>::value>::type * = nullptr>
   void rehash_impl(size_type count_) {
     hopscotch_hash new_map = new_hopscotch_hash(count_);
 
     const bool use_stored_hash =
         USE_STORED_HASH_ON_REHASH(new_map.bucket_count());
-    for (const hopscotch_bucket& bucket : m_buckets_data) {
+    for (const hopscotch_bucket &bucket : m_buckets_data) {
       if (bucket.empty()) {
         continue;
       }
@@ -1334,7 +1355,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
       new_map.insert_value(ibucket_for_hash, hash, bucket.value());
     }
 
-    for (const value_type& value : m_overflow_elements) {
+    for (const value_type &value : m_overflow_elements) {
       const std::size_t hash = new_map.hash_key(KeySelect()(value));
       const std::size_t ibucket_for_hash = new_map.bucket_for_hash(hash);
 
@@ -1367,7 +1388,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
 
     // Check if we can remove the overflow flag
     tsl_hh_assert(m_buckets[ibucket_for_hash].has_overflow());
-    for (const value_type& value : m_overflow_elements) {
+    for (const value_type &value : m_overflow_elements) {
       const std::size_t bucket_for_value =
           bucket_for_hash(hash_key(KeySelect()(value)));
       if (bucket_for_value == ibucket_for_hash) {
@@ -1383,7 +1404,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
    * bucket_for_value is the bucket in which the value is.
    * ibucket_for_hash is the bucket where the value belongs.
    */
-  void erase_from_bucket(hopscotch_bucket& bucket_for_value,
+  void erase_from_bucket(hopscotch_bucket &bucket_for_value,
                          std::size_t ibucket_for_hash) noexcept {
     const std::size_t ibucket_for_value =
         std::distance(m_buckets_data.data(), &bucket_for_value);
@@ -1396,7 +1417,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class K, class M>
-  std::pair<iterator, bool> insert_or_assign_impl(K&& key, M&& obj) {
+  std::pair<iterator, bool> insert_or_assign_impl(K &&key, M &&obj) {
     auto it = try_emplace_impl(std::forward<K>(key), std::forward<M>(obj));
     if (!it.second) {
       it.first.value() = std::forward<M>(obj);
@@ -1406,7 +1427,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <typename P, class... Args>
-  std::pair<iterator, bool> try_emplace_impl(P&& key, Args&&... args_value) {
+  std::pair<iterator, bool> try_emplace_impl(P &&key, Args &&...args_value) {
     const std::size_t hash = hash_key(key);
     const std::size_t ibucket_for_hash = bucket_for_hash(hash);
 
@@ -1423,7 +1444,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <typename P>
-  std::pair<iterator, bool> insert_impl(P&& value) {
+  std::pair<iterator, bool> insert_impl(P &&value) {
     const std::size_t hash = hash_key(KeySelect()(value));
     const std::size_t ibucket_for_hash = bucket_for_hash(hash);
 
@@ -1440,7 +1461,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   template <typename... Args>
   std::pair<iterator, bool> insert_value(std::size_t ibucket_for_hash,
                                          std::size_t hash,
-                                         Args&&... value_type_args) {
+                                         Args &&...value_type_args) {
     if ((m_nb_elements - m_overflow_elements.size()) >=
         m_max_load_threshold_rehash) {
       rehash(GrowthPolicy::next_bucket_count());
@@ -1536,7 +1557,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   iterator_buckets insert_in_bucket(std::size_t ibucket_empty,
                                     std::size_t ibucket_for_hash,
                                     std::size_t hash,
-                                    Args&&... value_type_args) {
+                                    Args &&...value_type_args) {
     tsl_hh_assert(ibucket_empty >= ibucket_for_hash);
     tsl_hh_assert(m_buckets[ibucket_empty].empty());
     m_buckets[ibucket_empty].set_value_of_empty_bucket(
@@ -1553,9 +1574,9 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
 
   template <
       class... Args, class U = OverflowContainer,
-      typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
+      typename std::enable_if<!has_key_compare<U>::value>::type * = nullptr>
   iterator_overflow insert_in_overflow(std::size_t ibucket_for_hash,
-                                       Args&&... value_type_args) {
+                                       Args &&...value_type_args) {
     auto it = m_overflow_elements.emplace(
         m_overflow_elements.end(), std::forward<Args>(value_type_args)...);
 
@@ -1565,10 +1586,11 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return it;
   }
 
-  template <class... Args, class U = OverflowContainer,
-            typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
+  template <
+      class... Args, class U = OverflowContainer,
+      typename std::enable_if<has_key_compare<U>::value>::type * = nullptr>
   iterator_overflow insert_in_overflow(std::size_t ibucket_for_hash,
-                                       Args&&... value_type_args) {
+                                       Args &&...value_type_args) {
     auto it =
         m_overflow_elements.emplace(std::forward<Args>(value_type_args)...)
             .first;
@@ -1586,7 +1608,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
    * If a swap was possible, the position of ibucket_empty_in_out will be closer
    * to 0 and true will re returned.
    */
-  bool swap_empty_bucket_closer(std::size_t& ibucket_empty_in_out) {
+  bool swap_empty_bucket_closer(std::size_t &ibucket_empty_in_out) {
     tsl_hh_assert(ibucket_empty_in_out >= NeighborhoodSize);
     const std::size_t neighborhood_start =
         ibucket_empty_in_out - NeighborhoodSize + 1;
@@ -1627,12 +1649,13 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return false;
   }
 
-  template <class K, class U = ValueSelect,
-            typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
-  typename U::value_type* find_value_impl(const K& key, std::size_t hash,
-                                          hopscotch_bucket* bucket_for_hash) {
-    return const_cast<typename U::value_type*>(
-        static_cast<const hopscotch_hash*>(this)->find_value_impl(
+  template <
+      class K, class U = ValueSelect,
+      typename std::enable_if<has_mapped_type<U>::value>::type * = nullptr>
+  typename U::value_type *find_value_impl(const K &key, std::size_t hash,
+                                          hopscotch_bucket *bucket_for_hash) {
+    return const_cast<typename U::value_type *>(
+        static_cast<const hopscotch_hash *>(this)->find_value_impl(
             key, hash, bucket_for_hash));
   }
 
@@ -1643,12 +1666,13 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
    * Return null if no value for the key (TODO use std::optional when
    * available).
    */
-  template <class K, class U = ValueSelect,
-            typename std::enable_if<has_mapped_type<U>::value>::type* = nullptr>
-  const typename U::value_type* find_value_impl(
-      const K& key, std::size_t hash,
-      const hopscotch_bucket* bucket_for_hash) const {
-    const hopscotch_bucket* bucket_found =
+  template <
+      class K, class U = ValueSelect,
+      typename std::enable_if<has_mapped_type<U>::value>::type * = nullptr>
+  const typename U::value_type *find_value_impl(
+      const K &key, std::size_t hash,
+      const hopscotch_bucket *bucket_for_hash) const {
+    const hopscotch_bucket *bucket_found =
         find_in_buckets(key, hash, bucket_for_hash);
     if (bucket_found != nullptr) {
       return std::addressof(ValueSelect()(bucket_found->value()));
@@ -1665,8 +1689,8 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class K>
-  size_type count_impl(const K& key, std::size_t hash,
-                       const hopscotch_bucket* bucket_for_hash) const {
+  size_type count_impl(const K &key, std::size_t hash,
+                       const hopscotch_bucket *bucket_for_hash) const {
     if (find_in_buckets(key, hash, bucket_for_hash) != nullptr) {
       return 1;
     } else if (bucket_for_hash->has_overflow() &&
@@ -1678,9 +1702,9 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class K>
-  iterator find_impl(const K& key, std::size_t hash,
-                     hopscotch_bucket* bucket_for_hash) {
-    hopscotch_bucket* bucket_found =
+  iterator find_impl(const K &key, std::size_t hash,
+                     hopscotch_bucket *bucket_for_hash) {
+    hopscotch_bucket *bucket_found =
         find_in_buckets(key, hash, bucket_for_hash);
     if (bucket_found != nullptr) {
       return iterator(m_buckets_data.begin() +
@@ -1697,9 +1721,9 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class K>
-  const_iterator find_impl(const K& key, std::size_t hash,
-                           const hopscotch_bucket* bucket_for_hash) const {
-    const hopscotch_bucket* bucket_found =
+  const_iterator find_impl(const K &key, std::size_t hash,
+                           const hopscotch_bucket *bucket_for_hash) const {
+    const hopscotch_bucket *bucket_found =
         find_in_buckets(key, hash, bucket_for_hash);
     if (bucket_found != nullptr) {
       return const_iterator(
@@ -1717,21 +1741,21 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   }
 
   template <class K>
-  hopscotch_bucket* find_in_buckets(const K& key, std::size_t hash,
-                                    hopscotch_bucket* bucket_for_hash) {
-    const hopscotch_bucket* bucket_found =
-        static_cast<const hopscotch_hash*>(this)->find_in_buckets(
+  hopscotch_bucket *find_in_buckets(const K &key, std::size_t hash,
+                                    hopscotch_bucket *bucket_for_hash) {
+    const hopscotch_bucket *bucket_found =
+        static_cast<const hopscotch_hash *>(this)->find_in_buckets(
             key, hash, bucket_for_hash);
-    return const_cast<hopscotch_bucket*>(bucket_found);
+    return const_cast<hopscotch_bucket *>(bucket_found);
   }
 
   /**
    * Return a pointer to the bucket which has the value, nullptr otherwise.
    */
   template <class K>
-  const hopscotch_bucket* find_in_buckets(
-      const K& key, std::size_t hash,
-      const hopscotch_bucket* bucket_for_hash) const {
+  const hopscotch_bucket *find_in_buckets(
+      const K &key, std::size_t hash,
+      const hopscotch_bucket *bucket_for_hash) const {
     (void)hash;  // Avoid warning of unused variable when StoreHash is false;
 
     // TODO Try to optimize the function.
@@ -1761,51 +1785,54 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
 
   template <
       class K, class U = OverflowContainer,
-      typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
-  iterator_overflow find_in_overflow(const K& key) {
+      typename std::enable_if<!has_key_compare<U>::value>::type * = nullptr>
+  iterator_overflow find_in_overflow(const K &key) {
     return std::find_if(m_overflow_elements.begin(), m_overflow_elements.end(),
-                        [&](const value_type& value) {
+                        [&](const value_type &value) {
                           return compare_keys(key, KeySelect()(value));
                         });
   }
 
   template <
       class K, class U = OverflowContainer,
-      typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
-  const_iterator_overflow find_in_overflow(const K& key) const {
+      typename std::enable_if<!has_key_compare<U>::value>::type * = nullptr>
+  const_iterator_overflow find_in_overflow(const K &key) const {
     return std::find_if(m_overflow_elements.cbegin(),
                         m_overflow_elements.cend(),
-                        [&](const value_type& value) {
+                        [&](const value_type &value) {
                           return compare_keys(key, KeySelect()(value));
                         });
   }
 
-  template <class K, class U = OverflowContainer,
-            typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
-  iterator_overflow find_in_overflow(const K& key) {
+  template <
+      class K, class U = OverflowContainer,
+      typename std::enable_if<has_key_compare<U>::value>::type * = nullptr>
+  iterator_overflow find_in_overflow(const K &key) {
     return m_overflow_elements.find(key);
   }
 
-  template <class K, class U = OverflowContainer,
-            typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
-  const_iterator_overflow find_in_overflow(const K& key) const {
+  template <
+      class K, class U = OverflowContainer,
+      typename std::enable_if<has_key_compare<U>::value>::type * = nullptr>
+  const_iterator_overflow find_in_overflow(const K &key) const {
     return m_overflow_elements.find(key);
   }
 
   template <
       class U = OverflowContainer,
-      typename std::enable_if<!has_key_compare<U>::value>::type* = nullptr>
+      typename std::enable_if<!has_key_compare<U>::value>::type * = nullptr>
   hopscotch_hash new_hopscotch_hash(size_type bucket_count) {
-    return hopscotch_hash(bucket_count, static_cast<Hash&>(*this),
-                          static_cast<KeyEqual&>(*this), get_allocator(),
+    return hopscotch_hash(bucket_count, static_cast<Hash &>(*this),
+                          static_cast<KeyEqual &>(*this), get_allocator(),
                           m_max_load_factor);
   }
 
-  template <class U = OverflowContainer,
-            typename std::enable_if<has_key_compare<U>::value>::type* = nullptr>
+  template <
+      class U = OverflowContainer,
+      typename std::enable_if<has_key_compare<U>::value>::type * = nullptr>
   hopscotch_hash new_hopscotch_hash(size_type bucket_count) {
-    return hopscotch_hash(bucket_count, static_cast<Hash&>(*this),
-                          static_cast<KeyEqual&>(*this), get_allocator(),
+    return hopscotch_hash(bucket_count, static_cast<Hash &>(*this),
+                          static_cast<KeyEqual &>(*this), get_allocator(),
                           m_max_load_factor, m_overflow_elements.key_comp());
   }
 
@@ -1826,14 +1853,14 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
    */
   template <class T = size_type,
             typename std::enable_if<
-                std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
+                std::is_same<T, truncated_hash_type>::value>::type * = nullptr>
   static bool USE_STORED_HASH_ON_REHASH(size_type /*bucket_count*/) {
     return StoreHash;
   }
 
   template <class T = size_type,
             typename std::enable_if<
-                !std::is_same<T, truncated_hash_type>::value>::type* = nullptr>
+                !std::is_same<T, truncated_hash_type>::value>::type * = nullptr>
   static bool USE_STORED_HASH_ON_REHASH(size_type bucket_count) {
     (void)bucket_count;
     if (StoreHash && is_power_of_two_policy<GrowthPolicy>::value) {
@@ -1848,7 +1875,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   /**
    * Return an always valid pointer to an static empty hopscotch_bucket.
    */
-  hopscotch_bucket* static_empty_bucket_ptr() {
+  hopscotch_bucket *static_empty_bucket_ptr() {
     static hopscotch_bucket empty_bucket;
     return &empty_bucket;
   }
@@ -1865,7 +1892,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
    * TODO Remove m_buckets_data and only use a pointer+size instead of a
    * pointer+vector to save some space in the hopscotch_hash object.
    */
-  hopscotch_bucket* m_buckets;
+  hopscotch_bucket *m_buckets;
 
   size_type m_nb_elements;
 
