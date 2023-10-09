@@ -386,11 +386,8 @@ class hopscotch_bucket : public hopscotch_bucket_hash<StoreHash> {
   }
 
  private:
-  using storage = typename std::aligned_storage<sizeof(value_type),
-                                                alignof(value_type)>::type;
-
   neighborhood_bitmap m_neighborhood_infos;
-  storage m_value;
+  alignas(value_type) unsigned char m_value[sizeof(value_type)];
 };
 
 /**
