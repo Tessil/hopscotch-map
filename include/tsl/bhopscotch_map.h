@@ -121,19 +121,19 @@ class bhopscotch_map {
    */
   bhopscotch_map() : bhopscotch_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {}
 
-  explicit bhopscotch_map(size_type bucket_count, const Hash& hash = Hash(),
+  explicit bhopscotch_map(size_type bucket_count, const Hash& hash_ = Hash(),
                           const KeyEqual& equal = KeyEqual(),
                           const Allocator& alloc = Allocator(),
                           const Compare& comp = Compare())
-      : m_ht(bucket_count, hash, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR,
+      : m_ht(bucket_count, hash_, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR,
              comp) {}
 
   bhopscotch_map(size_type bucket_count, const Allocator& alloc)
       : bhopscotch_map(bucket_count, Hash(), KeyEqual(), alloc) {}
 
-  bhopscotch_map(size_type bucket_count, const Hash& hash,
+  bhopscotch_map(size_type bucket_count, const Hash& hash_,
                  const Allocator& alloc)
-      : bhopscotch_map(bucket_count, hash, KeyEqual(), alloc) {}
+      : bhopscotch_map(bucket_count, hash_, KeyEqual(), alloc) {}
 
   bhopscotch_map(const bhopscotch_map& other, const Allocator& alloc)
       : m_ht(other.m_ht, alloc) {}
@@ -144,9 +144,9 @@ class bhopscotch_map {
   template <class InputIt>
   bhopscotch_map(InputIt first, InputIt last,
                  size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
-                 const Hash& hash = Hash(), const KeyEqual& equal = KeyEqual(),
+                 const Hash& hash_ = Hash(), const KeyEqual& equal = KeyEqual(),
                  const Allocator& alloc = Allocator())
-      : bhopscotch_map(bucket_count, hash, equal, alloc) {
+      : bhopscotch_map(bucket_count, hash_, equal, alloc) {
     insert(first, last);
   }
 
@@ -157,14 +157,14 @@ class bhopscotch_map {
 
   template <class InputIt>
   bhopscotch_map(InputIt first, InputIt last, size_type bucket_count,
-                 const Hash& hash, const Allocator& alloc)
-      : bhopscotch_map(first, last, bucket_count, hash, KeyEqual(), alloc) {}
+                 const Hash& hash_, const Allocator& alloc)
+      : bhopscotch_map(first, last, bucket_count, hash_, KeyEqual(), alloc) {}
 
   bhopscotch_map(std::initializer_list<value_type> init,
                  size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
-                 const Hash& hash = Hash(), const KeyEqual& equal = KeyEqual(),
+                 const Hash& hash_ = Hash(), const KeyEqual& equal = KeyEqual(),
                  const Allocator& alloc = Allocator())
-      : bhopscotch_map(init.begin(), init.end(), bucket_count, hash, equal,
+      : bhopscotch_map(init.begin(), init.end(), bucket_count, hash_, equal,
                        alloc) {}
 
   bhopscotch_map(std::initializer_list<value_type> init, size_type bucket_count,
@@ -173,8 +173,8 @@ class bhopscotch_map {
                        KeyEqual(), alloc) {}
 
   bhopscotch_map(std::initializer_list<value_type> init, size_type bucket_count,
-                 const Hash& hash, const Allocator& alloc)
-      : bhopscotch_map(init.begin(), init.end(), bucket_count, hash, KeyEqual(),
+                 const Hash& hash_, const Allocator& alloc)
+      : bhopscotch_map(init.begin(), init.end(), bucket_count, hash_, KeyEqual(),
                        alloc) {}
 
   bhopscotch_map& operator=(std::initializer_list<value_type> ilist) {
