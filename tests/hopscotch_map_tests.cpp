@@ -24,6 +24,7 @@
 #include <tsl/bhopscotch_map.h>
 #include <tsl/hopscotch_map.h>
 
+#include <boost/functional/hash.hpp>
 #include <boost/mpl/list.hpp>
 #include <boost/test/unit_test.hpp>
 #include <cstdint>
@@ -94,6 +95,58 @@ using test_types = boost::mpl::list<
                        std::equal_to<std::string>,
                        std::allocator<std::pair<std::string, std::string>>, 30,
                        true, tsl::hh::mod_growth_policy<std::ratio<4, 3>>>>;
+
+namespace {
+struct StringKey {
+  struct View {  // simple std::string_view
+    View(const char* s) : data(s), size(std::strlen(s)) {}
+    View(const std::string& s) : data(s.data()), size(s.size()) {}
+    bool operator==(const View& rhs) const {
+      return size == rhs.size && std::memcmp(data, rhs.data, size) == 0;
+    }
+    bool operator<(const View& rhs) const {
+      return size < rhs.size ||
+             (size == rhs.size && std::memcmp(data, rhs.data, size) < 0);
+    }
+    friend std::size_t hash_value(View v) {
+      return boost::hash_range(v.data, v.data + v.size);
+    }
+    const char* data;
+    std::size_t size;
+  };
+  struct Eq : std::equal_to<View> {
+    using is_transparent = void;
+  };
+  struct Less : std::less<View> {
+    using is_transparent = void;
+  };
+  StringKey(View v) : k(v.data, v.data + v.size) {
+    if (constructed_s) ++*constructed_s;
+  }
+  operator View() const { return k; }
+  bool operator==(const char* rhs) const { return k == rhs; }
+  friend std::ostream& operator<<(std::ostream& os, const StringKey& key) {
+    return os << key.k;
+  }
+  std::string k;
+  static int* constructed_s;
+};
+int* StringKey::constructed_s = nullptr;
+struct StringKeyFx {
+  StringKeyFx() { StringKey::constructed_s = &keysConstructed; }
+  ~StringKeyFx() {
+    if (StringKey::constructed_s == &keysConstructed)
+      StringKey::constructed_s = nullptr;
+  }
+  using Types = boost::mpl::list<
+      tsl::hopscotch_map<StringKey, std::int64_t, boost::hash<StringKey::View>,
+                         StringKey::Eq>,
+      tsl::bhopscotch_map<StringKey, std::int64_t, boost::hash<StringKey::View>,
+                          StringKey::Eq, StringKey::Less>>;
+  int keysConstructed = 0;
+};
+
+}  // namespace
 
 /**
  * insert
@@ -406,6 +459,24 @@ BOOST_AUTO_TEST_CASE(test_try_emplace_2) {
   }
 }
 
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_try_emplace_transparent, MapT,
+                                 StringKeyFx::Types, StringKeyFx) {
+  MapT map;
+  typename MapT::iterator it;
+  bool inserted;
+  std::tie(it, inserted) = map.try_emplace("key1", 1);
+  BOOST_CHECK_EQUAL(it->first, "key1");
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK(inserted);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
+
+  std::tie(it, inserted) = map.try_emplace("key1", 3);
+  BOOST_CHECK_EQUAL(it->first, "key1");
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK(!inserted);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
+}
+
 BOOST_AUTO_TEST_CASE(test_try_emplace_hint) {
   tsl::hopscotch_map<std::int64_t, move_only_test> map(0);
 
@@ -423,6 +494,34 @@ BOOST_AUTO_TEST_CASE(test_try_emplace_hint) {
   it = map.try_emplace(map.find(10), 1, 3);
   BOOST_CHECK_EQUAL(it->first, 1);
   BOOST_CHECK_EQUAL(it->second, move_only_test(3));
+}
+
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_try_emplace_transparent_hint, MapT,
+                                 StringKeyFx::Types, StringKeyFx) {
+  MapT map;
+  // end() hint, new value
+  auto it = map.try_emplace(map.end(), "key1", 1);
+  BOOST_CHECK_EQUAL(it->first, "key1");
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
+
+  // Good hint
+  it = map.try_emplace(map.find("key1"), "key1", 3);
+  BOOST_CHECK_EQUAL(it->first, "key1");
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
+
+  // Wrong hint, existing value
+  it = map.try_emplace(map.end(), "key1", 99);
+  BOOST_CHECK_EQUAL(it->first, "key1");
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
+
+  // Wrong hint, new value
+  it = map.try_emplace(map.find("key1"), "key2", 22);
+  BOOST_CHECK_EQUAL(it->first, "key2");
+  BOOST_CHECK_EQUAL(it->second, 22);
+  BOOST_CHECK_EQUAL(keysConstructed, 2);
 }
 
 /**
@@ -444,6 +543,25 @@ BOOST_AUTO_TEST_CASE(test_insert_or_assign) {
   BOOST_CHECK(!inserted);
 }
 
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_insert_or_assign_transparent, MapT,
+                                 StringKeyFx::Types, StringKeyFx) {
+  MapT map;
+  typename MapT::iterator it;
+  bool inserted;
+
+  std::tie(it, inserted) = map.insert_or_assign("key1", 1);
+  BOOST_CHECK_EQUAL(it->first, "key1");
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK(inserted);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
+
+  std::tie(it, inserted) = map.insert_or_assign("key1", 3);
+  BOOST_CHECK_EQUAL(it->first, "key1");
+  BOOST_CHECK_EQUAL(it->second, 3);
+  BOOST_CHECK(!inserted);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
+}
+
 BOOST_AUTO_TEST_CASE(test_insert_or_assign_hint) {
   tsl::hopscotch_map<std::int64_t, move_only_test> map(0);
 
@@ -461,6 +579,34 @@ BOOST_AUTO_TEST_CASE(test_insert_or_assign_hint) {
   it = map.insert_or_assign(map.find(10), 1, move_only_test(3));
   BOOST_CHECK_EQUAL(it->first, 1);
   BOOST_CHECK_EQUAL(it->second, move_only_test(3));
+}
+
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_insert_or_assign_transparent_hint, MapT,
+                                 StringKeyFx::Types, StringKeyFx) {
+  MapT map;
+  // end() hint, new value
+  auto it = map.insert_or_assign(map.end(), "key1", 1);
+  BOOST_CHECK_EQUAL(it->first, "key1");
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
+
+  // Good hint
+  it = map.insert_or_assign(map.find("key1"), "key1", 3);
+  BOOST_CHECK_EQUAL(it->first, "key1");
+  BOOST_CHECK_EQUAL(it->second, 3);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
+
+  // Bad hint, new value
+  it = map.insert_or_assign(map.find("key1"), "key2", 3);
+  BOOST_CHECK_EQUAL(it->first, "key2");
+  BOOST_CHECK_EQUAL(it->second, 3);
+  BOOST_CHECK_EQUAL(keysConstructed, 2);
+
+  // Bad hint, existing value
+  it = map.insert_or_assign(map.find("key1"), "key2", 15);
+  BOOST_CHECK_EQUAL(it->first, "key2");
+  BOOST_CHECK_EQUAL(it->second, 15);
+  BOOST_CHECK_EQUAL(keysConstructed, 2);
 }
 
 /**
@@ -1059,6 +1205,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_access_operator, HMap,
   BOOST_CHECK_EQUAL(map[2], std::int64_t());
 
   BOOST_CHECK_EQUAL(map.size(), 3);
+}
+
+BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_access_operator_transparent, MapT,
+                                 StringKeyFx::Types, StringKeyFx) {
+  MapT map;
+  BOOST_CHECK_EQUAL(map["key1"], 0);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
+  map["key1"] = 22;
+  BOOST_CHECK_EQUAL(map["key1"], 22);
+  BOOST_CHECK_EQUAL(keysConstructed, 1);
 }
 
 /**

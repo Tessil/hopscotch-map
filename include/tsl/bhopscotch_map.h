@@ -258,6 +258,15 @@ class bhopscotch_map {
     return m_ht.insert_or_assign(std::move(k), std::forward<M>(obj));
   }
 
+  // P2363R5
+  template <
+      class K, class M, class KE = KeyEqual, class CP = Compare,
+      typename std::enable_if<has_is_transparent<KE>::value &&
+                              has_is_transparent<CP>::value>::type* = nullptr>
+  std::pair<iterator, bool> insert_or_assign(K&& k, M&& obj) {
+    return m_ht.insert_or_assign(std::forward<K>(k), std::forward<M>(obj));
+  }
+
   template <class M>
   iterator insert_or_assign(const_iterator hint, const key_type& k, M&& obj) {
     return m_ht.insert_or_assign(hint, k, std::forward<M>(obj));
@@ -266,6 +275,16 @@ class bhopscotch_map {
   template <class M>
   iterator insert_or_assign(const_iterator hint, key_type&& k, M&& obj) {
     return m_ht.insert_or_assign(hint, std::move(k), std::forward<M>(obj));
+  }
+
+  // P2363R5
+  template <
+      class K, class M, class KE = KeyEqual, class CP = Compare,
+      typename std::enable_if<has_is_transparent<KE>::value &&
+                              has_is_transparent<CP>::value>::type* = nullptr>
+  iterator insert_or_assign(const_iterator hint, K&& k, M&& obj) {
+    return m_ht.insert_or_assign(hint, std::forward<K>(k),
+                                 std::forward<M>(obj));
   }
 
   /**
@@ -302,6 +321,17 @@ class bhopscotch_map {
     return m_ht.try_emplace(std::move(k), std::forward<Args>(args)...);
   }
 
+  // P2363R5
+  template <
+      class K, class... Args, class KE = KeyEqual, class CP = Compare,
+      typename std::enable_if<
+          has_is_transparent<KE>::value && has_is_transparent<CP>::value &&
+          !std::is_convertible_v<K&&, const_iterator> &&
+          !std::is_convertible_v<K&&, iterator>>::type* = nullptr>
+  std::pair<iterator, bool> try_emplace(K&& k, Args&&... args) {
+    return m_ht.try_emplace(std::forward<K>(k), std::forward<Args>(args)...);
+  }
+
   template <class... Args>
   iterator try_emplace(const_iterator hint, const key_type& k, Args&&... args) {
     return m_ht.try_emplace(hint, k, std::forward<Args>(args)...);
@@ -310,6 +340,18 @@ class bhopscotch_map {
   template <class... Args>
   iterator try_emplace(const_iterator hint, key_type&& k, Args&&... args) {
     return m_ht.try_emplace(hint, std::move(k), std::forward<Args>(args)...);
+  }
+
+  // P2363R5
+  template <
+      class K, class... Args, class KE = KeyEqual, class CP = Compare,
+      typename std::enable_if<
+          has_is_transparent<KE>::value && has_is_transparent<CP>::value &&
+          !std::is_convertible_v<K&&, const_iterator> &&
+          !std::is_convertible_v<K&&, iterator>>::type* = nullptr>
+  iterator try_emplace(const_iterator hint, K&& k, Args&&... args) {
+    return m_ht.try_emplace(hint, std::forward<K>(k),
+                            std::forward<Args>(args)...);
   }
 
   iterator erase(iterator pos) { return m_ht.erase(pos); }
@@ -433,6 +475,20 @@ class bhopscotch_map {
 
   T& operator[](const Key& key) { return m_ht[key]; }
   T& operator[](Key&& key) { return m_ht[std::move(key)]; }
+
+  // P2363R5
+  /**
+   * This overload only participates in the overload resolution if the typedef
+   * KeyEqual::is_transparent and Compare::is_transparent exist. If so, K must
+   * be hashable and comparable to Key.
+   */
+  template <
+      class K, class KE = KeyEqual, class CP = Compare,
+      typename std::enable_if<has_is_transparent<KE>::value &&
+                              has_is_transparent<CP>::value>::type* = nullptr>
+  T& operator[](K&& key) {
+    return m_ht[std::forward<K>(key)];
+  }
 
   size_type count(const Key& key) const { return m_ht.count(key); }
 
