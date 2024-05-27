@@ -43,6 +43,12 @@ using test_types = boost::mpl::list<
     tsl::bhopscotch_set<move_only_test, mod_hash<9>>,
     tsl::bhopscotch_pg_set<move_only_test, mod_hash<9>>>;
 
+using heterogeneous_test_types = boost::mpl::list<
+    tsl::hopscotch_set<heterogeneous_test, std::hash<heterogeneous_test>,
+                       heterogeneous_test::eq>,
+    tsl::bhopscotch_set<heterogeneous_test, std::hash<heterogeneous_test>,
+                        heterogeneous_test::eq, heterogeneous_test::less>>;
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HSet, test_types) {
   // insert x values, insert them again, check values
   using key_t = typename HSet::key_type;
@@ -112,6 +118,49 @@ BOOST_AUTO_TEST_CASE(test_insert_pointer) {
 
   BOOST_CHECK_EQUAL(set.size(), 1);
   BOOST_CHECK_EQUAL(**set.begin(), value);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_transparent, HSet,
+                              heterogeneous_test_types) {
+  HSet set;
+  typename HSet::iterator it;
+  bool inserted;
+  int initial = heterogeneous_test::constructed();
+  std::tie(it, inserted) = set.insert(1);
+  BOOST_CHECK_EQUAL(inserted, true);
+  BOOST_CHECK_EQUAL(set.size(), 1);
+  BOOST_CHECK_EQUAL(*it, 1);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), initial + 1);
+  std::tie(it, inserted) = set.insert(1);
+  BOOST_CHECK_EQUAL(inserted, false);
+  BOOST_CHECK_EQUAL(set.size(), 1);
+  BOOST_CHECK_EQUAL(*it, 1);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), initial + 1);
+
+  std::tie(it, inserted) = set.insert(2);
+  BOOST_CHECK_EQUAL(inserted, true);
+  BOOST_CHECK_EQUAL(set.size(), 2);
+  BOOST_CHECK_EQUAL(*it, 2);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), initial + 2);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_transparent_hint, HSet,
+                              heterogeneous_test_types) {
+  HSet set;
+  typename HSet::iterator it, otherIt;
+  int initial = heterogeneous_test::constructed();
+  it = set.insert(set.end(), 1);
+  BOOST_CHECK_EQUAL(set.size(), 1);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), initial + 1);
+  otherIt = set.insert(set.end(), 1);
+  BOOST_CHECK_EQUAL(set.size(), 1);
+  BOOST_CHECK(it == otherIt);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), initial + 1);
+
+  otherIt = set.insert(set.cbegin(), 2);
+  BOOST_CHECK_EQUAL(set.size(), 2);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), initial + 2);
+  BOOST_CHECK_EQUAL(*otherIt, 2);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

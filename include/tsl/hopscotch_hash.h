@@ -805,7 +805,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   template <class P, typename std::enable_if<std::is_constructible<
                          value_type, P&&>::value>::type* = nullptr>
   std::pair<iterator, bool> insert(P&& value) {
-    return insert_impl(value_type(std::forward<P>(value)));
+    return insert_impl(std::forward<P>(value));
   }
 
   std::pair<iterator, bool> insert(value_type&& value) {
@@ -824,7 +824,12 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   template <class P, typename std::enable_if<std::is_constructible<
                          value_type, P&&>::value>::type* = nullptr>
   iterator insert(const_iterator hint, P&& value) {
-    return emplace_hint(hint, std::forward<P>(value));
+    if (hint != cend() &&
+        compare_keys(KeySelect()(*hint), KeySelect()(value))) {
+      return mutable_iterator(hint);
+    }
+
+    return insert(std::forward<P>(value)).first;
   }
 
   iterator insert(const_iterator hint, value_type&& value) {

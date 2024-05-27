@@ -205,6 +205,33 @@ class copy_only_test {
   std::string m_value;
 };
 
+class heterogeneous_test {
+ public:
+  struct eq : std::equal_to<int> {
+    using is_transparent = void;
+  };
+  struct less : std::less<int> {
+    using is_transparent = void;
+  };
+  explicit heterogeneous_test(int i) : m_value(i) {
+    heterogeneous_test::constructed_add(1);
+  }
+
+  operator int() const { return m_value; }
+
+  static int constructed_add(int i) {
+    static int inst = 0;
+    inst += i;
+    return inst;
+  }
+  static int constructed() { return constructed_add(0); }
+
+ private:
+  int m_value;
+};
+static_assert(std::is_constructible<heterogeneous_test, int>::value,
+              "should be constructible from int");
+
 namespace std {
 template <>
 struct hash<self_reference_member_test> {
@@ -226,6 +253,8 @@ struct hash<copy_only_test> {
     return std::hash<std::string>()(val.value());
   }
 };
+template <>
+struct hash<heterogeneous_test> : std::hash<int> {};
 }  // namespace std
 
 class utils {
