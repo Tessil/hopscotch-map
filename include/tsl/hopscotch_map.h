@@ -350,6 +350,7 @@ class hopscotch_map {
       class K, class... Args, class KE = KeyEqual,
       typename std::enable_if<
           has_is_transparent<KE>::value &&
+          !std::is_convertible<K&&, iterator>::value &&
           !std::is_convertible<K&&, const_iterator>::value>::type* = nullptr>
   std::pair<iterator, bool> try_emplace(K&& k, Args&&... args) {
     return m_ht.try_emplace(std::forward<K>(k), std::forward<Args>(args)...);
@@ -374,6 +375,7 @@ class hopscotch_map {
       class K, class... Args, class KE = KeyEqual,
       typename std::enable_if<
           has_is_transparent<KE>::value &&
+          !std::is_convertible<K&&, iterator>::value &&
           !std::is_convertible<K&&, const_iterator>::value>::type* = nullptr>
   iterator try_emplace(const_iterator hint, K&& k, Args&&... args) {
     return m_ht.try_emplace(hint, std::forward<K>(k),
