@@ -805,7 +805,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   template <class P, typename std::enable_if<std::is_constructible<
                          value_type, P&&>::value>::type* = nullptr>
   std::pair<iterator, bool> insert(P&& value) {
-    return insert_impl(value_type(std::forward<P>(value)));
+    return insert_impl(std::forward<P>(value));
   }
 
   std::pair<iterator, bool> insert(value_type&& value) {
@@ -824,7 +824,12 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   template <class P, typename std::enable_if<std::is_constructible<
                          value_type, P&&>::value>::type* = nullptr>
   iterator insert(const_iterator hint, P&& value) {
-    return emplace_hint(hint, std::forward<P>(value));
+    if (hint != cend() &&
+        compare_keys(KeySelect()(*hint), KeySelect()(value))) {
+      return mutable_iterator(hint);
+    }
+
+    return insert(std::forward<P>(value)).first;
   }
 
   iterator insert(const_iterator hint, value_type&& value) {
@@ -870,6 +875,11 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return insert_or_assign_impl(std::move(k), std::forward<M>(obj));
   }
 
+  template <class K, class M>
+  std::pair<iterator, bool> insert_or_assign(K&& k, M&& obj) {
+    return insert_or_assign_impl(std::forward<K>(k), std::forward<M>(obj));
+  }
+
   template <class M>
   iterator insert_or_assign(const_iterator hint, const key_type& k, M&& obj) {
     if (hint != cend() && compare_keys(KeySelect()(*hint), k)) {
@@ -894,6 +904,18 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return insert_or_assign(std::move(k), std::forward<M>(obj)).first;
   }
 
+  template <class K, class M>
+  iterator insert_or_assign(const_iterator hint, K&& k, M&& obj) {
+    if (hint != cend() && compare_keys(KeySelect()(*hint), k)) {
+      auto it = mutable_iterator(hint);
+      it.value() = std::forward<M>(obj);
+
+      return it;
+    }
+
+    return insert_or_assign(std::forward<K>(k), std::forward<M>(obj)).first;
+  }
+
   template <class... Args>
   std::pair<iterator, bool> emplace(Args&&... args) {
     return insert(value_type(std::forward<Args>(args)...));
@@ -914,6 +936,11 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return try_emplace_impl(std::move(k), std::forward<Args>(args)...);
   }
 
+  template <class K, class... Args>
+  std::pair<iterator, bool> try_emplace(K&& k, Args&&... args) {
+    return try_emplace_impl(std::forward<K>(k), std::forward<Args>(args)...);
+  }
+
   template <class... Args>
   iterator try_emplace(const_iterator hint, const key_type& k, Args&&... args) {
     if (hint != cend() && compare_keys(KeySelect()(*hint), k)) {
@@ -930,6 +957,15 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     }
 
     return try_emplace(std::move(k), std::forward<Args>(args)...).first;
+  }
+
+  template <class K, class... Args>
+  iterator try_emplace(const_iterator hint, K&& k, Args&&... args) {
+    if (hint != cend() && compare_keys(KeySelect()(*hint), k)) {
+      return mutable_iterator(hint);
+    }
+
+    return try_emplace(std::forward<K>(k), std::forward<Args>(args)...).first;
   }
 
   /**

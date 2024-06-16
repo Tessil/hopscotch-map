@@ -24,6 +24,7 @@
 #include <tsl/bhopscotch_map.h>
 #include <tsl/hopscotch_map.h>
 
+#include <boost/functional/hash.hpp>
 #include <boost/mpl/list.hpp>
 #include <boost/test/unit_test.hpp>
 #include <cstdint>
@@ -94,6 +95,13 @@ using test_types = boost::mpl::list<
                        std::equal_to<std::string>,
                        std::allocator<std::pair<std::string, std::string>>, 30,
                        true, tsl::hh::mod_growth_policy<std::ratio<4, 3>>>>;
+
+using heterogeneous_test_types = boost::mpl::list<
+    tsl::hopscotch_map<heterogeneous_test, std::int64_t,
+                       std::hash<heterogeneous_test>, heterogeneous_test::eq>,
+    tsl::bhopscotch_map<heterogeneous_test, std::int64_t,
+                        std::hash<heterogeneous_test>, heterogeneous_test::eq,
+                        heterogeneous_test::less>>;
 
 /**
  * insert
@@ -406,6 +414,25 @@ BOOST_AUTO_TEST_CASE(test_try_emplace_2) {
   }
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_try_emplace_transparent, MapT,
+                              heterogeneous_test_types) {
+  MapT map;
+  typename MapT::iterator it;
+  bool inserted;
+  int init = heterogeneous_test::constructed();
+  std::tie(it, inserted) = map.try_emplace(1, 1);
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK(inserted);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
+
+  std::tie(it, inserted) = map.try_emplace(1, 3);
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK(!inserted);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
+}
+
 BOOST_AUTO_TEST_CASE(test_try_emplace_hint) {
   tsl::hopscotch_map<std::int64_t, move_only_test> map(0);
 
@@ -423,6 +450,75 @@ BOOST_AUTO_TEST_CASE(test_try_emplace_hint) {
   it = map.try_emplace(map.find(10), 1, 3);
   BOOST_CHECK_EQUAL(it->first, 1);
   BOOST_CHECK_EQUAL(it->second, move_only_test(3));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_try_emplace_transparent_hint, MapT,
+                              heterogeneous_test_types) {
+  MapT map;
+  int init = heterogeneous_test::constructed();
+  // end() hint, new value
+  auto it = map.try_emplace(map.end(), 1, 1);
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
+
+  // Good hint
+  it = map.try_emplace(map.find(1), 1, 3);
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
+
+  // Wrong hint, existing value
+  it = map.try_emplace(map.end(), 1, 99);
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
+
+  // Wrong hint, new value
+  it = map.try_emplace(map.find(1), 2, 22);
+  BOOST_CHECK_EQUAL(it->first, 2);
+  BOOST_CHECK_EQUAL(it->second, 22);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 2);
+}
+
+template <typename M, typename... Args>
+constexpr auto check_emplace(M& m, Args... args)
+    -> decltype(m.try_emplace(args...));
+constexpr auto check_emplace(...) -> std::false_type;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_try_emplace_transparent_constraint, MapT,
+                              heterogeneous_test_types) {
+  MapT map;
+  struct const_it {
+    operator typename MapT::const_iterator() const noexcept;
+    operator int() const noexcept;
+  };
+  struct it {
+    operator typename MapT::iterator() const noexcept;
+    operator int() const noexcept;
+  };
+  static_assert(!std::is_convertible<const_it, typename MapT::key_type>::value,
+                "would require two user conversions");
+  static_assert(!std::is_convertible<it, typename MapT::key_type>::value,
+                "would require two user conversions");
+
+  static_assert(std::is_same<decltype(check_emplace(map, const_it{}, 10)),
+                             typename MapT::iterator>::value,
+                "must select hint overload because conversion to "
+                "const_iterator exists!");
+  static_assert(std::is_same<decltype(check_emplace(map, it{}, 10)),
+                             std::false_type>::value,
+                "must not be invocable because conversion to iterator exists "
+                "but type is not directly convertible to key type");
+  static_assert(
+      std::is_same<decltype(check_emplace(map, map.end(), const_it{}, 10)),
+                   std::false_type>::value,
+      "must not be invocable because conversion to const_iterator exists but "
+      "type is not directly convertible to key");
+  static_assert(std::is_same<decltype(check_emplace(map, map.end(), it{}, 10)),
+                             std::false_type>::value,
+                "must not be invocable because conversion to iterator exists "
+                "but type is not directly convertible to key");
 }
 
 /**
@@ -444,6 +540,26 @@ BOOST_AUTO_TEST_CASE(test_insert_or_assign) {
   BOOST_CHECK(!inserted);
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_or_assign_transparent, MapT,
+                              heterogeneous_test_types) {
+  MapT map;
+  typename MapT::iterator it;
+  bool inserted;
+  int init = heterogeneous_test::constructed();
+
+  std::tie(it, inserted) = map.insert_or_assign(1, 1);
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK(inserted);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
+
+  std::tie(it, inserted) = map.insert_or_assign(1, 3);
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second, 3);
+  BOOST_CHECK(!inserted);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
+}
+
 BOOST_AUTO_TEST_CASE(test_insert_or_assign_hint) {
   tsl::hopscotch_map<std::int64_t, move_only_test> map(0);
 
@@ -461,6 +577,35 @@ BOOST_AUTO_TEST_CASE(test_insert_or_assign_hint) {
   it = map.insert_or_assign(map.find(10), 1, move_only_test(3));
   BOOST_CHECK_EQUAL(it->first, 1);
   BOOST_CHECK_EQUAL(it->second, move_only_test(3));
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_or_assign_transparent_hint, MapT,
+                              heterogeneous_test_types) {
+  MapT map;
+  int init = heterogeneous_test::constructed();
+  // end() hint, new value
+  auto it = map.insert_or_assign(map.end(), 1, 1);
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second, 1);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
+
+  // Good hint
+  it = map.insert_or_assign(map.find(1), 1, 3);
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second, 3);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
+
+  // Bad hint, new value
+  it = map.insert_or_assign(map.find(1), 2, 3);
+  BOOST_CHECK_EQUAL(it->first, 2);
+  BOOST_CHECK_EQUAL(it->second, 3);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 2);
+
+  // Bad hint, existing value
+  it = map.insert_or_assign(map.find(1), 2, 15);
+  BOOST_CHECK_EQUAL(it->first, 2);
+  BOOST_CHECK_EQUAL(it->second, 15);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 2);
 }
 
 /**
@@ -1059,6 +1204,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_access_operator, HMap,
   BOOST_CHECK_EQUAL(map[2], std::int64_t());
 
   BOOST_CHECK_EQUAL(map.size(), 3);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_access_operator_transparent, MapT,
+                              heterogeneous_test_types) {
+  MapT map;
+  int init = heterogeneous_test::constructed();
+  BOOST_CHECK_EQUAL(map[1], 0);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
+  map[1] = 22;
+  BOOST_CHECK_EQUAL(map[1], 22);
+  BOOST_CHECK_EQUAL(heterogeneous_test::constructed(), init + 1);
 }
 
 /**

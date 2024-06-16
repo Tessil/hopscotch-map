@@ -92,6 +92,12 @@ class hopscotch_set {
     const key_type& operator()(const Key& key) const { return key; }
 
     key_type& operator()(Key& key) { return key; }
+
+    template <class K, typename std::enable_if<std::is_constructible<
+                           key_type, const K&>::value>::type* = nullptr>
+    const K& operator()(const K& key) const {
+      return key;
+    }
   };
 
   using overflow_container_type = std::list<Key, Allocator>;
@@ -213,12 +219,34 @@ class hopscotch_set {
   std::pair<iterator, bool> insert(value_type&& value) {
     return m_ht.insert(std::move(value));
   }
+  /**
+   * This overload only participates in the overload resolution if the typedef
+   * KeyEqual::is_transparent exists. If so, K must be hashable and comparable
+   * to Key.
+   */
+  template <
+      class K, class KE = KeyEqual,
+      typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>
+  std::pair<iterator, bool> insert(K&& value) {
+    return m_ht.insert(std::forward<K>(value));
+  }
 
   iterator insert(const_iterator hint, const value_type& value) {
     return m_ht.insert(hint, value);
   }
   iterator insert(const_iterator hint, value_type&& value) {
     return m_ht.insert(hint, std::move(value));
+  }
+  /**
+   * This overload only participates in the overload resolution if the typedef
+   * KeyEqual::is_transparent exists. If so, K must be hashable and comparable
+   * to Key.
+   */
+  template <
+      class K, class KE = KeyEqual,
+      typename std::enable_if<has_is_transparent<KE>::value>::type* = nullptr>
+  iterator insert(const_iterator hint, K&& value) {
+    return m_ht.insert(hint, std::forward<K>(value));
   }
 
   template <class InputIt>
