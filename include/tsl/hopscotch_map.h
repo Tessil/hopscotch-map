@@ -137,17 +137,17 @@ class hopscotch_map {
    */
   hopscotch_map() : hopscotch_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {}
 
-  explicit hopscotch_map(size_type bucket_count, const Hash& hash = Hash(),
+  explicit hopscotch_map(size_type bucket_count, const Hash& hash_ = Hash(),
                          const KeyEqual& equal = KeyEqual(),
                          const Allocator& alloc = Allocator())
-      : m_ht(bucket_count, hash, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR) {}
+      : m_ht(bucket_count, hash_, equal, alloc, ht::DEFAULT_MAX_LOAD_FACTOR) {}
 
   hopscotch_map(size_type bucket_count, const Allocator& alloc)
       : hopscotch_map(bucket_count, Hash(), KeyEqual(), alloc) {}
 
-  hopscotch_map(size_type bucket_count, const Hash& hash,
+  hopscotch_map(size_type bucket_count, const Hash& hash_,
                 const Allocator& alloc)
-      : hopscotch_map(bucket_count, hash, KeyEqual(), alloc) {}
+      : hopscotch_map(bucket_count, hash_, KeyEqual(), alloc) {}
 
   explicit hopscotch_map(const Allocator& alloc)
       : hopscotch_map(ht::DEFAULT_INIT_BUCKETS_SIZE, alloc) {}
@@ -158,9 +158,9 @@ class hopscotch_map {
   template <class InputIt>
   hopscotch_map(InputIt first, InputIt last,
                 size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
-                const Hash& hash = Hash(), const KeyEqual& equal = KeyEqual(),
+                const Hash& hash_ = Hash(), const KeyEqual& equal = KeyEqual(),
                 const Allocator& alloc = Allocator())
-      : hopscotch_map(bucket_count, hash, equal, alloc) {
+      : hopscotch_map(bucket_count, hash_, equal, alloc) {
     insert(first, last);
   }
 
@@ -171,14 +171,14 @@ class hopscotch_map {
 
   template <class InputIt>
   hopscotch_map(InputIt first, InputIt last, size_type bucket_count,
-                const Hash& hash, const Allocator& alloc)
-      : hopscotch_map(first, last, bucket_count, hash, KeyEqual(), alloc) {}
+                const Hash& hash_, const Allocator& alloc)
+      : hopscotch_map(first, last, bucket_count, hash_, KeyEqual(), alloc) {}
 
   hopscotch_map(std::initializer_list<value_type> init,
                 size_type bucket_count = ht::DEFAULT_INIT_BUCKETS_SIZE,
-                const Hash& hash = Hash(), const KeyEqual& equal = KeyEqual(),
+                const Hash& hash_ = Hash(), const KeyEqual& equal = KeyEqual(),
                 const Allocator& alloc = Allocator())
-      : hopscotch_map(init.begin(), init.end(), bucket_count, hash, equal,
+      : hopscotch_map(init.begin(), init.end(), bucket_count, hash_, equal,
                       alloc) {}
 
   hopscotch_map(std::initializer_list<value_type> init, size_type bucket_count,
@@ -187,8 +187,8 @@ class hopscotch_map {
                       KeyEqual(), alloc) {}
 
   hopscotch_map(std::initializer_list<value_type> init, size_type bucket_count,
-                const Hash& hash, const Allocator& alloc)
-      : hopscotch_map(init.begin(), init.end(), bucket_count, hash, KeyEqual(),
+                const Hash& hash_, const Allocator& alloc)
+      : hopscotch_map(init.begin(), init.end(), bucket_count, hash_, KeyEqual(),
                       alloc) {}
 
   hopscotch_map& operator=(std::initializer_list<value_type> ilist) {
