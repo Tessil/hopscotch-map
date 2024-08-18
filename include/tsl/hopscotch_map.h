@@ -135,7 +135,7 @@ class hopscotch_map {
   /*
    * Constructors
    */
-  hopscotch_map() : hopscotch_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {}
+  hopscotch_map() noexcept(ht::DEFAULT_INIT_BUCKETS_SIZE == 0) : hopscotch_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {}
 
   explicit hopscotch_map(size_type bucket_count, const Hash& hash = Hash(),
                          const KeyEqual& equal = KeyEqual(),
@@ -424,7 +424,7 @@ class hopscotch_map {
     return m_ht.erase(key, precalculated_hash);
   }
 
-  void swap(hopscotch_map& other) { other.m_ht.swap(m_ht); }
+  void swap(hopscotch_map& other) noexcept(noexcept(other.m_ht.swap(m_ht))) { other.m_ht.swap(m_ht); }
 
   /*
    * Lookup
@@ -783,7 +783,7 @@ class hopscotch_map {
     return !operator==(lhs, rhs);
   }
 
-  friend void swap(hopscotch_map& lhs, hopscotch_map& rhs) { lhs.swap(rhs); }
+  friend void swap(hopscotch_map& lhs, hopscotch_map& rhs) noexcept(noexcept(lhs.swap(rhs))) { lhs.swap(rhs); }
 
  private:
   ht m_ht;

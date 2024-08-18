@@ -119,7 +119,7 @@ class bhopscotch_map {
   /*
    * Constructors
    */
-  bhopscotch_map() : bhopscotch_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {}
+  bhopscotch_map() noexcept(ht::DEFAULT_INIT_BUCKETS_SIZE == 0) : bhopscotch_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {}
 
   explicit bhopscotch_map(size_type bucket_count, const Hash& hash = Hash(),
                           const KeyEqual& equal = KeyEqual(),
@@ -414,7 +414,7 @@ class bhopscotch_map {
     return m_ht.erase(key, precalculated_hash);
   }
 
-  void swap(bhopscotch_map& other) { other.m_ht.swap(m_ht); }
+  void swap(bhopscotch_map& other) noexcept(noexcept(other.m_ht.swap(m_ht))) { other.m_ht.swap(m_ht); }
 
   /*
    * Lookup
@@ -785,7 +785,7 @@ class bhopscotch_map {
     return !operator==(lhs, rhs);
   }
 
-  friend void swap(bhopscotch_map& lhs, bhopscotch_map& rhs) { lhs.swap(rhs); }
+  friend void swap(bhopscotch_map& lhs, bhopscotch_map& rhs) noexcept(noexcept(lhs.swap(rhs))) { lhs.swap(rhs); }
 
  private:
   ht m_ht;

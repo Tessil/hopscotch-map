@@ -730,7 +730,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return *this;
   }
 
-  hopscotch_hash& operator=(hopscotch_hash&& other) {
+  hopscotch_hash& operator=(hopscotch_hash&& other) noexcept(noexcept(other.swap(*this))) {
     other.swap(*this);
     other.clear();
 
@@ -1035,7 +1035,11 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return 0;
   }
 
-  void swap(hopscotch_hash& other) {
+  void swap(hopscotch_hash& other) noexcept(std::is_nothrow_swappable<Hash>::value &&
+                                            std::is_nothrow_swappable<KeyEqual>::value &&
+                                            std::is_nothrow_swappable<GrowthPolicy>::value &&
+                                            std::is_nothrow_swappable<buckets_container_type>::value &&
+                                            std::is_nothrow_swappable<overflow_container_type>::value) {
     using std::swap;
 
     swap(static_cast<Hash&>(*this), static_cast<Hash&>(other));

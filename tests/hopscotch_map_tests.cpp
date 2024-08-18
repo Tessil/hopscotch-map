@@ -1510,4 +1510,11 @@ BOOST_AUTO_TEST_CASE(test_precalculated_hash) {
   BOOST_CHECK_EQUAL(map.erase(4, map.hash_function()(2)), 0);
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_noexcept, HSet, test_types) {
+  static_assert(std::is_nothrow_default_constructible<HSet>::value, "");
+  static_assert(std::is_nothrow_move_constructible<HSet>::value, "");
+  static_assert(std::is_nothrow_move_assignable<HSet>::value, "");
+  static_assert(std::is_nothrow_swappable<HSet>::value, "");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
