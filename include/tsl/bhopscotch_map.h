@@ -119,7 +119,13 @@ class bhopscotch_map {
   /*
    * Constructors
    */
-  bhopscotch_map() noexcept(ht::DEFAULT_INIT_BUCKETS_SIZE == 0) : bhopscotch_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {}
+  bhopscotch_map() noexcept(ht::DEFAULT_INIT_BUCKETS_SIZE == 0 &&
+                            std::is_nothrow_default_constructible<Hash>::value &&
+                            std::is_nothrow_default_constructible<KeyEqual>::value &&
+                            std::is_nothrow_default_constructible<Allocator>::value &&
+                            (std::is_nothrow_constructible<GrowthPolicy, std::size_t&>::value ||
+                             hh::is_noexcept_on_zero_init<GrowthPolicy>::value))
+      : bhopscotch_map(ht::DEFAULT_INIT_BUCKETS_SIZE) {}
 
   explicit bhopscotch_map(size_type bucket_count, const Hash& hash = Hash(),
                           const KeyEqual& equal = KeyEqual(),
