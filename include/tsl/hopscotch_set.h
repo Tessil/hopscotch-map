@@ -123,13 +123,8 @@ class hopscotch_set {
   /*
    * Constructors
    */
-  hopscotch_set() noexcept(ht::DEFAULT_INIT_BUCKETS_SIZE == 0 &&
-                           std::is_nothrow_default_constructible<Hash>::value &&
-                           std::is_nothrow_default_constructible<KeyEqual>::value &&
-                           std::is_nothrow_default_constructible<Allocator>::value &&
-                           (std::is_nothrow_constructible<GrowthPolicy, std::size_t&>::value ||
-                            hh::is_noexcept_on_zero_init<GrowthPolicy>::value))
-      : hopscotch_set(ht::DEFAULT_INIT_BUCKETS_SIZE) {}
+  hopscotch_set() noexcept(std::is_nothrow_default_constructible<ht>::value)
+      : m_ht() {}
 
   explicit hopscotch_set(size_type bucket_count, const Hash& hash = Hash(),
                          const KeyEqual& equal = KeyEqual(),
