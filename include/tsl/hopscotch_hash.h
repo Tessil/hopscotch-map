@@ -43,9 +43,6 @@
 
 #include "hopscotch_growth_policy.h"
 
-#if (defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 9))
-#define TSL_HH_NO_RANGE_ERASE_WITH_CONST_ITERATOR
-#endif
 
 namespace tsl {
 namespace detail_hopscotch_hash {
@@ -309,22 +306,14 @@ class hopscotch_bucket : public hopscotch_bucket_hash<StoreHash> {
 
   value_type& value() noexcept {
     tsl_hh_assert(!empty());
-#if defined(__cplusplus) && __cplusplus >= 201703L
     return *std::launder(
         reinterpret_cast<value_type*>(std::addressof(m_value)));
-#else
-    return *reinterpret_cast<value_type*>(std::addressof(m_value));
-#endif
   }
 
   const value_type& value() const noexcept {
     tsl_hh_assert(!empty());
-#if defined(__cplusplus) && __cplusplus >= 201703L
     return *std::launder(
         reinterpret_cast<const value_type*>(std::addressof(m_value)));
-#else
-    return *reinterpret_cast<const value_type*>(std::addressof(m_value));
-#endif
   }
 
   template <typename... Args>
@@ -1380,25 +1369,14 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     new_map.swap(*this);
   }
 
-#ifdef TSL_HH_NO_RANGE_ERASE_WITH_CONST_ITERATOR
-  iterator_overflow mutable_overflow_iterator(const_iterator_overflow it) {
-    return std::next(m_overflow_elements.begin(),
-                     std::distance(m_overflow_elements.cbegin(), it));
-  }
-#else
   iterator_overflow mutable_overflow_iterator(const_iterator_overflow it) {
     return m_overflow_elements.erase(it, it);
   }
-#endif
 
   // iterator is in overflow list
   iterator_overflow erase_from_overflow(const_iterator_overflow pos,
                                         std::size_t ibucket_for_hash) {
-#ifdef TSL_HH_NO_RANGE_ERASE_WITH_CONST_ITERATOR
-    auto it_next = m_overflow_elements.erase(mutable_overflow_iterator(pos));
-#else
     auto it_next = m_overflow_elements.erase(pos);
-#endif
     m_nb_elements--;
 
     // Check if we can remove the overflow flag
