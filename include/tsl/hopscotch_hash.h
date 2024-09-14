@@ -585,7 +585,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   template <
       class OC = OverflowContainer,
       typename std::enable_if<!has_key_compare<OC>::value>::type* = nullptr>
-  hopscotch_hash() noexcept(DEFAULT_INIT_BUCKETS_SIZE == 0 &&
+  hopscotch_hash() noexcept(hopscotch_hash::DEFAULT_INIT_BUCKETS_SIZE == 0 &&
                             std::is_nothrow_default_constructible<Hash>::value &&
                             std::is_nothrow_default_constructible<KeyEqual>::value &&
                             std::is_nothrow_default_constructible<Allocator>::value &&
@@ -633,7 +633,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   template <
       class OC = OverflowContainer,
       typename std::enable_if<has_key_compare<OC>::value>::type* = nullptr>
-  hopscotch_hash() noexcept(DEFAULT_INIT_BUCKETS_SIZE == 0 &&
+  hopscotch_hash() noexcept(hopscotch_hash::DEFAULT_INIT_BUCKETS_SIZE == 0 &&
                             std::is_nothrow_default_constructible<Hash>::value &&
                             std::is_nothrow_default_constructible<KeyEqual>::value &&
                             std::is_nothrow_default_constructible<Allocator>::value &&
