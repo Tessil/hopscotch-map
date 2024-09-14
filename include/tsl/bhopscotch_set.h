@@ -310,7 +310,9 @@ class bhopscotch_set {
     return m_ht.erase(key, precalculated_hash);
   }
 
-  void swap(bhopscotch_set& other) noexcept(noexcept(other.m_ht.swap(m_ht))) { other.m_ht.swap(m_ht); }
+  void swap(bhopscotch_set& other) noexcept(noexcept(other.m_ht.swap(m_ht))) {
+    other.m_ht.swap(m_ht);
+  }
 
   /*
    * Lookup
@@ -598,7 +600,10 @@ class bhopscotch_set {
     return !operator==(lhs, rhs);
   }
 
-  friend void swap(bhopscotch_set& lhs, bhopscotch_set& rhs) noexcept(noexcept(lhs.swap(rhs))) { lhs.swap(rhs); }
+  friend void swap(bhopscotch_set& lhs,
+                   bhopscotch_set& rhs) noexcept(noexcept(lhs.swap(rhs))) {
+    lhs.swap(rhs);
+  }
 
  private:
   ht m_ht;

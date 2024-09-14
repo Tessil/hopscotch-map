@@ -403,13 +403,15 @@ class prime_growth_policy {
  * SFINAE helper to detect growth policies which can be noexcept-initialized
  * with a zero min bucket count.
  */
-template<typename>
+template <typename>
 struct is_noexcept_on_zero_init : std::false_type {};
-template<std::size_t GrowthFactor>
-struct is_noexcept_on_zero_init<power_of_two_growth_policy<GrowthFactor>> : std::true_type {};
-template<class GrowthFactor>
-struct is_noexcept_on_zero_init<mod_growth_policy<GrowthFactor>> : std::true_type {};
-template<>
+template <std::size_t GrowthFactor>
+struct is_noexcept_on_zero_init<power_of_two_growth_policy<GrowthFactor>>
+    : std::true_type {};
+template <class GrowthFactor>
+struct is_noexcept_on_zero_init<mod_growth_policy<GrowthFactor>>
+    : std::true_type {};
+template <>
 struct is_noexcept_on_zero_init<prime_growth_policy> : std::true_type {};
 
 }  // namespace hh

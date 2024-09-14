@@ -415,7 +415,9 @@ class bhopscotch_map {
     return m_ht.erase(key, precalculated_hash);
   }
 
-  void swap(bhopscotch_map& other) noexcept(noexcept(other.m_ht.swap(m_ht))) { other.m_ht.swap(m_ht); }
+  void swap(bhopscotch_map& other) noexcept(noexcept(other.m_ht.swap(m_ht))) {
+    other.m_ht.swap(m_ht);
+  }
 
   /*
    * Lookup
@@ -786,7 +788,10 @@ class bhopscotch_map {
     return !operator==(lhs, rhs);
   }
 
-  friend void swap(bhopscotch_map& lhs, bhopscotch_map& rhs) noexcept(noexcept(lhs.swap(rhs))) { lhs.swap(rhs); }
+  friend void swap(bhopscotch_map& lhs,
+                   bhopscotch_map& rhs) noexcept(noexcept(lhs.swap(rhs))) {
+    lhs.swap(rhs);
+  }
 
  private:
   ht m_ht;
