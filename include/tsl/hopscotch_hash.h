@@ -585,6 +585,17 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   template <
       class OC = OverflowContainer,
       typename std::enable_if<!has_key_compare<OC>::value>::type* = nullptr>
+  hopscotch_hash() noexcept(DEFAULT_INIT_BUCKETS_SIZE == 0 &&
+                            std::is_nothrow_default_constructible<Hash>::value &&
+                            std::is_nothrow_default_constructible<KeyEqual>::value &&
+                            std::is_nothrow_default_constructible<Allocator>::value &&
+                            (std::is_nothrow_constructible<GrowthPolicy, std::size_t&>::value ||
+                             hh::is_noexcept_on_zero_init<GrowthPolicy>::value))
+      : hopscotch_hash(DEFAULT_INIT_BUCKETS_SIZE, Hash(), KeyEqual(), Allocator(), DEFAULT_MAX_LOAD_FACTOR) {}
+
+  template <
+      class OC = OverflowContainer,
+      typename std::enable_if<!has_key_compare<OC>::value>::type* = nullptr>
   hopscotch_hash(size_type bucket_count, const Hash& hash,
                  const KeyEqual& equal, const Allocator& alloc,
                  float max_load_factor)
@@ -618,6 +629,17 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
                   "value_type must be either copy constructible or nothrow "
                   "move constructible.");
   }
+
+  template <
+      class OC = OverflowContainer,
+      typename std::enable_if<has_key_compare<OC>::value>::type* = nullptr>
+  hopscotch_hash() noexcept(DEFAULT_INIT_BUCKETS_SIZE == 0 &&
+                            std::is_nothrow_default_constructible<Hash>::value &&
+                            std::is_nothrow_default_constructible<KeyEqual>::value &&
+                            std::is_nothrow_default_constructible<Allocator>::value &&
+                            (std::is_nothrow_constructible<GrowthPolicy, std::size_t&>::value ||
+                             hh::is_noexcept_on_zero_init<GrowthPolicy>::value))
+      : hopscotch_hash(DEFAULT_INIT_BUCKETS_SIZE, Hash(), KeyEqual(), Allocator(), DEFAULT_MAX_LOAD_FACTOR, typename OC::key_compare()) {}
 
   template <
       class OC = OverflowContainer,
@@ -719,7 +741,7 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return *this;
   }
 
-  hopscotch_hash& operator=(hopscotch_hash&& other) {
+  hopscotch_hash& operator=(hopscotch_hash&& other) noexcept(noexcept(other.swap(*this))) {
     other.swap(*this);
     other.clear();
 
@@ -1024,7 +1046,11 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
     return 0;
   }
 
-  void swap(hopscotch_hash& other) {
+  void swap(hopscotch_hash& other) noexcept(std::is_nothrow_swappable<Hash>::value &&
+                                            std::is_nothrow_swappable<KeyEqual>::value &&
+                                            std::is_nothrow_swappable<GrowthPolicy>::value &&
+                                            std::is_nothrow_swappable<buckets_container_type>::value &&
+                                            std::is_nothrow_swappable<overflow_container_type>::value) {
     using std::swap;
 
     swap(static_cast<Hash&>(*this), static_cast<Hash&>(other));

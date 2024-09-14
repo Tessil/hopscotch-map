@@ -102,7 +102,8 @@ class bhopscotch_set {
   /*
    * Constructors
    */
-  bhopscotch_set() : bhopscotch_set(ht::DEFAULT_INIT_BUCKETS_SIZE) {}
+  bhopscotch_set() noexcept(std::is_nothrow_default_constructible<ht>::value)
+      : m_ht() {}
 
   explicit bhopscotch_set(size_type bucket_count, const Hash& hash = Hash(),
                           const KeyEqual& equal = KeyEqual(),
@@ -309,7 +310,7 @@ class bhopscotch_set {
     return m_ht.erase(key, precalculated_hash);
   }
 
-  void swap(bhopscotch_set& other) { other.m_ht.swap(m_ht); }
+  void swap(bhopscotch_set& other) noexcept(noexcept(other.m_ht.swap(m_ht))) { other.m_ht.swap(m_ht); }
 
   /*
    * Lookup
@@ -597,7 +598,7 @@ class bhopscotch_set {
     return !operator==(lhs, rhs);
   }
 
-  friend void swap(bhopscotch_set& lhs, bhopscotch_set& rhs) { lhs.swap(rhs); }
+  friend void swap(bhopscotch_set& lhs, bhopscotch_set& rhs) noexcept(noexcept(lhs.swap(rhs))) { lhs.swap(rhs); }
 
  private:
   ht m_ht;
