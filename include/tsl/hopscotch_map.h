@@ -425,7 +425,8 @@ class hopscotch_map {
     return m_ht.erase(key, precalculated_hash);
   }
 
-  void swap(hopscotch_map& other) noexcept(noexcept(other.m_ht.swap(m_ht))) {
+  void swap(hopscotch_map& other) noexcept(
+      noexcept(other.m_ht.swap(this->m_ht))) {
     other.m_ht.swap(m_ht);
   }
 
