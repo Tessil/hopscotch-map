@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 include(GNUInstallDirs)
 
 
-project(tsl-hopscotch-map VERSION 2.3.1)
+project(tsl-hopscotch-map VERSION 2.4.0)
 
 add_library(hopscotch_map INTERFACE)
 # Use tsl::hopscotch_map as target, more consistent with other libraries conventions (Boost, Qt, ...)
