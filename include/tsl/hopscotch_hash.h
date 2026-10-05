@@ -821,7 +821,14 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   template <class P, typename std::enable_if<std::is_constructible<
                          value_type, P&&>::value>::type* = nullptr>
   std::pair<iterator, bool> insert(P&& value) {
-    return insert_impl(std::forward<P>(value));
+    // Convert map values before key selection; preserve heterogeneous sets.
+    if constexpr (has_mapped_type<ValueSelect>::value &&
+                  !std::is_same<typename std::decay<P>::type,
+                                value_type>::value) {
+      return insert_impl(value_type(std::forward<P>(value)));
+    } else {
+      return insert_impl(std::forward<P>(value));
+    }
   }
 
   std::pair<iterator, bool> insert(value_type&& value) {
@@ -840,12 +847,18 @@ class hopscotch_hash : private Hash, private KeyEqual, private GrowthPolicy {
   template <class P, typename std::enable_if<std::is_constructible<
                          value_type, P&&>::value>::type* = nullptr>
   iterator insert(const_iterator hint, P&& value) {
-    if (hint != cend() &&
-        compare_keys(KeySelect()(*hint), KeySelect()(value))) {
-      return mutable_iterator(hint);
-    }
+    if constexpr (has_mapped_type<ValueSelect>::value &&
+                  !std::is_same<typename std::decay<P>::type,
+                                value_type>::value) {
+      return insert(hint, value_type(std::forward<P>(value)));
+    } else {
+      if (hint != cend() &&
+          compare_keys(KeySelect()(*hint), KeySelect()(value))) {
+        return mutable_iterator(hint);
+      }
 
-    return insert(std::forward<P>(value)).first;
+      return insert(std::forward<P>(value)).first;
+    }
   }
 
   iterator insert(const_iterator hint, value_type&& value) {

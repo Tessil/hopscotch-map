@@ -145,6 +145,187 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert, HMap, test_types) {
   }
 }
 
+struct insert_base {
+  explicit insert_base(int v) : value(v) {}
+  virtual ~insert_base() = default;
+  int value;
+};
+
+struct insert_derived : insert_base {
+  using insert_base::insert_base;
+};
+
+using converting_insert_types =
+    boost::mpl::list<tsl::hopscotch_map<int, std::unique_ptr<insert_base>>,
+                     tsl::hopscotch_pg_map<int, std::unique_ptr<insert_base>>,
+                     tsl::bhopscotch_map<int, std::unique_ptr<insert_base>>,
+                     tsl::bhopscotch_pg_map<int, std::unique_ptr<insert_base>>>;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_converting_move_only, HMap,
+                              converting_insert_types) {
+  HMap map;
+  auto result =
+      map.insert(std::make_pair(1, std::make_unique<insert_derived>(11)));
+  BOOST_CHECK(result.second);
+  BOOST_CHECK_EQUAL(result.first->first, 1);
+  BOOST_REQUIRE(result.first->second != nullptr);
+  BOOST_CHECK_EQUAL(result.first->second->value, 11);
+
+  result = map.insert(std::make_pair(1, std::make_unique<insert_derived>(99)));
+  BOOST_CHECK(!result.second);
+  BOOST_CHECK_EQUAL(result.first->second->value, 11);
+  BOOST_CHECK_EQUAL(map.size(), 1);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_converting_move_only_hint, HMap,
+                              converting_insert_types) {
+  HMap map;
+  auto it = map.insert(map.end(),
+                       std::make_pair(1, std::make_unique<insert_derived>(11)));
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_REQUIRE(it->second != nullptr);
+  BOOST_CHECK_EQUAL(it->second->value, 11);
+
+  // Matching hint, duplicate key.
+  it = map.insert(map.find(1),
+                  std::make_pair(1, std::make_unique<insert_derived>(99)));
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second->value, 11);
+
+  // Nonmatching hint, new key.
+  it = map.insert(map.find(1),
+                  std::make_pair(2, std::make_unique<insert_derived>(22)));
+  BOOST_CHECK_EQUAL(it->first, 2);
+  BOOST_REQUIRE(it->second != nullptr);
+  BOOST_CHECK_EQUAL(it->second->value, 22);
+
+  // Nonmatching and end hints, duplicate key.
+  it = map.insert(map.find(1),
+                  std::make_pair(2, std::make_unique<insert_derived>(99)));
+  BOOST_CHECK_EQUAL(it->first, 2);
+  BOOST_CHECK_EQUAL(it->second->value, 22);
+  it = map.insert(map.end(),
+                  std::make_pair(2, std::make_unique<insert_derived>(99)));
+  BOOST_CHECK_EQUAL(it->first, 2);
+  BOOST_CHECK_EQUAL(it->second->value, 22);
+  BOOST_CHECK_EQUAL(map.size(), 2);
+}
+
+using copyable_insert_types =
+    boost::mpl::list<tsl::hopscotch_map<int, std::string>,
+                     tsl::hopscotch_pg_map<int, std::string>,
+                     tsl::bhopscotch_map<int, std::string>,
+                     tsl::bhopscotch_pg_map<int, std::string>>;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_converting_copyable, HMap,
+                              copyable_insert_types) {
+  HMap map;
+  std::pair<short, const char *> value(1, "one");
+  auto result = map.insert(value);
+  BOOST_CHECK(result.second);
+  BOOST_CHECK_EQUAL(result.first->second, "one");
+  const std::pair<short, const char *> duplicate(1, "duplicate");
+  result = map.insert(duplicate);
+  BOOST_CHECK(!result.second);
+  BOOST_CHECK_EQUAL(result.first->second, "one");
+  auto it = map.insert(map.end(), std::make_pair(2, "two"));
+  BOOST_CHECK_EQUAL(it->first, 2);
+  BOOST_CHECK_EQUAL(it->second, "two");
+  it = map.insert(map.find(1), duplicate);
+  BOOST_CHECK_EQUAL(it->second, "one");
+  BOOST_CHECK_EQUAL(map.size(), 2);
+}
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_converting_move_only_range, HMap,
+                              converting_insert_types) {
+  std::vector<std::pair<int, std::unique_ptr<insert_derived>>> values;
+  values.emplace_back(1, std::make_unique<insert_derived>(11));
+  values.emplace_back(2, std::make_unique<insert_derived>(22));
+  HMap map;
+  map.insert(std::make_move_iterator(values.begin()),
+             std::make_move_iterator(values.end()));
+  BOOST_CHECK_EQUAL(map.size(), 2);
+  BOOST_REQUIRE(map.at(1) != nullptr);
+  BOOST_REQUIRE(map.at(2) != nullptr);
+  BOOST_CHECK_EQUAL(map.at(1)->value, 11);
+  BOOST_CHECK_EQUAL(map.at(2)->value, 22);
+
+  values.clear();
+  values.emplace_back(3, std::make_unique<insert_derived>(33));
+  HMap constructed(std::make_move_iterator(values.begin()),
+                   std::make_move_iterator(values.end()));
+  BOOST_CHECK_EQUAL(constructed.size(), 1);
+  BOOST_REQUIRE(constructed.at(3) != nullptr);
+  BOOST_CHECK_EQUAL(constructed.at(3)->value, 33);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_exact_value_type, HMap,
+                              copyable_insert_types) {
+  HMap map;
+  typename HMap::value_type value(1, "one");
+  auto result = map.insert(value);
+  BOOST_CHECK(result.second);
+  BOOST_CHECK_EQUAL(result.first->second, "one");
+  result = map.template insert<typename HMap::value_type &>(value);
+  BOOST_CHECK(!result.second);
+  BOOST_CHECK_EQUAL(result.first->second, "one");
+  auto it =
+      map.template insert<typename HMap::value_type &>(map.find(1), value);
+  BOOST_CHECK_EQUAL(it->first, 1);
+  BOOST_CHECK_EQUAL(it->second, "one");
+  BOOST_CHECK_EQUAL(map.size(), 1);
+}
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_explicitly_convertible, HMap,
+                              converting_insert_types) {
+  int conversions = 0;
+  struct proxy {
+    int key;
+    int &conversions;
+    explicit operator typename HMap::value_type() && {
+      ++conversions;
+      return {key, std::make_unique<insert_derived>(key * 11)};
+    }
+  };
+
+  HMap map;
+  auto result = map.insert(proxy{1, conversions});
+  BOOST_CHECK(result.second);
+  BOOST_CHECK_EQUAL(result.first->second->value, 11);
+  auto it = map.insert(map.find(1), proxy{2, conversions});
+  BOOST_CHECK_EQUAL(it->first, 2);
+  BOOST_CHECK_EQUAL(it->second->value, 22);
+  BOOST_CHECK_EQUAL(conversions, 2);
+}
+
+struct insert_copy_counted {
+  explicit insert_copy_counted(int &count) : copies(count) {}
+  insert_copy_counted(const insert_copy_counted &other) : copies(other.copies) {
+    ++copies;
+  }
+  insert_copy_counted(insert_copy_counted &&) noexcept = default;
+  int &copies;
+};
+
+using exact_insert_types =
+    boost::mpl::list<tsl::hopscotch_map<int, insert_copy_counted>,
+                     tsl::hopscotch_pg_map<int, insert_copy_counted>,
+                     tsl::bhopscotch_map<int, insert_copy_counted>,
+                     tsl::bhopscotch_pg_map<int, insert_copy_counted>>;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_insert_exact_value_no_extra_copy, HMap,
+                              exact_insert_types) {
+  int copies = 0;
+  HMap map;
+  typename HMap::value_type value(1, insert_copy_counted(copies));
+  BOOST_CHECK(map.insert(value).second);
+  BOOST_CHECK_EQUAL(copies, 1);
+  BOOST_CHECK(!map.insert(value).second);
+  BOOST_CHECK_EQUAL(copies, 1);
+  BOOST_CHECK(map.insert(map.find(1), value) == map.find(1));
+  BOOST_CHECK_EQUAL(copies, 1);
+  BOOST_CHECK(map.insert(map.end(), value) == map.find(1));
+  BOOST_CHECK_EQUAL(copies, 1);
+}
+
 // Get nothrow_move_constructible elements into the overflow list before rehash.
 static const unsigned int overflow_mod = 50;
 using test_overflow_rehash_types = boost::mpl::list<
